@@ -25,7 +25,14 @@ export default function AccessDenied({
       <div className="glass-card rounded-3xl p-8 sm:p-10 border border-danger/30 max-w-md w-full text-center shadow-glow animate-fade-in-up">
         {/* Shield Icon */}
         <div className="w-16 h-16 rounded-2xl bg-danger/15 border border-danger/30 flex items-center justify-center mx-auto mb-5 text-danger animate-pulse">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -39,8 +46,18 @@ export default function AccessDenied({
 
         {(requiredRole || requiredPermission) && (
           <div className="bg-muted/40 rounded-xl p-3 text-xs text-muted-foreground mb-6 font-mono-data">
-            {requiredRole && <div>Required Role: <span className="text-warning font-600 uppercase">{requiredRole}</span></div>}
-            {requiredPermission && <div>Required Permission: <span className="text-danger font-600">{requiredPermission}</span></div>}
+            {requiredRole && (
+              <div>
+                Required Role:{' '}
+                <span className="text-warning font-600 uppercase">{requiredRole}</span>
+              </div>
+            )}
+            {requiredPermission && (
+              <div>
+                Required Permission:{' '}
+                <span className="text-danger font-600">{requiredPermission}</span>
+              </div>
+            )}
           </div>
         )}
 

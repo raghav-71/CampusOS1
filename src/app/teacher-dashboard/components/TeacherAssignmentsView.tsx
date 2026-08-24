@@ -80,7 +80,9 @@ export default function TeacherAssignmentsView() {
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-700 text-foreground">Assignments & Submissions Evaluation</h2>
+            <h2 className="text-xl font-700 text-foreground">
+              Assignments & Submissions Evaluation
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Create homework assignments, lab assessments, and grade submissions
             </p>
@@ -91,7 +93,14 @@ export default function TeacherAssignmentsView() {
             size="sm"
             onClick={() => setCreateModalOpen(true)}
             leftIcon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
             }
@@ -103,7 +112,9 @@ export default function TeacherAssignmentsView() {
         {/* Assignments Table */}
         <div className="glass-card rounded-2xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border/80 flex items-center justify-between">
-            <h3 className="text-base font-600 text-foreground">Course Assignments ({assignments.length})</h3>
+            <h3 className="text-base font-600 text-foreground">
+              Course Assignments ({assignments.length})
+            </h3>
             <Badge variant="cyan">Fall 2026</Badge>
           </div>
 
@@ -123,12 +134,18 @@ export default function TeacherAssignmentsView() {
                   <tr key={asg.id} className="hover:bg-muted/20 transition-colors">
                     <td className="py-3.5 px-4">
                       <p className="text-sm font-600 text-foreground">{asg.title}</p>
-                      <p className="text-xs text-muted-foreground">{asg.subject} · {asg.department} {asg.semester}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {asg.subject} · {asg.department} {asg.semester}
+                      </p>
                     </td>
                     <td className="py-3.5 px-4 font-mono-data text-foreground">{asg.dueDate}</td>
-                    <td className="py-3.5 px-4 font-600 text-foreground">{asg.totalSubmissions} received</td>
+                    <td className="py-3.5 px-4 font-600 text-foreground">
+                      {asg.totalSubmissions} received
+                    </td>
                     <td className="py-3.5 px-4">
-                      <span className="text-primary font-600">{asg.gradedSubmissions} / {asg.totalSubmissions || 1}</span>
+                      <span className="text-primary font-600">
+                        {asg.gradedSubmissions} / {asg.totalSubmissions || 1}
+                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <span
@@ -136,8 +153,8 @@ export default function TeacherAssignmentsView() {
                           asg.status === 'active'
                             ? 'badge-success'
                             : asg.status === 'grading'
-                            ? 'badge-warning'
-                            : 'badge-muted'
+                              ? 'badge-warning'
+                              : 'badge-muted'
                         }`}
                       >
                         {asg.status.toUpperCase()}
@@ -154,8 +171,12 @@ export default function TeacherAssignmentsView() {
         <div className="glass-card rounded-2xl p-5 border border-border">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-600 text-foreground">Recent Submissions Ready for Evaluation</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Click any submission to review report and grade</p>
+              <h3 className="text-base font-600 text-foreground">
+                Recent Submissions Ready for Evaluation
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Click any submission to review report and grade
+              </p>
             </div>
             <Badge variant="violet">{submissions.length} Submissions</Badge>
           </div>
@@ -173,13 +194,19 @@ export default function TeacherAssignmentsView() {
                         subm.status === 'graded' ? 'badge-success' : 'badge-warning'
                       }`}
                     >
-                      {subm.status === 'graded' ? `Graded: ${subm.score}/${subm.maxScore}` : 'Needs Review'}
+                      {subm.status === 'graded'
+                        ? `Graded: ${subm.score}/${subm.maxScore}`
+                        : 'Needs Review'}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono-data">{subm.rollNumber}</span>
+                    <span className="text-xs text-muted-foreground font-mono-data">
+                      {subm.rollNumber}
+                    </span>
                   </div>
 
                   <h4 className="text-sm font-700 text-foreground mb-0.5">{subm.studentName}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-1 mb-3">{subm.assignmentTitle}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1 mb-3">
+                    {subm.assignmentTitle}
+                  </p>
                 </div>
 
                 <div className="pt-3 border-t border-border/40 flex items-center justify-between">

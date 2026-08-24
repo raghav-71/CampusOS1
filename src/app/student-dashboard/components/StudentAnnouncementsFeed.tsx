@@ -73,13 +73,19 @@ export default function StudentAnnouncementsFeed() {
             <div
               key={ann.id}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer hover:border-border ${
-                !ann.read ? 'border-border bg-muted/30' : 'border-transparent bg-muted/10 opacity-75'
+                !ann.read
+                  ? 'border-border bg-muted/30'
+                  : 'border-transparent bg-muted/10 opacity-75'
               }`}
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  {!ann.read && <span className={`status-dot ${priority.dot} flex-shrink-0 mt-0.5`} />}
-                  <span className={`text-xs px-2 py-0.5 rounded-md font-600 ${categoryConfig[ann.category] || 'badge-muted'}`}>
+                  {!ann.read && (
+                    <span className={`status-dot ${priority.dot} flex-shrink-0 mt-0.5`} />
+                  )}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-md font-600 ${categoryConfig[ann.category] || 'badge-muted'}`}
+                  >
                     {ann.category}
                   </span>
                   <span className={`text-xs px-2 py-0.5 rounded-md font-500 ${priority.badge}`}>
@@ -89,7 +95,9 @@ export default function StudentAnnouncementsFeed() {
                 <span className="text-xs text-muted-foreground flex-shrink-0">{ann.time}</span>
               </div>
               <p className="text-sm font-600 text-foreground mb-0.5">{ann.title}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{ann.body}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                {ann.body}
+              </p>
               <p className="text-xs text-muted-foreground mt-1.5">— {ann.author}</p>
             </div>
           );

@@ -54,7 +54,9 @@ export default function Tabs({
   }
 
   return (
-    <div className={`flex items-center gap-1.5 p-1 rounded-xl glass-card border border-border/60 ${className}`}>
+    <div
+      className={`flex items-center gap-1.5 p-1 rounded-xl glass-card border border-border/60 ${className}`}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (

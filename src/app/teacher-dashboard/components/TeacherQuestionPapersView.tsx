@@ -67,7 +67,9 @@ export default function TeacherQuestionPapersView() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-700 text-foreground">Examination Question Papers & Blueprints</h2>
+            <h2 className="text-xl font-700 text-foreground">
+              Examination Question Papers & Blueprints
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Draft, review, and export standardized university examination question papers
             </p>
@@ -76,7 +78,9 @@ export default function TeacherQuestionPapersView() {
           <Button
             variant="accent"
             size="sm"
-            onClick={() => toast.info('AI Question Paper Generator is available in the Faculty AI drawer')}
+            onClick={() =>
+              toast.info('AI Question Paper Generator is available in the Faculty AI drawer')
+            }
           >
             Generate with AI ✨
           </Button>
@@ -90,13 +94,25 @@ export default function TeacherQuestionPapersView() {
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <Badge variant={qp.examType === 'Mid-Term' ? 'violet' : qp.examType === 'End-Term' ? 'warning' : 'cyan'}>
+                  <Badge
+                    variant={
+                      qp.examType === 'Mid-Term'
+                        ? 'violet'
+                        : qp.examType === 'End-Term'
+                          ? 'warning'
+                          : 'cyan'
+                    }
+                  >
                     {qp.examType}
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-mono-data">{qp.duration}</span>
+                  <span className="text-xs text-muted-foreground font-mono-data">
+                    {qp.duration}
+                  </span>
                 </div>
 
-                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-2">{qp.title}</h3>
+                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-2">
+                  {qp.title}
+                </h3>
                 <p className="text-xs text-muted-foreground mb-4">
                   {qp.subject} ({qp.subjectCode}) · {qp.semester} · Max Marks: {qp.totalMarks}
                 </p>
@@ -164,21 +180,35 @@ export default function TeacherQuestionPapersView() {
         >
           <div className="p-5 rounded-2xl border border-border bg-card/80 space-y-4 font-mono-data text-xs leading-relaxed">
             <div className="text-center border-b border-border pb-3">
-              <h4 className="font-800 text-sm text-foreground">UNIVERSITY DEPARTMENT OF COMPUTER APPLICATIONS</h4>
-              <p className="text-muted-foreground">{previewPaper.examType} Examination — Semester 5</p>
+              <h4 className="font-800 text-sm text-foreground">
+                UNIVERSITY DEPARTMENT OF COMPUTER APPLICATIONS
+              </h4>
+              <p className="text-muted-foreground">
+                {previewPaper.examType} Examination — Semester 5
+              </p>
             </div>
 
             <div>
-              <p className="font-700 text-primary mb-1">PART A (Answer all questions — 10 x 2 = 20 Marks)</p>
+              <p className="font-700 text-primary mb-1">
+                PART A (Answer all questions — 10 x 2 = 20 Marks)
+              </p>
               <p>1. Define Virtual Memory and explain the role of the TLB.</p>
               <p>2. Differentiate between preemptive and non-preemptive CPU scheduling.</p>
               <p>3. State the necessary and sufficient conditions for deadlock.</p>
             </div>
 
             <div className="pt-2 border-t border-border/40">
-              <p className="font-700 text-accent mb-1">PART B (Answer any 4 questions — 4 x 20 = 80 Marks)</p>
-              <p>4. Consider a system with 5 processes (P0-P4) and 3 resource types (A,B,C). Implement the Banker&apos;s Safety Algorithm to find the safe sequence.</p>
-              <p>5. Explain page replacement algorithms: FIFO, LRU, and Optimal with memory trace benchmarks.</p>
+              <p className="font-700 text-accent mb-1">
+                PART B (Answer any 4 questions — 4 x 20 = 80 Marks)
+              </p>
+              <p>
+                4. Consider a system with 5 processes (P0-P4) and 3 resource types (A,B,C).
+                Implement the Banker&apos;s Safety Algorithm to find the safe sequence.
+              </p>
+              <p>
+                5. Explain page replacement algorithms: FIFO, LRU, and Optimal with memory trace
+                benchmarks.
+              </p>
             </div>
           </div>
         </Modal>

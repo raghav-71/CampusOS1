@@ -12,7 +12,11 @@ const rateLimitMap = new Map<string, RateLimitRecord>();
  * @param windowMs Window in milliseconds
  * @returns { success: boolean, remaining: number, resetAt: number }
  */
-export function checkRateLimit(ip: string, limit = 60, windowMs = 60000): { success: boolean; remaining: number; resetAt: number } {
+export function checkRateLimit(
+  ip: string,
+  limit = 60,
+  windowMs = 60000
+): { success: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const record = rateLimitMap.get(ip);
 

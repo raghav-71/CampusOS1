@@ -2,7 +2,14 @@
 
 import React from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 const data = [
@@ -57,7 +64,9 @@ export default function EnrollmentTrendChart() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-base font-600 text-foreground">Student Enrollment</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Active students by department — 2026</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Active students by department — 2026
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="badge-success text-xs px-2.5 py-1 rounded-lg font-500">↑ 4.2% MoM</span>
@@ -84,14 +93,50 @@ export default function EnrollmentTrendChart() {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} domain={[100, 550]} />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            tickLine={false}
+            domain={[100, 550]}
+          />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 11, color: 'var(--muted-foreground)', paddingTop: 8 }} />
-          <Area type="monotone" dataKey="BCA" stroke="var(--primary)" strokeWidth={2} fill="url(#gradBCA)" />
-          <Area type="monotone" dataKey="BBA" stroke="var(--accent)" strokeWidth={2} fill="url(#gradBBA)" />
-          <Area type="monotone" dataKey="BCom" stroke="var(--success)" strokeWidth={2} fill="url(#gradBCom)" />
-          <Area type="monotone" dataKey="MCA" stroke="#FF6B9D" strokeWidth={2} fill="url(#gradMCA)" />
+          <Legend
+            wrapperStyle={{ fontSize: 11, color: 'var(--muted-foreground)', paddingTop: 8 }}
+          />
+          <Area
+            type="monotone"
+            dataKey="BCA"
+            stroke="var(--primary)"
+            strokeWidth={2}
+            fill="url(#gradBCA)"
+          />
+          <Area
+            type="monotone"
+            dataKey="BBA"
+            stroke="var(--accent)"
+            strokeWidth={2}
+            fill="url(#gradBBA)"
+          />
+          <Area
+            type="monotone"
+            dataKey="BCom"
+            stroke="var(--success)"
+            strokeWidth={2}
+            fill="url(#gradBCom)"
+          />
+          <Area
+            type="monotone"
+            dataKey="MCA"
+            stroke="#FF6B9D"
+            strokeWidth={2}
+            fill="url(#gradMCA)"
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

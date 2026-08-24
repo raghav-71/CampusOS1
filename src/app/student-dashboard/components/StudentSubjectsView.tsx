@@ -23,7 +23,9 @@ export default function StudentSubjectsView() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-700 text-foreground">Enrolled Subjects & Syllabus Coverage</h2>
+          <h2 className="text-xl font-700 text-foreground">
+            Enrolled Subjects & Syllabus Coverage
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Semester 5 · 24 Total Course Credits Registered
           </p>
@@ -43,7 +45,9 @@ export default function StudentSubjectsView() {
                 <span className="badge-violet text-xs px-2.5 py-0.5 rounded-lg font-700">
                   {subject.code}
                 </span>
-                <span className="text-xs text-muted-foreground font-500">{subject.credits} Credits</span>
+                <span className="text-xs text-muted-foreground font-500">
+                  {subject.credits} Credits
+                </span>
               </div>
 
               <h3 className="text-lg font-700 text-foreground mb-1">{subject.name}</h3>
@@ -56,7 +60,9 @@ export default function StudentSubjectsView() {
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-muted-foreground font-500">Syllabus Covered</span>
-                    <span className="text-primary font-700 metric-value">{subject.syllabusProgress}%</span>
+                    <span className="text-primary font-700 metric-value">
+                      {subject.syllabusProgress}%
+                    </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                     <div

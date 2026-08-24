@@ -2,8 +2,14 @@
 
 import dynamic from 'next/dynamic';
 
-const TeacherAttendanceChart = dynamic(() => import('@/app/teacher-dashboard/components/TeacherAttendanceChart'), { ssr: false });
-const TeacherGradeChart = dynamic(() => import('@/app/teacher-dashboard/components/TeacherGradeChart'), { ssr: false });
+const TeacherAttendanceChart = dynamic(
+  () => import('@/app/teacher-dashboard/components/TeacherAttendanceChart'),
+  { ssr: false }
+);
+const TeacherGradeChart = dynamic(
+  () => import('@/app/teacher-dashboard/components/TeacherGradeChart'),
+  { ssr: false }
+);
 
 export default function TeacherChartsRow() {
   return (

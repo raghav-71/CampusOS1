@@ -95,7 +95,8 @@ export default function AdminAuditLogsView() {
         <div>
           <h2 className="text-xl font-700 text-foreground">System Audit Trail & Security Logs</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Immutable log trail of administrative operations, authentication events, and grade alterations
+            Immutable log trail of administrative operations, authentication events, and grade
+            alterations
           </p>
         </div>
 
@@ -146,10 +147,14 @@ export default function AdminAuditLogsView() {
                     <p className="font-500 text-foreground">{log.actor}</p>
                     <p className="text-[10px] text-muted-foreground">{log.role}</p>
                   </td>
-                  <td className="py-3.5 px-4 font-mono-data text-muted-foreground">{log.ipAddress}</td>
+                  <td className="py-3.5 px-4 font-mono-data text-muted-foreground">
+                    {log.ipAddress}
+                  </td>
                   <td className="py-3.5 px-4 text-muted-foreground">{log.timestamp}</td>
                   <td className="py-3.5 px-4 text-right">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-700 ${severityStyles[log.severity]}`}>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-700 ${severityStyles[log.severity]}`}
+                    >
                       {log.severity.toUpperCase()}
                     </span>
                   </td>

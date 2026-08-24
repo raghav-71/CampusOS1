@@ -22,7 +22,9 @@ export default function AdminAnnouncementsView() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>('medium');
-  const [category, setCategory] = useState<'General' | 'Exam' | 'Event' | 'Academic' | 'Emergency'>('General');
+  const [category, setCategory] = useState<'General' | 'Exam' | 'Event' | 'Academic' | 'Emergency'>(
+    'General'
+  );
   const [targetAudience, setTargetAudience] = useState('all');
 
   const handleBroadcast = (e: React.FormEvent) => {
@@ -60,7 +62,9 @@ export default function AdminAnnouncementsView() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-700 text-foreground">Institutional Announcement Broadcaster</h2>
+            <h2 className="text-xl font-700 text-foreground">
+              Institutional Announcement Broadcaster
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Publish official notices, exam updates, and emergency campus alerts
             </p>
@@ -71,7 +75,14 @@ export default function AdminAnnouncementsView() {
             size="sm"
             onClick={() => setBroadcastModalOpen(true)}
             leftIcon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M22 17H2a3 3 0 000 6h20a3 3 0 000-6z" />
                 <path d="M5.45 17l4.42-8.85A2 2 0 0111.73 7h.54a2 2 0 011.86 1.15L18.55 17" />
               </svg>
@@ -100,12 +111,18 @@ export default function AdminAnnouncementsView() {
                       <span className="badge-muted text-xs px-2 py-0.5 rounded-md font-500">
                         {item.category}
                       </span>
-                      <span className="text-xs text-muted-foreground font-mono-data">{item.time}</span>
+                      <span className="text-xs text-muted-foreground font-mono-data">
+                        {item.time}
+                      </span>
                     </div>
 
                     <h3 className="text-base font-700 text-foreground mb-1">{item.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{item.body}</p>
-                    <p className="text-[11px] text-muted-foreground mt-2">Posted by: {item.author}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                      {item.body}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      Posted by: {item.author}
+                    </p>
                   </div>
                 </div>
 

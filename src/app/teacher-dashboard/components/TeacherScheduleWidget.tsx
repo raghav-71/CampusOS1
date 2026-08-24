@@ -18,7 +18,9 @@ export default function TeacherScheduleWidget() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-base font-600 text-foreground">Today&apos;s Teaching Schedule</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Friday · 3 scheduled lectures and labs</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Friday · 3 scheduled lectures and labs
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="badge-cyan text-xs px-2.5 py-1 rounded-lg font-500">Live Semester</span>
@@ -52,7 +54,8 @@ export default function TeacherScheduleWidget() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {slot.department} · {slot.semester} &nbsp;·&nbsp; Location: <span className="text-foreground font-500">{slot.room}</span>
+                  {slot.department} · {slot.semester} &nbsp;·&nbsp; Location:{' '}
+                  <span className="text-foreground font-500">{slot.room}</span>
                 </p>
               </div>
             </div>

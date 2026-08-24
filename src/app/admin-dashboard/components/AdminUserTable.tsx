@@ -65,9 +65,7 @@ export default function AdminUserTable() {
   };
 
   const toggleRow = (id: string) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
-    );
+    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
   };
 
   const toggleAll = () => {
@@ -137,12 +135,22 @@ export default function AdminUserTable() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-600 text-foreground">User Directory & RBAC</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">{filtered.length} active records</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {filtered.length} active records
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Search */}
               <div className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2 w-44">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-muted-foreground"
+                >
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
@@ -198,10 +206,7 @@ export default function AdminUserTable() {
               {selectedRows.length} user{selectedRows.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
-              <button
-                onClick={handleBulkDeactivate}
-                className="btn-ghost text-xs px-3 py-1.5"
-              >
+              <button onClick={handleBulkDeactivate} className="btn-ghost text-xs px-3 py-1.5">
                 Deactivate
               </button>
               <button
@@ -213,10 +218,7 @@ export default function AdminUserTable() {
               >
                 Export
               </button>
-              <button
-                onClick={handleBulkRemove}
-                className="btn-danger text-xs px-3 py-1.5"
-              >
+              <button onClick={handleBulkRemove} className="btn-danger text-xs px-3 py-1.5">
                 Remove
               </button>
             </div>
@@ -251,7 +253,9 @@ export default function AdminUserTable() {
                     <div className="flex items-center">
                       <span
                         className={`text-xs font-600 tracking-wide uppercase transition-colors ${
-                          sortField === col.field ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                          sortField === col.field
+                            ? 'text-primary'
+                            : 'text-muted-foreground group-hover:text-foreground'
                         }`}
                       >
                         {col.label}
@@ -261,7 +265,9 @@ export default function AdminUserTable() {
                   </th>
                 ))}
                 <th className="px-4 py-3 text-right">
-                  <span className="text-xs font-600 tracking-wide uppercase text-muted-foreground">Actions</span>
+                  <span className="text-xs font-600 tracking-wide uppercase text-muted-foreground">
+                    Actions
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -270,13 +276,25 @@ export default function AdminUserTable() {
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-muted-foreground">
+                      <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                        className="text-muted-foreground"
+                      >
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
                       </svg>
-                      <p className="text-sm text-muted-foreground font-500">No users match your filters</p>
-                      <p className="text-xs text-muted-foreground">Try adjusting the role or status filters</p>
+                      <p className="text-sm text-muted-foreground font-500">
+                        No users match your filters
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Try adjusting the role or status filters
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -303,11 +321,14 @@ export default function AdminUserTable() {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-xs font-700 text-foreground flex-shrink-0">
-                            {user.initials || (user.fullName ? user.fullName.slice(0, 2).toUpperCase() : 'U')}
+                            {user.initials ||
+                              (user.fullName ? user.fullName.slice(0, 2).toUpperCase() : 'U')}
                           </div>
                           <div>
                             <p className="text-sm font-600 text-foreground">{user.fullName}</p>
-                            <p className="text-xs text-muted-foreground font-mono-data">{user.email}</p>
+                            <p className="text-xs text-muted-foreground font-mono-data">
+                              {user.email}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -325,14 +346,18 @@ export default function AdminUserTable() {
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className={`status-dot ${status.dot}`} />
-                          <span className={`text-xs px-2 py-0.5 rounded-md font-500 ${status.badge}`}>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-md font-500 ${status.badge}`}
+                          >
                             {status.label}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
                         <p className="text-sm text-foreground">{user.lastLogin || 'Recently'}</p>
-                        <p className="text-xs text-muted-foreground">Joined {user.joinedAt || '2024'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Joined {user.joinedAt || '2024'}
+                        </p>
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -341,7 +366,14 @@ export default function AdminUserTable() {
                             className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                             title="View profile"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                               <circle cx="12" cy="12" r="3" />
                             </svg>
@@ -351,7 +383,14 @@ export default function AdminUserTable() {
                             className="w-7 h-7 rounded-lg hover:bg-primary/10 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
                             title="Edit user"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
                               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>
@@ -361,7 +400,14 @@ export default function AdminUserTable() {
                             className="w-7 h-7 rounded-lg hover:bg-danger/10 flex items-center justify-center text-muted-foreground hover:text-danger transition-colors cursor-pointer"
                             title="Remove user"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg
+                              width="13"
+                              height="13"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
                               <polyline points="3 6 5 6 21 6" />
                               <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                               <path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
@@ -380,8 +426,11 @@ export default function AdminUserTable() {
         {/* Pagination */}
         <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            Showing <span className="text-foreground font-500 metric-value">{(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, sorted.length)}</span> of{' '}
-            <span className="text-foreground font-500 metric-value">{sorted.length}</span> users
+            Showing{' '}
+            <span className="text-foreground font-500 metric-value">
+              {(page - 1) * rowsPerPage + 1}–{Math.min(page * rowsPerPage, sorted.length)}
+            </span>{' '}
+            of <span className="text-foreground font-500 metric-value">{sorted.length}</span> users
           </p>
           <div className="flex items-center gap-1.5">
             <button
@@ -389,7 +438,14 @@ export default function AdminUserTable() {
               disabled={page === 1}
               className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </button>
@@ -411,7 +467,14 @@ export default function AdminUserTable() {
               disabled={page === totalPages}
               className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </button>
@@ -422,10 +485,20 @@ export default function AdminUserTable() {
       {/* Delete confirmation modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmDelete(null)}
+          />
           <div className="relative glass-card rounded-2xl p-6 border border-border max-w-sm w-full animate-fade-in-up">
             <div className="w-12 h-12 rounded-2xl bg-danger/10 border border-danger/20 flex items-center justify-center mx-auto mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="1.8">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--danger)"
+                strokeWidth="1.8"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />

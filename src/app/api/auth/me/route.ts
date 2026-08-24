@@ -4,7 +4,8 @@ import { campusRepository } from '@/repositories/campusRepository';
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionEmail = request.cookies.get('campusos_email')?.value || 'arjun.sharma@campusos.edu';
+    const sessionEmail =
+      request.cookies.get('campusos_email')?.value || 'arjun.sharma@campusos.edu';
     const profile = await campusRepository.getUserByEmail(sessionEmail);
 
     if (!profile) {

@@ -56,7 +56,9 @@ export interface ICampusRepository {
   // Notes
   getNotes(subject?: string, query?: string): Promise<NoteDocument[]>;
   saveNote(note: NoteDocument): Promise<NoteDocument>;
-  uploadNote(note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>): Promise<NoteDocument>;
+  uploadNote(
+    note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
+  ): Promise<NoteDocument>;
 
   // Announcements
   getAnnouncements(role?: Role): Promise<Announcement[]>;
@@ -66,7 +68,11 @@ export interface ICampusRepository {
   getAssignments(teacherName?: string): Promise<Assignment[]>;
   createAssignment(assignment: Assignment): Promise<Assignment>;
   getSubmissions(assignmentId?: string): Promise<Submission[]>;
-  gradeSubmission(submissionId: string, score: number, feedback?: string): Promise<Submission | null>;
+  gradeSubmission(
+    submissionId: string,
+    score: number,
+    feedback?: string
+  ): Promise<Submission | null>;
 
   // Metrics & Analytics
   getStudyProgress(): Promise<StudyProgressMetric[]>;
@@ -85,15 +91,40 @@ export class MockCampusRepository implements ICampusRepository {
   private submissions: Submission[] = [...mockSubmissions];
   private activities: ActivityItem[] = [...mockActivities];
   private attendanceRecords: AttendanceRecord[] = [
-    { id: 'att-1', studentId: 'usr-001', studentName: 'Arjun Sharma', rollNumber: 'BCA2401', subject: 'Operating Systems', date: '2026-08-23', status: 'present' },
-    { id: 'att-2', studentId: 'usr-002', studentName: 'Priya Menon', rollNumber: 'BCA2402', subject: 'Operating Systems', date: '2026-08-23', status: 'present' },
-    { id: 'att-3', studentId: 'usr-004', studentName: 'Rohit Verma', rollNumber: 'BCA2403', subject: 'Operating Systems', date: '2026-08-23', status: 'absent' },
+    {
+      id: 'att-1',
+      studentId: 'usr-001',
+      studentName: 'Arjun Sharma',
+      rollNumber: 'BCA2401',
+      subject: 'Operating Systems',
+      date: '2026-08-23',
+      status: 'present',
+    },
+    {
+      id: 'att-2',
+      studentId: 'usr-002',
+      studentName: 'Priya Menon',
+      rollNumber: 'BCA2402',
+      subject: 'Operating Systems',
+      date: '2026-08-23',
+      status: 'present',
+    },
+    {
+      id: 'att-3',
+      studentId: 'usr-004',
+      studentName: 'Rohit Verma',
+      rollNumber: 'BCA2403',
+      subject: 'Operating Systems',
+      date: '2026-08-23',
+      status: 'absent',
+    },
   ];
 
   async getUsers(role?: Role, department?: string): Promise<UserProfile[]> {
     let result = [...this.users];
     if (role) result = result.filter((u) => u.role === role);
-    if (department && department !== 'All') result = result.filter((u) => u.department === department);
+    if (department && department !== 'All')
+      result = result.filter((u) => u.department === department);
     return result;
   }
 
@@ -181,7 +212,9 @@ export class MockCampusRepository implements ICampusRepository {
     return note;
   }
 
-  async uploadNote(noteInput: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>): Promise<NoteDocument> {
+  async uploadNote(
+    noteInput: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
+  ): Promise<NoteDocument> {
     const newNote: NoteDocument = {
       ...noteInput,
       id: `note-${Date.now()}`,
@@ -216,7 +249,11 @@ export class MockCampusRepository implements ICampusRepository {
     return this.submissions.filter((s) => s.assignmentId === assignmentId);
   }
 
-  async gradeSubmission(submissionId: string, score: number, feedback?: string): Promise<Submission | null> {
+  async gradeSubmission(
+    submissionId: string,
+    score: number,
+    feedback?: string
+  ): Promise<Submission | null> {
     const sub = this.submissions.find((s) => s.id === submissionId);
     if (!sub) return null;
     sub.score = score;

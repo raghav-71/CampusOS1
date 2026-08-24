@@ -1,5 +1,6 @@
 import React from 'react';
 import { KPICardData } from '@/types/campus';
+import GlassCard from '@/components/ui/GlassCard';
 
 const teacherKPIs: KPICardData[] = [
   {
@@ -12,7 +13,7 @@ const teacherKPIs: KPICardData[] = [
     detail: 'Room A-204 · Sem 5',
     color: 'text-accent',
     bgColor: 'bg-accent/10',
-    borderColor: 'border-accent/20',
+    borderColor: 'border-accent/30',
     hero: true,
   },
   {
@@ -25,7 +26,7 @@ const teacherKPIs: KPICardData[] = [
     detail: 'Avg. Attendance: 91.4%',
     color: 'text-success',
     bgColor: 'bg-success/10',
-    borderColor: 'border-success/20',
+    borderColor: 'border-success/30',
   },
   {
     id: 'tkpi-grading',
@@ -37,7 +38,7 @@ const teacherKPIs: KPICardData[] = [
     detail: 'VM Lab Report (BCA Sem 5)',
     color: 'text-warning',
     bgColor: 'bg-warning/10',
-    borderColor: 'border-warning/25',
+    borderColor: 'border-warning/30',
   },
   {
     id: 'tkpi-notes',
@@ -49,25 +50,25 @@ const teacherKPIs: KPICardData[] = [
     detail: '1.4k total student views',
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/20',
+    borderColor: 'border-primary/30',
   },
   {
     id: 'tkpi-ai-assistant',
-    title: 'AI Assessment Queries',
+    title: 'AI Exam Papers',
     value: '24',
     unit: 'generated',
     change: '3 question papers drafted',
     trend: 'positive',
     detail: 'Saves ~4 hrs weekly',
-    color: 'text-[#FF6B9D]',
-    bgColor: 'bg-[#FF6B9D]/10',
-    borderColor: 'border-[#FF6B9D]/20',
+    color: 'text-accent',
+    bgColor: 'bg-accent/10',
+    borderColor: 'border-accent/30',
   },
 ];
 
 export default function TeacherKPIGrid() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
       {teacherKPIs.map((kpi, idx) => (
         <TeacherKPICard key={kpi.id} kpi={kpi} isHero={idx === 0} />
       ))}
@@ -89,23 +90,33 @@ function TeacherKPICard({ kpi, isHero }: TeacherKPICardProps) {
   };
 
   return (
-    <div
-      className={`glass-card rounded-2xl p-4 border ${kpi.borderColor} glass-card-hover relative overflow-hidden ${
+    <GlassCard
+      interactive3D
+      hoverEffect
+      className={`p-4.5 border ${kpi.borderColor} relative overflow-hidden flex flex-col justify-between ${
         isHero ? 'col-span-2 md:col-span-1 xl:col-span-1' : ''
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="section-label">{kpi.title}</p>
-        <span className={`w-2 h-2 rounded-full ${kpi.trend === 'warning' ? 'bg-warning animate-pulse' : 'bg-transparent'}`} />
-      </div>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-700 tracking-wider text-muted-foreground uppercase">
+            {kpi.title}
+          </p>
+          <span
+            className={`w-2 h-2 rounded-full ${kpi.trend === 'warning' ? 'bg-warning animate-pulse' : 'bg-transparent'}`}
+          />
+        </div>
 
-      <div className="flex items-baseline gap-1.5 mb-1">
-        <span className="text-2xl font-800 text-foreground metric-value">{kpi.value}</span>
-        {kpi.unit && <span className="text-xs text-muted-foreground">{kpi.unit}</span>}
-      </div>
+        <div className="flex items-baseline gap-1.5 mb-1">
+          <span className="text-2xl font-800 text-foreground metric-value">{kpi.value}</span>
+          {kpi.unit && <span className="text-xs text-muted-foreground">{kpi.unit}</span>}
+        </div>
 
-      <p className={`text-xs font-500 ${trendColors[kpi.trend]}`}>{kpi.change}</p>
-      <p className="text-xs text-muted-foreground mt-1.5 truncate">{kpi.detail}</p>
-    </div>
+        <p className={`text-xs font-600 ${trendColors[kpi.trend]}`}>{kpi.change}</p>
+      </div>
+      <p className="text-xs text-muted-foreground/90 mt-3 pt-2.5 border-t border-border/40 truncate">
+        {kpi.detail}
+      </p>
+    </GlassCard>
   );
 }

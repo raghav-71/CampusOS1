@@ -66,8 +66,12 @@ export default function StudentEventsView() {
                   <span className="text-xs text-muted-foreground font-500">{evt.date}</span>
                 </div>
 
-                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-1">{evt.title}</h3>
-                <p className="text-xs text-muted-foreground mb-4 leading-relaxed line-clamp-2">{evt.description}</p>
+                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-1">
+                  {evt.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4 leading-relaxed line-clamp-2">
+                  {evt.description}
+                </p>
 
                 <div className="space-y-1.5 p-3 rounded-xl bg-muted/20 border border-border/40 text-xs mb-4">
                   <div className="flex justify-between">

@@ -14,14 +14,62 @@ interface StudentAttendanceItem {
 }
 
 const initialStudents: StudentAttendanceItem[] = [
-  { id: 'std-1', name: 'Arjun Sharma', rollNumber: 'BCA2401', status: 'present', previousAttendancePct: 94.2 },
-  { id: 'std-2', name: 'Priya Menon', rollNumber: 'BCA2402', status: 'present', previousAttendancePct: 91.0 },
-  { id: 'std-3', name: 'Rohit Verma', rollNumber: 'BCA2403', status: 'absent', previousAttendancePct: 78.4 },
-  { id: 'std-4', name: 'Sneha Pillai', rollNumber: 'BCA2404', status: 'present', previousAttendancePct: 96.5 },
-  { id: 'std-5', name: 'Karthik Nambiar', rollNumber: 'BCA2405', status: 'late', previousAttendancePct: 82.0 },
-  { id: 'std-6', name: 'Ananya Das', rollNumber: 'BCA2406', status: 'present', previousAttendancePct: 95.0 },
-  { id: 'std-7', name: 'Varun Krishnan', rollNumber: 'BCA2407', status: 'present', previousAttendancePct: 89.2 },
-  { id: 'std-8', name: 'Divya Nair', rollNumber: 'BCA2408', status: 'present', previousAttendancePct: 92.8 },
+  {
+    id: 'std-1',
+    name: 'Arjun Sharma',
+    rollNumber: 'BCA2401',
+    status: 'present',
+    previousAttendancePct: 94.2,
+  },
+  {
+    id: 'std-2',
+    name: 'Priya Menon',
+    rollNumber: 'BCA2402',
+    status: 'present',
+    previousAttendancePct: 91.0,
+  },
+  {
+    id: 'std-3',
+    name: 'Rohit Verma',
+    rollNumber: 'BCA2403',
+    status: 'absent',
+    previousAttendancePct: 78.4,
+  },
+  {
+    id: 'std-4',
+    name: 'Sneha Pillai',
+    rollNumber: 'BCA2404',
+    status: 'present',
+    previousAttendancePct: 96.5,
+  },
+  {
+    id: 'std-5',
+    name: 'Karthik Nambiar',
+    rollNumber: 'BCA2405',
+    status: 'late',
+    previousAttendancePct: 82.0,
+  },
+  {
+    id: 'std-6',
+    name: 'Ananya Das',
+    rollNumber: 'BCA2406',
+    status: 'present',
+    previousAttendancePct: 95.0,
+  },
+  {
+    id: 'std-7',
+    name: 'Varun Krishnan',
+    rollNumber: 'BCA2407',
+    status: 'present',
+    previousAttendancePct: 89.2,
+  },
+  {
+    id: 'std-8',
+    name: 'Divya Nair',
+    rollNumber: 'BCA2408',
+    status: 'present',
+    previousAttendancePct: 92.8,
+  },
 ];
 
 export default function TeacherAttendanceRegister() {
@@ -35,9 +83,7 @@ export default function TeacherAttendanceRegister() {
   const turnoutPct = Math.round(((presentCount + lateCount * 0.5) / students.length) * 100);
 
   const setStatus = (id: string, status: 'present' | 'absent' | 'late') => {
-    setStudents((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status } : s))
-    );
+    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
   };
 
   const markAll = (status: 'present' | 'absent') => {
@@ -115,7 +161,9 @@ export default function TeacherAttendanceRegister() {
 
       {/* Action Bar */}
       <div className="flex items-center justify-between p-3 glass-card rounded-2xl border border-border/80">
-        <span className="text-xs font-600 text-foreground">Batch Roster ({students.length} students)</span>
+        <span className="text-xs font-600 text-foreground">
+          Batch Roster ({students.length} students)
+        </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => markAll('present')}
@@ -147,7 +195,9 @@ export default function TeacherAttendanceRegister() {
             <tbody className="divide-y divide-border/40">
               {students.map((std) => (
                 <tr key={std.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="py-3.5 px-4 font-mono-data font-600 text-foreground">{std.rollNumber}</td>
+                  <td className="py-3.5 px-4 font-mono-data font-600 text-foreground">
+                    {std.rollNumber}
+                  </td>
                   <td className="py-3.5 px-4 font-600 text-foreground">{std.name}</td>
                   <td className="py-3.5 px-4">
                     <span
@@ -155,8 +205,8 @@ export default function TeacherAttendanceRegister() {
                         std.previousAttendancePct >= 90
                           ? 'text-success'
                           : std.previousAttendancePct >= 80
-                          ? 'text-accent'
-                          : 'text-warning'
+                            ? 'text-accent'
+                            : 'text-warning'
                       }`}
                     >
                       {std.previousAttendancePct}%

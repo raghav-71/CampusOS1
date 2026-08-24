@@ -1,20 +1,56 @@
 const subjectColors: Record<string, string> = {
   'Operating Systems': 'border-l-primary bg-primary/5',
-  'DBMS': 'border-l-accent bg-accent/5',
+  DBMS: 'border-l-accent bg-accent/5',
   'Computer Networks': 'border-l-success bg-success/5',
   'Java Programming': 'border-l-warning bg-warning/5',
-  'DAA': 'border-l-[#FF6B9D] bg-[#FF6B9D]/5',
+  DAA: 'border-l-[#FF6B9D] bg-[#FF6B9D]/5',
 };
 
 const todayClasses = [
-  { id: 'cls-001', subject: 'Operating Systems', time: '10:30 AM', endTime: '11:30 AM', room: 'A-204', teacher: 'Dr. Priya Nair', status: 'upcoming' },
-  { id: 'cls-002', subject: 'DBMS', time: '12:00 PM', endTime: '1:00 PM', room: 'B-301', teacher: 'Prof. Rajan Mehta', status: 'upcoming' },
-  { id: 'cls-003', subject: 'Computer Networks', time: '2:30 PM', endTime: '3:30 PM', room: 'Lab-2', teacher: 'Dr. Kavitha Rao', status: 'upcoming' },
+  {
+    id: 'cls-001',
+    subject: 'Operating Systems',
+    time: '10:30 AM',
+    endTime: '11:30 AM',
+    room: 'A-204',
+    teacher: 'Dr. Priya Nair',
+    status: 'upcoming',
+  },
+  {
+    id: 'cls-002',
+    subject: 'DBMS',
+    time: '12:00 PM',
+    endTime: '1:00 PM',
+    room: 'B-301',
+    teacher: 'Prof. Rajan Mehta',
+    status: 'upcoming',
+  },
+  {
+    id: 'cls-003',
+    subject: 'Computer Networks',
+    time: '2:30 PM',
+    endTime: '3:30 PM',
+    room: 'Lab-2',
+    teacher: 'Dr. Kavitha Rao',
+    status: 'upcoming',
+  },
 ];
 
 const upcomingClasses = [
-  { id: 'cls-004', subject: 'Java Programming', time: 'Mon, 9:00 AM', room: 'A-102', teacher: 'Prof. Anil Kumar' },
-  { id: 'cls-005', subject: 'DAA', time: 'Mon, 11:00 AM', room: 'B-204', teacher: 'Dr. Suresh Pillai' },
+  {
+    id: 'cls-004',
+    subject: 'Java Programming',
+    time: 'Mon, 9:00 AM',
+    room: 'A-102',
+    teacher: 'Prof. Anil Kumar',
+  },
+  {
+    id: 'cls-005',
+    subject: 'DAA',
+    time: 'Mon, 11:00 AM',
+    room: 'B-204',
+    teacher: 'Dr. Suresh Pillai',
+  },
 ];
 
 export default function StudentTimetableWidget() {
@@ -27,7 +63,9 @@ export default function StudentTimetableWidget() {
         </div>
         <div className="flex items-center gap-2">
           <span className="badge-success text-xs px-2.5 py-1 rounded-lg font-500">3 classes</span>
-          <button className="text-xs text-primary hover:underline font-500">Full timetable →</button>
+          <button className="text-xs text-primary hover:underline font-500">
+            Full timetable →
+          </button>
         </div>
       </div>
 
@@ -59,7 +97,10 @@ export default function StudentTimetableWidget() {
         <p className="section-label mb-3">Coming Up</p>
         <div className="space-y-2">
           {upcomingClasses.map((cls) => (
-            <div key={cls.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+            <div
+              key={cls.id}
+              className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
                 <span className="text-sm text-foreground font-500">{cls.subject}</span>
@@ -67,7 +108,9 @@ export default function StudentTimetableWidget() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{cls.room}</span>
-                <span className="badge-muted text-xs px-2 py-0.5 rounded-md font-500">{cls.time}</span>
+                <span className="badge-muted text-xs px-2 py-0.5 rounded-md font-500">
+                  {cls.time}
+                </span>
               </div>
             </div>
           ))}

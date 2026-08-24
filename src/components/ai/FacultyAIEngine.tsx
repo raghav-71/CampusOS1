@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 
 export default function FacultyAIEngine() {
   const [subject, setSubject] = useState('Operating Systems (CS501)');
-  const [topics, setTopics] = useState('Memory Management, Deadlocks, Process Scheduling');
+  const [topics, setTopics] = useState('Memory Management, Deadlocks, Process Scheduling, Paging');
   const [difficulty, setDifficulty] = useState('Moderate');
   const [totalMarks, setTotalMarks] = useState(100);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,8 +31,11 @@ export default function FacultyAIEngine() {
       });
 
       const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to generate paper.');
+      }
       setGeneratedPaper(data.paper);
-      toast.success('Question Paper & Marking Scheme generated successfully!');
+      toast.success('Question Paper & Marking Scheme calibrated and generated!');
     } catch (err: any) {
       toast.error('Generation failed: ' + err.message);
     } finally {
@@ -48,22 +51,28 @@ export default function FacultyAIEngine() {
     <div className="space-y-6 animate-fade-in max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2.5 mb-1">
             <span className="text-2xl">✨</span>
-            <h2 className="text-xl font-700 text-foreground">Faculty AI Assessment & Paper Generator</h2>
+            <h2 className="text-xl font-800 text-foreground tracking-tight">
+              Faculty AI Assessment & Paper Generator
+            </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            Generate balanced university exam papers, test blueprints, and scoring rubrics in seconds
+            Generate balanced university exam papers, test blueprints, and scoring rubrics powered
+            by LLM reasoning
           </p>
         </div>
-        <Badge variant="violet">AI Assessment Engine v2.0</Badge>
+        <Badge variant="cyan">AI Assessment Engine v2.0</Badge>
       </div>
 
       {/* Generator Configuration Form */}
-      <form onSubmit={handleGenerate} className="glass-card rounded-3xl p-6 border border-border space-y-5">
+      <form
+        onSubmit={handleGenerate}
+        className="glass-card rounded-3xl p-6 sm:p-7 border border-primary/30 space-y-5 shadow-glass"
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1.5">
+            <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1.5">
               Course Subject
             </label>
             <select
@@ -75,11 +84,12 @@ export default function FacultyAIEngine() {
               <option value="DBMS (CS502)">Database Systems (CS502)</option>
               <option value="Computer Networks (CS503)">Computer Networks (CS503)</option>
               <option value="System Architecture (MCA302)">System Architecture (MCA302)</option>
+              <option value="DAA (CS505)">Design & Analysis of Algorithms (CS505)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1.5">
+            <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1.5">
               Examination Target
             </label>
             <select
@@ -94,7 +104,7 @@ export default function FacultyAIEngine() {
           </div>
 
           <div>
-            <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1.5">
+            <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1.5">
               Difficulty Calibration
             </label>
             <select
@@ -110,7 +120,7 @@ export default function FacultyAIEngine() {
         </div>
 
         <div>
-          <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1.5">
+          <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1.5">
             Syllabus Topics & Target Chapters
           </label>
           <input
@@ -129,7 +139,7 @@ export default function FacultyAIEngine() {
             variant="primary"
             size="md"
             isLoading={isLoading}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto shadow-glow font-700"
           >
             {isLoading ? 'Generating Assessment Paper...' : 'Generate Complete Paper ✨'}
           </Button>
@@ -146,7 +156,8 @@ export default function FacultyAIEngine() {
               </span>
               <h3 className="text-lg font-800 text-foreground">{generatedPaper.title}</h3>
               <p className="text-xs text-muted-foreground">
-                {generatedPaper.semester} · Duration: {generatedPaper.duration} · Max Marks: {generatedPaper.totalMarks}
+                {generatedPaper.semester} · Duration: {generatedPaper.duration} · Max Marks:{' '}
+                {generatedPaper.totalMarks}
               </p>
             </div>
 
@@ -165,7 +176,7 @@ export default function FacultyAIEngine() {
           </div>
 
           {/* Paper Body */}
-          <div className="p-6 rounded-2xl bg-card/80 border border-border/70 font-mono-data text-xs space-y-6 leading-relaxed">
+          <div className="p-6 rounded-2xl bg-card/90 border border-border/70 font-mono-data text-xs space-y-6 leading-relaxed">
             <div className="text-center border-b border-border/60 pb-3">
               <h4 className="font-800 text-sm text-foreground">UNIVERSITY EXAMINATION BOARD</h4>
               <p className="text-muted-foreground">{generatedPaper.subject} — Fall 2026</p>
@@ -174,7 +185,7 @@ export default function FacultyAIEngine() {
             {/* Part A */}
             <div>
               <p className="font-800 text-sm text-primary mb-2">{generatedPaper.partA.title}</p>
-              <div className="space-y-1.5 pl-2 text-foreground/90">
+              <div className="space-y-2 pl-2 text-foreground/90">
                 {generatedPaper.partA.questions.map((q: string, i: number) => (
                   <p key={i}>{q}</p>
                 ))}
@@ -184,15 +195,17 @@ export default function FacultyAIEngine() {
             {/* Part B */}
             <div className="pt-4 border-t border-border/40">
               <p className="font-800 text-sm text-accent mb-2">{generatedPaper.partB.title}</p>
-              <div className="space-y-3 pl-2 text-foreground/90">
+              <div className="space-y-3.5 pl-2 text-foreground/90">
                 {generatedPaper.partB.questions.map((q: string, i: number) => (
-                  <p key={i} className="whitespace-pre-line">{q}</p>
+                  <p key={i} className="whitespace-pre-line">
+                    {q}
+                  </p>
                 ))}
               </div>
             </div>
 
             {/* Answer Key Rubrics */}
-            <div className="pt-4 border-t border-border/40 bg-muted/20 p-4 rounded-xl">
+            <div className="pt-4 border-t border-border/40 bg-muted/25 p-4 rounded-xl">
               <p className="font-700 text-foreground mb-1">Scoring Rubrics & Key:</p>
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 {generatedPaper.answerKey.rubrics.map((r: string, i: number) => (

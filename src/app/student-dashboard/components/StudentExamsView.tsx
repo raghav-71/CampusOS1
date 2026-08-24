@@ -32,7 +32,14 @@ export default function StudentExamsView() {
             size="sm"
             onClick={() => setHallTicketOpen(true)}
             leftIcon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
@@ -64,7 +71,8 @@ export default function StudentExamsView() {
 
               <h3 className="text-lg font-700 text-foreground mb-1">{exam.subject}</h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Location: <span className="text-foreground font-600">{exam.room}</span> &nbsp;·&nbsp; Max Marks: 100
+                Location: <span className="text-foreground font-600">{exam.room}</span>{' '}
+                &nbsp;·&nbsp; Max Marks: 100
               </p>
 
               <div className="space-y-2 p-3 rounded-xl bg-muted/20 border border-border/40 text-xs">
@@ -124,7 +132,9 @@ export default function StudentExamsView() {
               <div>
                 <h4 className="text-base font-800 text-foreground">{studentName}</h4>
                 <p className="text-xs text-muted-foreground">{department} · Semester 5</p>
-                <p className="text-xs font-mono-data text-primary font-700 mt-0.5">Roll No: {rollNumber}</p>
+                <p className="text-xs font-mono-data text-primary font-700 mt-0.5">
+                  Roll No: {rollNumber}
+                </p>
               </div>
               <div className="w-16 h-20 rounded-xl bg-muted border border-border flex items-center justify-center text-xs text-muted-foreground text-center font-600">
                 Photo ID
@@ -148,7 +158,9 @@ export default function StudentExamsView() {
                 <tbody className="divide-y divide-border/40">
                   {mockExams.map((e) => (
                     <tr key={`ht-${e.id}`}>
-                      <td className="py-2 font-mono-data font-600 text-foreground">{e.subjectCode}</td>
+                      <td className="py-2 font-mono-data font-600 text-foreground">
+                        {e.subjectCode}
+                      </td>
                       <td className="py-2 text-foreground font-500">{e.subject}</td>
                       <td className="py-2 text-muted-foreground">{e.date}</td>
                       <td className="py-2 text-right font-600 text-accent">{e.room}</td>
@@ -161,7 +173,9 @@ export default function StudentExamsView() {
             {/* Verification Seal */}
             <div className="flex items-center justify-between pt-3 border-t border-border text-[11px] text-muted-foreground">
               <span>Barcode ID: 8829-1029-4401</span>
-              <span className="text-success font-600">✓ Verified & Approved by Controller of Examinations</span>
+              <span className="text-success font-600">
+                ✓ Verified & Approved by Controller of Examinations
+              </span>
             </div>
           </div>
         </Modal>

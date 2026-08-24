@@ -2,7 +2,14 @@
 
 import React from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 const data = [
@@ -52,7 +59,9 @@ export default function StudyProgressChart() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-base font-600 text-foreground">Study Progress</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Topic completion by subject — last 8 weeks</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Topic completion by subject — last 8 weeks
+          </p>
         </div>
         <span className="badge-violet text-xs px-2.5 py-1 rounded-lg font-500">Sem 5</span>
       </div>
@@ -73,13 +82,45 @@ export default function StudyProgressChart() {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+          <XAxis
+            dataKey="week"
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+            axisLine={false}
+            tickLine={false}
+          />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 11, color: 'var(--muted-foreground)', paddingTop: 8 }} />
-          <Area type="monotone" dataKey="os" name="OS" stroke="var(--primary)" strokeWidth={2} fill="url(#gradOS)" />
-          <Area type="monotone" dataKey="dbms" name="DBMS" stroke="var(--accent)" strokeWidth={2} fill="url(#gradDBMS)" />
-          <Area type="monotone" dataKey="cn" name="CN" stroke="var(--success)" strokeWidth={2} fill="url(#gradCN)" />
+          <Legend
+            wrapperStyle={{ fontSize: 11, color: 'var(--muted-foreground)', paddingTop: 8 }}
+          />
+          <Area
+            type="monotone"
+            dataKey="os"
+            name="OS"
+            stroke="var(--primary)"
+            strokeWidth={2}
+            fill="url(#gradOS)"
+          />
+          <Area
+            type="monotone"
+            dataKey="dbms"
+            name="DBMS"
+            stroke="var(--accent)"
+            strokeWidth={2}
+            fill="url(#gradDBMS)"
+          />
+          <Area
+            type="monotone"
+            dataKey="cn"
+            name="CN"
+            stroke="var(--success)"
+            strokeWidth={2}
+            fill="url(#gradCN)"
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>

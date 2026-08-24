@@ -20,7 +20,9 @@ export default function AdminSettingsView() {
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <div>
-        <h2 className="text-xl font-700 text-foreground">Platform Configuration & System Governance</h2>
+        <h2 className="text-xl font-700 text-foreground">
+          Platform Configuration & System Governance
+        </h2>
         <p className="text-xs text-muted-foreground mt-0.5">
           Academic terms, attendance compliance rules, and database integration status
         </p>
@@ -62,14 +64,18 @@ export default function AdminSettingsView() {
                 onChange={(e) => setMinAttendance(e.target.value)}
                 className="input-field"
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Students below this threshold are flagged for re-eval</p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Students below this threshold are flagged for re-eval
+              </p>
             </div>
           </div>
 
           <div className="pt-2 flex items-center justify-between">
             <div>
               <p className="text-sm font-600 text-foreground">Automatic Hall Ticket Generation</p>
-              <p className="text-xs text-muted-foreground">Issue admit cards automatically if student meets attendance threshold</p>
+              <p className="text-xs text-muted-foreground">
+                Issue admit cards automatically if student meets attendance threshold
+              </p>
             </div>
             <input
               type="checkbox"
@@ -81,8 +87,12 @@ export default function AdminSettingsView() {
 
           <div className="pt-2 flex items-center justify-between border-t border-border/40">
             <div>
-              <p className="text-sm font-600 text-foreground">AI Study Assistant & Paper Generation Engine</p>
-              <p className="text-xs text-muted-foreground">Allow students and faculty to access AI tools across all portals</p>
+              <p className="text-sm font-600 text-foreground">
+                AI Study Assistant & Paper Generation Engine
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Allow students and faculty to access AI tools across all portals
+              </p>
             </div>
             <input
               type="checkbox"
@@ -96,15 +106,21 @@ export default function AdminSettingsView() {
         {/* Database & Infrastructure Status */}
         <div className="glass-card rounded-2xl p-6 border border-border space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-border/60">
-            <h3 className="text-base font-600 text-foreground">Database & Security Infrastructure</h3>
-            <span className="badge-success text-xs px-2.5 py-1 rounded-lg font-600">Healthy & Synchronized</span>
+            <h3 className="text-base font-600 text-foreground">
+              Database & Security Infrastructure
+            </h3>
+            <span className="badge-success text-xs px-2.5 py-1 rounded-lg font-600">
+              Healthy & Synchronized
+            </span>
           </div>
 
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
               <div>
                 <p className="font-600 text-foreground">Data Repository Architecture</p>
-                <p className="text-muted-foreground">In-Memory Singleton with Supabase Edge Repository Ready</p>
+                <p className="text-muted-foreground">
+                  In-Memory Singleton with Supabase Edge Repository Ready
+                </p>
               </div>
               <Badge variant="cyan">Mock + Supabase Hybrid</Badge>
             </div>
@@ -112,16 +128,22 @@ export default function AdminSettingsView() {
             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
               <div>
                 <p className="font-600 text-foreground">Next.js Edge Middleware Security</p>
-                <p className="text-muted-foreground">Role-isolated cookies & route guarding enabled</p>
+                <p className="text-muted-foreground">
+                  Role-isolated cookies & route guarding enabled
+                </p>
               </div>
-              <span className="badge-success text-[10px] px-2 py-0.5 rounded font-600">Active Shield</span>
+              <span className="badge-success text-[10px] px-2 py-0.5 rounded font-600">
+                Active Shield
+              </span>
             </div>
           </div>
 
           <div className="pt-2 flex items-center justify-between border-t border-border/40">
             <div>
               <p className="text-sm font-600 text-danger">Platform Maintenance Mode</p>
-              <p className="text-xs text-muted-foreground">Lock non-admin access for scheduled institutional upgrades</p>
+              <p className="text-xs text-muted-foreground">
+                Lock non-admin access for scheduled institutional upgrades
+              </p>
             </div>
             <input
               type="checkbox"

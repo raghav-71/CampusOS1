@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type BadgeVariant = 'violet' | 'cyan' | 'success' | 'warning' | 'danger' | 'muted';
+export type BadgeVariant = 'violet' | 'cyan' | 'blue' | 'success' | 'warning' | 'danger' | 'muted';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
@@ -15,6 +15,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 const variantStyles: Record<BadgeVariant, { badge: string; dot: string }> = {
   violet: { badge: 'badge-violet', dot: 'bg-primary' },
   cyan: { badge: 'badge-cyan', dot: 'bg-accent' },
+  blue: { badge: 'badge-blue', dot: 'bg-primary' },
   success: { badge: 'badge-success', dot: 'bg-success' },
   warning: { badge: 'badge-warning', dot: 'bg-warning' },
   danger: { badge: 'badge-danger', dot: 'bg-danger' },
@@ -29,7 +30,7 @@ export default function Badge({
   className = '',
   ...props
 }: BadgeProps) {
-  const config = variantStyles[variant];
+  const config = variantStyles[variant] || variantStyles.muted;
   const sizeStyles = size === 'sm' ? 'text-[11px] px-2 py-0.5' : 'text-xs px-2.5 py-1';
 
   return (

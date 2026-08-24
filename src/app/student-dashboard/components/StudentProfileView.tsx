@@ -39,7 +39,8 @@ export default function StudentProfileView() {
             </div>
             <p className="text-xs text-muted-foreground font-mono-data mb-1">{email}</p>
             <p className="text-xs text-muted-foreground">
-              {department} &nbsp;·&nbsp; {semester} &nbsp;·&nbsp; Roll: <span className="text-foreground font-600">{rollNumber}</span>
+              {department} &nbsp;·&nbsp; {semester} &nbsp;·&nbsp; Roll:{' '}
+              <span className="text-foreground font-600">{rollNumber}</span>
             </p>
           </div>
         </div>
@@ -66,13 +67,17 @@ export default function StudentProfileView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Cumulative CGPA</p>
-          <p className="text-2xl font-800 text-foreground metric-value">8.84 <span className="text-xs font-normal text-muted-foreground">/ 10</span></p>
+          <p className="text-2xl font-800 text-foreground metric-value">
+            8.84 <span className="text-xs font-normal text-muted-foreground">/ 10</span>
+          </p>
           <p className="text-[11px] text-success font-600 mt-1">Top 5% in Department</p>
         </div>
 
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Credits Earned</p>
-          <p className="text-2xl font-800 text-foreground metric-value">88 <span className="text-xs font-normal text-muted-foreground">/ 120</span></p>
+          <p className="text-2xl font-800 text-foreground metric-value">
+            88 <span className="text-xs font-normal text-muted-foreground">/ 120</span>
+          </p>
           <p className="text-[11px] text-primary font-600 mt-1">On Track for Graduation</p>
         </div>
 
@@ -84,7 +89,9 @@ export default function StudentProfileView() {
 
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Class Rank</p>
-          <p className="text-2xl font-800 text-accent metric-value">#4 <span className="text-xs font-normal text-muted-foreground">of 120</span></p>
+          <p className="text-2xl font-800 text-accent metric-value">
+            #4 <span className="text-xs font-normal text-muted-foreground">of 120</span>
+          </p>
           <p className="text-[11px] text-accent font-600 mt-1">Dean&apos;s Honor List</p>
         </div>
       </div>
@@ -94,7 +101,9 @@ export default function StudentProfileView() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-700 text-foreground">Semester Academic Progression</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Historical GPA and credit breakdown across completed terms</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Historical GPA and credit breakdown across completed terms
+            </p>
           </div>
           <Badge variant="violet">5 Total Semesters</Badge>
         </div>

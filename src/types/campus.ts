@@ -155,7 +155,15 @@ export interface EventItem {
 
 export interface ActivityItem {
   id: string;
-  type: 'upload' | 'registration' | 'announcement' | 'flag' | 'event' | 'login' | 'suspension' | 'grade';
+  type:
+    | 'upload'
+    | 'registration'
+    | 'announcement'
+    | 'flag'
+    | 'event'
+    | 'login'
+    | 'suspension'
+    | 'grade';
   title: string;
   detail: string;
   time: string;

@@ -27,7 +27,9 @@ export default function TeacherTimetableFull() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-700 text-foreground">Faculty Teaching Schedule & Office Hours</h2>
+          <h2 className="text-xl font-700 text-foreground">
+            Faculty Teaching Schedule & Office Hours
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Dr. Priya Nair · 16 Weekly Teaching Hours Allotted
           </p>
@@ -36,12 +38,7 @@ export default function TeacherTimetableFull() {
         <Badge variant="cyan">Semester 5 Active</Badge>
       </div>
 
-      <Tabs
-        tabs={days}
-        activeTab={selectedDay}
-        onChange={setSelectedDay}
-        variant="pills"
-      />
+      <Tabs tabs={days} activeTab={selectedDay} onChange={setSelectedDay} variant="pills" />
 
       <div className="space-y-3">
         {mockTeacherSchedule.map((slot, index) => {
@@ -76,7 +73,9 @@ export default function TeacherTimetableFull() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {slot.department} · {slot.semester} &nbsp;·&nbsp; Location: <span className="text-accent font-600">{slot.room}</span> &nbsp;·&nbsp; Type: {slot.type || 'Lecture'}
+                    {slot.department} · {slot.semester} &nbsp;·&nbsp; Location:{' '}
+                    <span className="text-accent font-600">{slot.room}</span> &nbsp;·&nbsp; Type:{' '}
+                    {slot.type || 'Lecture'}
                   </p>
                 </div>
               </div>
@@ -105,10 +104,16 @@ export default function TeacherTimetableFull() {
         <div className="p-4 rounded-2xl border border-dashed border-border/80 bg-muted/10 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-sm font-700 text-foreground">Faculty Office Hours & Research Mentorship</span>
-              <span className="badge-muted text-[10px] px-2 py-0.5 rounded font-600">Open Door</span>
+              <span className="text-sm font-700 text-foreground">
+                Faculty Office Hours & Research Mentorship
+              </span>
+              <span className="badge-muted text-[10px] px-2 py-0.5 rounded font-600">
+                Open Door
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground">2:00 PM – 3:30 PM · Faculty Cabin Block A-312</p>
+            <p className="text-xs text-muted-foreground">
+              2:00 PM – 3:30 PM · Faculty Cabin Block A-312
+            </p>
           </div>
           <span className="text-xs text-muted-foreground font-500">Walk-ins Welcome</span>
         </div>

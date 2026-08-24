@@ -35,9 +35,7 @@ export default function NotificationDropdown({
   };
 
   const handleItemClick = (notice: Announcement) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === notice.id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === notice.id ? { ...n, read: true } : n)));
     setSelectedNotice(notice);
   };
 
@@ -85,7 +83,9 @@ export default function NotificationDropdown({
                     {!item.read && <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />}
                     <span className="text-xs font-600 text-foreground">{item.title}</span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground flex-shrink-0">{item.time}</span>
+                  <span className="text-[11px] text-muted-foreground flex-shrink-0">
+                    {item.time}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                   {item.body}
@@ -112,10 +112,15 @@ export default function NotificationDropdown({
       {/* Detail Modal */}
       {selectedNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedNotice(null)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSelectedNotice(null)}
+          />
           <div className="relative glass-card rounded-2xl p-6 border border-border max-w-md w-full animate-fade-in-up">
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className={`text-xs px-2 py-0.5 rounded-md font-600 ${priorityStyles[selectedNotice.priority].badge}`}>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-md font-600 ${priorityStyles[selectedNotice.priority].badge}`}
+              >
                 {selectedNotice.category} · {selectedNotice.priority.toUpperCase()}
               </span>
               <span className="text-xs text-muted-foreground">{selectedNotice.time}</span>
@@ -123,10 +128,7 @@ export default function NotificationDropdown({
             <h3 className="text-base font-700 text-foreground mb-2">{selectedNotice.title}</h3>
             <p className="text-sm text-foreground/90 leading-relaxed mb-4">{selectedNotice.body}</p>
             <p className="text-xs text-muted-foreground mb-6">Posted by: {selectedNotice.author}</p>
-            <button
-              onClick={() => setSelectedNotice(null)}
-              className="btn-primary w-full py-2"
-            >
+            <button onClick={() => setSelectedNotice(null)} className="btn-primary w-full py-2">
               Close
             </button>
           </div>

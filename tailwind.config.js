@@ -53,9 +53,10 @@ module.exports = {
       },
       boxShadow: {
         glass: 'var(--glass-shadow)',
-        glow: '0 0 20px rgba(108, 71, 255, 0.3)',
-        'glow-accent': '0 0 20px rgba(0, 212, 255, 0.3)',
-        'glow-danger': '0 0 20px rgba(255, 71, 87, 0.3)',
+        glow: '0 0 25px rgba(30, 107, 255, 0.35)',
+        'glow-accent': '0 0 25px rgba(0, 216, 246, 0.35)',
+        'glow-cyan': '0 0 25px rgba(0, 216, 246, 0.35)',
+        'glow-danger': '0 0 20px rgba(255, 71, 87, 0.35)',
       },
       animation: {
         'fade-in-up': 'fadeInUp 0.4s ease forwards',
@@ -63,6 +64,7 @@ module.exports = {
         'slide-in-right': 'slideInRight 0.3s ease forwards',
         'float': 'float 6s ease-in-out infinite',
         'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
+        'spin-slow': 'spin 18s linear infinite',
       },
     },
   },

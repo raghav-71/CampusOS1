@@ -14,9 +14,12 @@ export default function AdminReportsView() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-700 text-foreground">Institutional Analytics & Performance Reports</h2>
+          <h2 className="text-xl font-700 text-foreground">
+            Institutional Analytics & Performance Reports
+          </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Comprehensive annual academic indicators, enrollment benchmarks, and attendance compliance
+            Comprehensive annual academic indicators, enrollment benchmarks, and attendance
+            compliance
           </p>
         </div>
 
@@ -34,7 +37,9 @@ export default function AdminReportsView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Total Active Enrollment</p>
-          <p className="text-2xl font-800 text-foreground metric-value">1,556 <span className="text-xs font-normal text-muted-foreground">Students</span></p>
+          <p className="text-2xl font-800 text-foreground metric-value">
+            1,556 <span className="text-xs font-normal text-muted-foreground">Students</span>
+          </p>
           <p className="text-[11px] text-success font-600 mt-1">+8.4% vs Previous Term</p>
         </div>
 
@@ -62,7 +67,9 @@ export default function AdminReportsView() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-700 text-foreground">Departmental Performance Summary</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Faculty count, student strength, and research output by faculty</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Faculty count, student strength, and research output by faculty
+            </p>
           </div>
           <Badge variant="cyan">Fall 2026 Audit</Badge>
         </div>
@@ -81,11 +88,46 @@ export default function AdminReportsView() {
             </thead>
             <tbody className="divide-y divide-border/40">
               {[
-                { dept: 'Computer Applications (BCA)', hod: 'Dr. Priya Nair', std: 478, fac: 22, att: '92.4%', status: 'A++ (NAAC)' },
-                { dept: 'MCA Program', hod: 'Dr. Suresh Pillai', std: 185, fac: 14, att: '90.1%', status: 'A+ (NAAC)' },
-                { dept: 'Business Administration (BBA)', hod: 'Dr. Ramesh Gupta', std: 355, fac: 18, att: '88.5%', status: 'A (NAAC)' },
-                { dept: 'Commerce & Accounting (B.Com)', hod: 'Prof. Meera Joshi', std: 318, fac: 16, att: '91.0%', status: 'A (NAAC)' },
-                { dept: 'Management Studies (MBA)', hod: 'Dr. Vikram Seth', std: 220, fac: 12, att: '93.2%', status: 'A++ (NAAC)' },
+                {
+                  dept: 'Computer Applications (BCA)',
+                  hod: 'Dr. Priya Nair',
+                  std: 478,
+                  fac: 22,
+                  att: '92.4%',
+                  status: 'A++ (NAAC)',
+                },
+                {
+                  dept: 'MCA Program',
+                  hod: 'Dr. Suresh Pillai',
+                  std: 185,
+                  fac: 14,
+                  att: '90.1%',
+                  status: 'A+ (NAAC)',
+                },
+                {
+                  dept: 'Business Administration (BBA)',
+                  hod: 'Dr. Ramesh Gupta',
+                  std: 355,
+                  fac: 18,
+                  att: '88.5%',
+                  status: 'A (NAAC)',
+                },
+                {
+                  dept: 'Commerce & Accounting (B.Com)',
+                  hod: 'Prof. Meera Joshi',
+                  std: 318,
+                  fac: 16,
+                  att: '91.0%',
+                  status: 'A (NAAC)',
+                },
+                {
+                  dept: 'Management Studies (MBA)',
+                  hod: 'Dr. Vikram Seth',
+                  std: 220,
+                  fac: 12,
+                  att: '93.2%',
+                  status: 'A++ (NAAC)',
+                },
               ].map((row) => (
                 <tr key={row.dept} className="hover:bg-muted/20 transition-colors">
                   <td className="py-3 px-3 font-700 text-foreground">{row.dept}</td>

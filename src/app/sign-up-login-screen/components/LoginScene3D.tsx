@@ -5,7 +5,6 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float, Stars, MeshDistortMaterial, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 
-// ─── Reduced Motion Hook ──────────────────────────────────────────────────────
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -19,27 +18,49 @@ function useReducedMotion() {
 }
 
 // ─── Floating Book ────────────────────────────────────────────────────────────
-function FloatingBook({ position, rotation, color }: { position: [number, number, number]; rotation: [number, number, number]; color: string }) {
+function FloatingBook({
+  position,
+  rotation,
+  color,
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  color: string;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const reducedMotion = useReducedMotion();
 
   useFrame((state) => {
     if (!meshRef.current || reducedMotion) return;
-    meshRef.current.rotation.y = rotation[1] + Math.sin(state.clock.elapsedTime * 0.4) * 0.3;
+    meshRef.current.rotation.y = rotation[1] + Math.sin(state.clock.elapsedTime * 0.4) * 0.25;
     meshRef.current.rotation.x = rotation[0] + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
   });
 
   return (
-    <Float speed={reducedMotion ? 0 : 1.5} rotationIntensity={reducedMotion ? 0 : 0.3} floatIntensity={reducedMotion ? 0 : 0.8}>
+    <Float
+      speed={reducedMotion ? 0 : 1.5}
+      rotationIntensity={reducedMotion ? 0 : 0.3}
+      floatIntensity={reducedMotion ? 0 : 0.8}
+    >
       <mesh ref={meshRef} position={position} rotation={rotation} castShadow>
-        {/* Book body */}
-        <boxGeometry args={[0.4, 0.55, 0.08]} />
-        <meshStandardMaterial color={color} roughness={0.3} metalness={0.2} />
+        <boxGeometry args={[0.42, 0.58, 0.08]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={0.2}
+          metalness={0.4}
+          emissive={color}
+          emissiveIntensity={0.25}
+        />
       </mesh>
-      {/* Book spine */}
-      <mesh position={[position[0] - 0.21, position[1], position[2]]} rotation={rotation}>
-        <boxGeometry args={[0.02, 0.55, 0.08]} />
-        <meshStandardMaterial color={color} roughness={0.2} metalness={0.4} emissive={color} emissiveIntensity={0.2} />
+      <mesh position={[position[0] - 0.22, position[1], position[2]]} rotation={rotation}>
+        <boxGeometry args={[0.02, 0.58, 0.08]} />
+        <meshStandardMaterial
+          color="#00D8F6"
+          roughness={0.2}
+          metalness={0.6}
+          emissive="#00D8F6"
+          emissiveIntensity={0.5}
+        />
       </mesh>
     </Float>
   );
@@ -58,20 +79,34 @@ function GraduationCap({ position }: { position: [number, number, number] }) {
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Board */}
       <mesh rotation={[0, 0, 0]}>
         <boxGeometry args={[0.7, 0.05, 0.7]} />
-        <meshStandardMaterial color="#6C47FF" roughness={0.2} metalness={0.6} emissive="#6C47FF" emissiveIntensity={0.15} />
+        <meshStandardMaterial
+          color="#1E6BFF"
+          roughness={0.2}
+          metalness={0.6}
+          emissive="#1E6BFF"
+          emissiveIntensity={0.25}
+        />
       </mesh>
-      {/* Top button */}
       <mesh position={[0, 0.08, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 0.06, 8]} />
-        <meshStandardMaterial color="#A78BFA" roughness={0.1} metalness={0.8} emissive="#A78BFA" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#00D8F6"
+          roughness={0.1}
+          metalness={0.8}
+          emissive="#00D8F6"
+          emissiveIntensity={0.4}
+        />
       </mesh>
-      {/* Tassel string */}
       <mesh position={[0.25, -0.05, 0.25]}>
         <cylinderGeometry args={[0.01, 0.01, 0.3, 4]} />
-        <meshStandardMaterial color="#F59E0B" roughness={0.5} />
+        <meshStandardMaterial
+          color="#38BDF8"
+          roughness={0.3}
+          emissive="#38BDF8"
+          emissiveIntensity={0.3}
+        />
       </mesh>
     </group>
   );
@@ -89,86 +124,52 @@ function FloatingAtom({ position }: { position: [number, number, number] }) {
   });
 
   const orbitMaterial = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#38BDF8', roughness: 0.1, metalness: 0.9, emissive: '#38BDF8', emissiveIntensity: 0.4 }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#00D8F6',
+        roughness: 0.1,
+        metalness: 0.9,
+        emissive: '#00D8F6',
+        emissiveIntensity: 0.6,
+      }),
     []
   );
 
   return (
     <Float speed={reducedMotion ? 0 : 2} floatIntensity={reducedMotion ? 0 : 1}>
       <group ref={groupRef} position={position}>
-        {/* Nucleus */}
         <mesh>
           <sphereGeometry args={[0.12, 16, 16]} />
-          <meshStandardMaterial color="#F472B6" roughness={0.1} metalness={0.8} emissive="#F472B6" emissiveIntensity={0.5} />
+          <meshStandardMaterial
+            color="#1E6BFF"
+            roughness={0.1}
+            metalness={0.8}
+            emissive="#1E6BFF"
+            emissiveIntensity={0.8}
+          />
         </mesh>
-        {/* Orbit rings */}
         {[0, Math.PI / 3, (2 * Math.PI) / 3].map((angle, i) => (
           <mesh key={`orbit-${i}`} rotation={[Math.PI / 2, angle, 0]}>
-            <torusGeometry args={[0.35, 0.015, 8, 48]} />
+            <torusGeometry args={[0.38, 0.015, 8, 48]} />
             <primitive object={orbitMaterial} />
           </mesh>
         ))}
-        {/* Electrons */}
         {[0, Math.PI / 3, (2 * Math.PI) / 3].map((angle, i) => (
-          <mesh key={`electron-${i}`} position={[Math.cos(angle) * 0.35, 0, Math.sin(angle) * 0.35]}>
+          <mesh
+            key={`electron-${i}`}
+            position={[Math.cos(angle) * 0.38, 0, Math.sin(angle) * 0.38]}
+          >
             <sphereGeometry args={[0.04, 8, 8]} />
-            <meshStandardMaterial color="#38BDF8" emissive="#38BDF8" emissiveIntensity={0.8} />
+            <meshStandardMaterial color="#00D8F6" emissive="#00D8F6" emissiveIntensity={1} />
           </mesh>
         ))}
-      </group>
-    </Float>
-  );
-}
-
-// ─── Floating Bulb ────────────────────────────────────────────────────────────
-function FloatingBulb({ position }: { position: [number, number, number] }) {
-  const reducedMotion = useReducedMotion();
-  return (
-    <Float speed={reducedMotion ? 0 : 1.8} rotationIntensity={reducedMotion ? 0 : 0.5} floatIntensity={reducedMotion ? 0 : 1.2}>
-      <group position={position}>
-        <mesh>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#FDE68A" roughness={0.05} metalness={0.1} emissive="#F59E0B" emissiveIntensity={0.6} transparent opacity={0.85} />
-        </mesh>
-        <mesh position={[0, -0.22, 0]}>
-          <cylinderGeometry args={[0.07, 0.09, 0.1, 8]} />
-          <meshStandardMaterial color="#9CA3AF" roughness={0.4} metalness={0.6} />
-        </mesh>
-        {/* Glow point light */}
-        <pointLight color="#F59E0B" intensity={reducedMotion ? 0 : 1.5} distance={2} decay={2} />
-      </group>
-    </Float>
-  );
-}
-
-// ─── Floating Laptop ──────────────────────────────────────────────────────────
-function FloatingLaptop({ position }: { position: [number, number, number] }) {
-  const reducedMotion = useReducedMotion();
-  return (
-    <Float speed={reducedMotion ? 0 : 1.2} rotationIntensity={reducedMotion ? 0 : 0.4} floatIntensity={reducedMotion ? 0 : 0.9}>
-      <group position={position} rotation={[0, Math.PI / 6, 0]}>
-        {/* Base */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[0.6, 0.04, 0.4]} />
-          <meshStandardMaterial color="#1E1B4B" roughness={0.2} metalness={0.8} />
-        </mesh>
-        {/* Screen */}
-        <mesh position={[0, 0.22, -0.18]} rotation={[-Math.PI / 6, 0, 0]}>
-          <boxGeometry args={[0.6, 0.4, 0.03]} />
-          <meshStandardMaterial color="#1E1B4B" roughness={0.2} metalness={0.8} />
-        </mesh>
-        {/* Screen glow */}
-        <mesh position={[0, 0.22, -0.165]} rotation={[-Math.PI / 6, 0, 0]}>
-          <boxGeometry args={[0.54, 0.34, 0.001]} />
-          <meshStandardMaterial color="#6C47FF" emissive="#6C47FF" emissiveIntensity={0.8} roughness={0} />
-        </mesh>
       </group>
     </Float>
   );
 }
 
 // ─── Particle Field ───────────────────────────────────────────────────────────
-function ParticleField({ count = 200 }: { count?: number }) {
+function ParticleField({ count = 220 }: { count?: number }) {
   const pointsRef = useRef<THREE.Points>(null);
   const reducedMotion = useReducedMotion();
 
@@ -176,16 +177,16 @@ function ParticleField({ count = 200 }: { count?: number }) {
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const palette = [
-      new THREE.Color('#6C47FF'),
+      new THREE.Color('#1E6BFF'),
+      new THREE.Color('#00D8F6'),
       new THREE.Color('#38BDF8'),
-      new THREE.Color('#A78BFA'),
-      new THREE.Color('#F472B6'),
-      new THREE.Color('#34D399'),
+      new THREE.Color('#60A5FA'),
+      new THREE.Color('#93C5FD'),
     ];
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 14;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 10;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 8;
+      pos[i * 3] = (Math.random() - 0.5) * 16;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 12;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 10;
       const c = palette[Math.floor(Math.random() * palette.length)];
       col[i * 3] = c.r;
       col[i * 3 + 1] = c.g;
@@ -206,7 +207,7 @@ function ParticleField({ count = 200 }: { count?: number }) {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         <bufferAttribute attach="attributes-color" args={[colors, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.03} vertexColors transparent opacity={0.7} sizeAttenuation />
+      <pointsMaterial size={0.035} vertexColors transparent opacity={0.75} sizeAttenuation />
     </points>
   );
 }
@@ -216,7 +217,7 @@ function EnergyOrb({ position, color }: { position: [number, number, number]; co
   const reducedMotion = useReducedMotion();
   return (
     <Float speed={reducedMotion ? 0 : 1} floatIntensity={reducedMotion ? 0 : 0.5}>
-      <Sphere args={[0.5, 32, 32]} position={position}>
+      <Sphere args={[0.55, 32, 32]} position={position}>
         <MeshDistortMaterial
           color={color}
           attach="material"
@@ -224,10 +225,16 @@ function EnergyOrb({ position, color }: { position: [number, number, number]; co
           speed={reducedMotion ? 0 : 2}
           roughness={0}
           transparent
-          opacity={0.12}
+          opacity={0.15}
         />
       </Sphere>
-      <pointLight position={position} color={color} intensity={reducedMotion ? 0.5 : 1.5} distance={4} decay={2} />
+      <pointLight
+        position={position}
+        color={color}
+        intensity={reducedMotion ? 0.5 : 1.8}
+        distance={5}
+        decay={2}
+      />
     </Float>
   );
 }
@@ -239,8 +246,8 @@ function CameraDrift() {
 
   useFrame((state) => {
     if (reducedMotion) return;
-    camera.position.x = Math.sin(state.clock.elapsedTime * 0.08) * 0.4;
-    camera.position.y = Math.cos(state.clock.elapsedTime * 0.06) * 0.25;
+    camera.position.x = Math.sin(state.clock.elapsedTime * 0.08) * 0.35;
+    camera.position.y = Math.cos(state.clock.elapsedTime * 0.06) * 0.2;
     camera.lookAt(0, 0, 0);
   });
 
@@ -252,45 +259,31 @@ function Scene() {
   return (
     <>
       <CameraDrift />
+      <ambientLight intensity={0.35} />
+      <directionalLight position={[5, 8, 5]} intensity={0.9} color="#60A5FA" />
+      <directionalLight position={[-5, -3, -5]} intensity={0.5} color="#00D8F6" />
+      <pointLight position={[0, 5, 2]} color="#1E6BFF" intensity={1.5} distance={9} decay={2} />
 
-      {/* Ambient + directional lighting */}
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 8, 5]} intensity={0.8} color="#A78BFA" castShadow />
-      <directionalLight position={[-5, -3, -5]} intensity={0.4} color="#38BDF8" />
-      <pointLight position={[0, 5, 2]} color="#6C47FF" intensity={1.2} distance={8} decay={2} />
+      <Stars radius={30} depth={20} count={900} factor={2} saturation={0.8} fade speed={0.5} />
+      <ParticleField count={220} />
 
-      {/* Stars background */}
-      <Stars radius={30} depth={20} count={800} factor={2} saturation={0.5} fade speed={0.5} />
+      <EnergyOrb position={[-4, 2, -3]} color="#1E6BFF" />
+      <EnergyOrb position={[4, -2, -4]} color="#00D8F6" />
+      <EnergyOrb position={[0, -3, -2]} color="#38BDF8" />
 
-      {/* Particle field */}
-      <ParticleField count={180} />
-
-      {/* Energy orbs for ambient glow */}
-      <EnergyOrb position={[-4, 2, -3]} color="#6C47FF" />
-      <EnergyOrb position={[4, -2, -4]} color="#38BDF8" />
-      <EnergyOrb position={[0, -3, -2]} color="#F472B6" />
-
-      {/* Floating educational objects */}
-      <FloatingBook position={[-3.5, 1.5, -1]} rotation={[0.2, 0.5, 0.1]} color="#6C47FF" />
-      <FloatingBook position={[3.2, -1.2, -2]} rotation={[-0.1, -0.3, 0.15]} color="#38BDF8" />
-      <FloatingBook position={[-2.8, -2, -1.5]} rotation={[0.3, 0.8, -0.1]} color="#34D399" />
+      <FloatingBook position={[-3.5, 1.5, -1]} rotation={[0.2, 0.5, 0.1]} color="#1E6BFF" />
+      <FloatingBook position={[3.2, -1.2, -2]} rotation={[-0.1, -0.3, 0.15]} color="#00D8F6" />
+      <FloatingBook position={[-2.8, -2, -1.5]} rotation={[0.3, 0.8, -0.1]} color="#38BDF8" />
 
       <GraduationCap position={[3.5, 2, -1.5]} />
       <GraduationCap position={[-3, -1.5, -2]} />
 
       <FloatingAtom position={[2.5, 1.8, -0.5]} />
       <FloatingAtom position={[-4, 0.5, -2]} />
-
-      <FloatingBulb position={[1.5, -2.5, -1]} />
-      <FloatingBulb position={[-1.8, 2.8, -1.5]} />
-
-      <FloatingLaptop position={[4, 0.5, -1]} />
-      <FloatingLaptop position={[-4.5, -0.5, -2.5]} />
     </>
   );
 }
 
-// ─── Exported Canvas Wrapper ──────────────────────────────────────────────────
 export default function LoginScene3D() {
   const [mounted, setMounted] = useState(false);
 

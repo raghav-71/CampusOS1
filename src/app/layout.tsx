@@ -25,17 +25,20 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'CampusOS — Your Complete College Platform',
-  description: 'CampusOS unifies college management, notes, exam timetables, events, and AI study assistance for students, teachers, and admins.',
+  description:
+    'CampusOS unifies college management, notes, exam timetables, events, and AI study assistance for students, teachers, and admins.',
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark`}
+      suppressHydrationWarning
+    >
       <body className={plusJakartaSans.className}>
         {children}
         <Toaster

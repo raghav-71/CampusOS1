@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip,  } from 'recharts';
+import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from 'recharts';
 
 const data = [
   { id: 'rchart-java', name: 'Java', value: 82, fill: '#00D4FF' },
@@ -44,15 +44,20 @@ export default function SubjectCoverageChart() {
           <h3 className="text-base font-600 text-foreground">Subject Coverage</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Syllabus completion per subject</p>
         </div>
-        <span className="badge-warning text-xs px-2.5 py-1 rounded-lg font-500">DBMS needs attention</span>
+        <span className="badge-warning text-xs px-2.5 py-1 rounded-lg font-500">
+          DBMS needs attention
+        </span>
       </div>
       <div className="flex items-center">
         <ResponsiveContainer width="55%" height={200}>
           <RadialBarChart
-            cx="50%" cy="50%"
-            innerRadius="20%" outerRadius="90%"
+            cx="50%"
+            cy="50%"
+            innerRadius="20%"
+            outerRadius="90%"
             data={data}
-            startAngle={90} endAngle={-270}
+            startAngle={90}
+            endAngle={-270}
           >
             <RadialBar dataKey="value" cornerRadius={4} background={{ fill: 'var(--muted)' }} />
             <Tooltip content={<CustomTooltip />} />
@@ -62,7 +67,10 @@ export default function SubjectCoverageChart() {
           {data.map((item) => (
             <div key={item.id} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.fill }} />
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ background: item.fill }}
+                />
                 <span className="text-xs text-muted-foreground">{item.name}</span>
               </div>
               <span className="text-xs font-600 text-foreground metric-value">{item.value}%</span>

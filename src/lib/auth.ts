@@ -54,7 +54,14 @@ export async function fetchProfileByEmail(email: string): Promise<UserProfile | 
           email: data.email,
           role: (data.role as Role) ?? 'student',
           fullName: data.full_name ?? data.fullName ?? data.name ?? data.email,
-          initials: data.initials ?? (data.full_name ? data.full_name.split(' ').map((s: string) => s[0]).join('') : ''),
+          initials:
+            data.initials ??
+            (data.full_name
+              ? data.full_name
+                  .split(' ')
+                  .map((s: string) => s[0])
+                  .join('')
+              : ''),
           department: data.department,
           semester: data.semester,
           rollNumber: data.roll_number ?? data.rollNumber,
@@ -90,7 +97,9 @@ export async function signIn(email: string, password: string): Promise<UserProfi
 }
 
 /** Sign up a new user and upsert profile in `profiles` table */
-export async function signUp(profileInput: Partial<UserProfile> & { password: string }): Promise<UserProfile | null> {
+export async function signUp(
+  profileInput: Partial<UserProfile> & { password: string }
+): Promise<UserProfile | null> {
   if (supabase) {
     const { email, password, fullName, role } = profileInput;
     if (email && password) {
@@ -122,7 +131,14 @@ export async function signUp(profileInput: Partial<UserProfile> & { password: st
       email: profileInput.email,
       role: profileInput.role ?? 'student',
       fullName: profileInput.fullName ?? profileInput.email.split('@')[0],
-      initials: profileInput.fullName ? profileInput.fullName.split(' ').map((s) => s[0]).join('').slice(0, 2).toUpperCase() : 'ST',
+      initials: profileInput.fullName
+        ? profileInput.fullName
+            .split(' ')
+            .map((s) => s[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()
+        : 'ST',
       department: profileInput.department ?? 'General',
       semester: profileInput.semester ?? 'Sem 1',
     };

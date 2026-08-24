@@ -35,7 +35,10 @@ export default function TeacherNotesPublisher() {
       subject,
       semester,
       teacher: 'Dr. Priya Nair',
-      tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
+      tags: tagsInput
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
       uploadedAt: 'Just now',
       downloads: 0,
       pages: parseInt(pagesInput) || 18,
@@ -74,7 +77,14 @@ export default function TeacherNotesPublisher() {
             size="sm"
             onClick={() => setUploadModalOpen(true)}
             leftIcon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
               </svg>
             }
@@ -96,12 +106,19 @@ export default function TeacherNotesPublisher() {
                   <span className="text-xs text-muted-foreground font-mono-data">{n.size}</span>
                 </div>
 
-                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-1">{n.title}</h3>
-                <p className="text-xs text-muted-foreground mb-3">{n.semester} · {n.pages} pages · Uploaded {n.uploadedAt}</p>
+                <h3 className="text-base font-700 text-foreground mb-1.5 line-clamp-1">
+                  {n.title}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {n.semester} · {n.pages} pages · Uploaded {n.uploadedAt}
+                </p>
 
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {n.tags.map((t) => (
-                    <span key={t} className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/40 font-500">
+                    <span
+                      key={t}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/40 font-500"
+                    >
                       #{t}
                     </span>
                   ))}
@@ -147,12 +164,21 @@ export default function TeacherNotesPublisher() {
             {/* File Dropzone */}
             <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-2xl p-6 text-center transition-colors bg-muted/10 cursor-pointer">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
               </div>
               <p className="text-xs font-600 text-foreground mb-0.5">Attached: {fileName}</p>
-              <p className="text-[11px] text-muted-foreground">Supports PDF, DOCX, PPTX (up to 25MB)</p>
+              <p className="text-[11px] text-muted-foreground">
+                Supports PDF, DOCX, PPTX (up to 25MB)
+              </p>
             </div>
 
             <div>

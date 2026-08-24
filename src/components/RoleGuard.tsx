@@ -35,20 +35,12 @@ export default function RoleGuard({
 
   // Check role requirement
   if (allowedRoles && (!role || !allowedRoles.includes(role))) {
-    return fallback ? (
-      <>{fallback}</>
-    ) : (
-      <AccessDenied requiredRole={allowedRoles.join(' or ')} />
-    );
+    return fallback ? <>{fallback}</> : <AccessDenied requiredRole={allowedRoles.join(' or ')} />;
   }
 
   // Check permission requirement
   if (requiredPermission && !hasPermission(role, requiredPermission)) {
-    return fallback ? (
-      <>{fallback}</>
-    ) : (
-      <AccessDenied requiredPermission={requiredPermission} />
-    );
+    return fallback ? <>{fallback}</> : <AccessDenied requiredPermission={requiredPermission} />;
   }
 
   return <>{children}</>;

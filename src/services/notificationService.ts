@@ -22,7 +22,12 @@ class NotificationService {
     });
   }
 
-  sendQuickAlert(title: string, body: string, priority: 'high' | 'medium' | 'low' = 'medium', category: 'General' | 'Exam' | 'Event' | 'Academic' | 'Emergency' = 'General') {
+  sendQuickAlert(
+    title: string,
+    body: string,
+    priority: 'high' | 'medium' | 'low' = 'medium',
+    category: 'General' | 'Exam' | 'Event' | 'Academic' | 'Emergency' = 'General'
+  ) {
     const notice: Announcement = {
       id: `notif-${Date.now()}`,
       title,

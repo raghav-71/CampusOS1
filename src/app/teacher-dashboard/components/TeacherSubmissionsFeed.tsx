@@ -71,7 +71,9 @@ export default function TeacherSubmissionsFeed() {
                       subm.status === 'graded' ? 'badge-success' : 'badge-warning'
                     }`}
                   >
-                    {subm.status === 'graded' ? `Graded: ${subm.score}/${subm.maxScore}` : 'Needs Review'}
+                    {subm.status === 'graded'
+                      ? `Graded: ${subm.score}/${subm.maxScore}`
+                      : 'Needs Review'}
                   </span>
                   <span className="text-xs text-muted-foreground font-mono-data">
                     {subm.rollNumber}
@@ -100,7 +102,10 @@ export default function TeacherSubmissionsFeed() {
       {/* Grade Modal */}
       {selectedSubm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedSubm(null)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSelectedSubm(null)}
+          />
           <div className="relative glass-card rounded-2xl p-6 border border-border max-w-md w-full animate-fade-in-up">
             <h3 className="text-base font-700 text-foreground mb-1">
               Grade Submission: {selectedSubm.studentName}
@@ -148,11 +153,7 @@ export default function TeacherSubmissionsFeed() {
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleSaveGrade}
-                className="btn-primary flex-1 py-2.5"
-              >
+              <button type="button" onClick={handleSaveGrade} className="btn-primary flex-1 py-2.5">
                 Save Grade
               </button>
             </div>

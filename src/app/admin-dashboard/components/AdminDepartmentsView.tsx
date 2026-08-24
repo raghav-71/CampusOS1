@@ -65,7 +65,14 @@ export default function AdminDepartmentsView() {
             size="sm"
             onClick={() => setAddSubjectModalOpen(true)}
             leftIcon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
             }
@@ -86,23 +93,31 @@ export default function AdminDepartmentsView() {
                   <span className="badge-violet text-xs px-2.5 py-0.5 rounded-lg font-700">
                     {dept.code}
                   </span>
-                  <span className="text-xs text-muted-foreground font-500">{dept.totalFaculty} Faculty</span>
+                  <span className="text-xs text-muted-foreground font-500">
+                    {dept.totalFaculty} Faculty
+                  </span>
                 </div>
 
                 <h3 className="text-lg font-700 text-foreground mb-1">{dept.name}</h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Head of Dept: <span className="text-foreground font-600">{dept.headOfDepartment}</span>
+                  Head of Dept:{' '}
+                  <span className="text-foreground font-600">{dept.headOfDepartment}</span>
                 </p>
 
                 <div className="p-3.5 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total Enrolled</span>
-                    <span className="font-700 text-primary metric-value">{dept.totalStudents} Students</span>
+                    <span className="font-700 text-primary metric-value">
+                      {dept.totalStudents} Students
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Active Courses</span>
                     <span className="font-600 text-foreground">
-                      {subjects.filter((s) => s.department.toLowerCase() === dept.code.toLowerCase()).length || 4} Subjects
+                      {subjects.filter(
+                        (s) => s.department.toLowerCase() === dept.code.toLowerCase()
+                      ).length || 4}{' '}
+                      Subjects
                     </span>
                   </div>
                 </div>
@@ -124,7 +139,9 @@ export default function AdminDepartmentsView() {
         {/* Registered Subjects Table */}
         <div className="glass-card rounded-2xl border border-border overflow-hidden">
           <div className="p-4 border-b border-border/80 flex items-center justify-between">
-            <h3 className="text-base font-600 text-foreground">Master Course Curriculum ({subjects.length})</h3>
+            <h3 className="text-base font-600 text-foreground">
+              Master Course Curriculum ({subjects.length})
+            </h3>
             <Badge variant="cyan">Fall 2026</Badge>
           </div>
 
@@ -142,11 +159,19 @@ export default function AdminDepartmentsView() {
               <tbody className="divide-y divide-border/40">
                 {subjects.map((sub) => (
                   <tr key={sub.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-3.5 px-4 font-mono-data font-700 text-foreground">{sub.code}</td>
+                    <td className="py-3.5 px-4 font-mono-data font-700 text-foreground">
+                      {sub.code}
+                    </td>
                     <td className="py-3.5 px-4 font-600 text-foreground">{sub.name}</td>
-                    <td className="py-3.5 px-4 text-muted-foreground">{sub.department} · {sub.semester}</td>
-                    <td className="py-3.5 px-4 font-semibold text-primary">{sub.credits} Credits</td>
-                    <td className="py-3.5 px-4 text-right font-500 text-foreground">{sub.instructor}</td>
+                    <td className="py-3.5 px-4 text-muted-foreground">
+                      {sub.department} · {sub.semester}
+                    </td>
+                    <td className="py-3.5 px-4 font-semibold text-primary">
+                      {sub.credits} Credits
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-500 text-foreground">
+                      {sub.instructor}
+                    </td>
                   </tr>
                 ))}
               </tbody>

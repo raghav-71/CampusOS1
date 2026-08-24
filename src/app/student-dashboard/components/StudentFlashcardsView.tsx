@@ -22,7 +22,8 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       subject: 'Operating Systems',
       subjectCode: 'CS501',
       question: 'What is the primary difference between Paging and Segmentation?',
-      answer: 'Paging divides memory into fixed-size blocks called frames/pages (invisible to programmer, prevents external fragmentation). Segmentation divides memory into variable-sized logical segments (visible to programmer, matches program modules).',
+      answer:
+        'Paging divides memory into fixed-size blocks called frames/pages (invisible to programmer, prevents external fragmentation). Segmentation divides memory into variable-sized logical segments (visible to programmer, matches program modules).',
       hint: 'Think fixed-size physical vs variable-size logical units.',
       tag: 'Memory Management',
     },
@@ -31,7 +32,8 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       subject: 'Operating Systems',
       subjectCode: 'CS501',
       question: 'What are the four Coffman conditions necessary for a Deadlock to occur?',
-      answer: '1. Mutual Exclusion\n2. Hold and Wait\n3. No Preemption\n4. Circular Wait\nAll four conditions must hold simultaneously.',
+      answer:
+        '1. Mutual Exclusion\n2. Hold and Wait\n3. No Preemption\n4. Circular Wait\nAll four conditions must hold simultaneously.',
       hint: 'ME, HW, NP, CW',
       tag: 'Process Synchronization',
     },
@@ -40,7 +42,8 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       subject: 'Database Systems',
       subjectCode: 'CS502',
       question: 'What are the ACID properties in DBMS transactions?',
-      answer: '• Atomicity: All or nothing execution.\n• Consistency: Database remains in valid state.\n• Isolation: Concurrent transactions do not interfere.\n• Durability: Committed changes survive system failures.',
+      answer:
+        '• Atomicity: All or nothing execution.\n• Consistency: Database remains in valid state.\n• Isolation: Concurrent transactions do not interfere.\n• Durability: Committed changes survive system failures.',
       hint: 'Essential for relational transaction guarantees.',
       tag: 'Transactions & Recovery',
     },
@@ -49,7 +52,8 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       subject: 'Database Systems',
       subjectCode: 'CS502',
       question: 'What constitutes BCNF (Boyce-Codd Normal Form)?',
-      answer: 'A relation is in BCNF if for every non-trivial functional dependency X → Y, X is a Super Key. It is a stricter version of 3NF eliminating all transitive anomalies.',
+      answer:
+        'A relation is in BCNF if for every non-trivial functional dependency X → Y, X is a Super Key. It is a stricter version of 3NF eliminating all transitive anomalies.',
       hint: 'Left-hand side must always be a candidate/super key.',
       tag: 'Normalization',
     },
@@ -58,7 +62,8 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       subject: 'Computer Networks',
       subjectCode: 'CS503',
       question: 'Explain the 3-Way Handshake process in TCP connection establishment.',
-      answer: '1. Client sends SYN (seq = x)\n2. Server responds with SYN-ACK (seq = y, ack = x+1)\n3. Client sends ACK (ack = y+1)\nConnection is now ESTABLISHED.',
+      answer:
+        '1. Client sends SYN (seq = x)\n2. Server responds with SYN-ACK (seq = y, ack = x+1)\n3. Client sends ACK (ack = y+1)\nConnection is now ESTABLISHED.',
       hint: 'SYN -> SYN-ACK -> ACK',
       tag: 'Transport Layer',
     },
@@ -66,8 +71,10 @@ const flashcardDecks: Record<string, Flashcard[]> = {
       id: 'fc-6',
       subject: 'Design & Analysis of Algorithms',
       subjectCode: 'CS504',
-      question: 'What is the time complexity of Dijkstra’s Algorithm using a Min-Heap (Priority Queue)?',
-      answer: 'O((V + E) log V), where V is the number of vertices and E is the number of edges. With Fibonacci Heap, it reduces to O(E + V log V).',
+      question:
+        'What is the time complexity of Dijkstra’s Algorithm using a Min-Heap (Priority Queue)?',
+      answer:
+        'O((V + E) log V), where V is the number of vertices and E is the number of edges. With Fibonacci Heap, it reduces to O(E + V log V).',
       hint: 'Heap extraction takes log V per vertex and edge decrease-key.',
       tag: 'Graph Algorithms',
     },
@@ -154,7 +161,8 @@ export default function StudentFlashcardsView() {
         <div>
           <p className="text-xs text-muted-foreground">Card</p>
           <p className="text-base font-700 text-foreground metric-value">
-            {currentIndex + 1} <span className="text-xs font-normal text-muted-foreground">/ {cards.length}</span>
+            {currentIndex + 1}{' '}
+            <span className="text-xs font-normal text-muted-foreground">/ {cards.length}</span>
           </p>
         </div>
         <div className="border-x border-border/60">
@@ -169,7 +177,10 @@ export default function StudentFlashcardsView() {
 
       {/* Flashcard 3D Stage */}
       {currentCard && (
-        <div className="perspective-1000 w-full min-h-[320px] sm:min-h-[360px] cursor-pointer" onClick={handleFlip}>
+        <div
+          className="perspective-1000 w-full min-h-[320px] sm:min-h-[360px] cursor-pointer"
+          onClick={handleFlip}
+        >
           <div
             className={`w-full h-full min-h-[320px] sm:min-h-[360px] relative transition-transform duration-500 transform-style-3d rounded-3xl p-8 border flex flex-col justify-between ${
               isFlipped
@@ -181,7 +192,9 @@ export default function StudentFlashcardsView() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Badge variant="cyan">{currentCard.subjectCode}</Badge>
-                <span className="text-xs text-muted-foreground font-500">{currentCard.subject}</span>
+                <span className="text-xs text-muted-foreground font-500">
+                  {currentCard.subject}
+                </span>
               </div>
               <span className="badge-violet text-[10px] px-2 py-0.5 rounded-full font-600">
                 {currentCard.tag}

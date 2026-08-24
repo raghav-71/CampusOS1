@@ -47,7 +47,8 @@ export default function TeacherProfileView() {
             </div>
             <p className="text-xs text-muted-foreground font-mono-data mb-1">{email}</p>
             <p className="text-xs text-muted-foreground">
-              {department} &nbsp;·&nbsp; Cabin: <span className="text-foreground font-600">Block A-312</span>
+              {department} &nbsp;·&nbsp; Cabin:{' '}
+              <span className="text-foreground font-600">Block A-312</span>
             </p>
           </div>
         </div>
@@ -74,13 +75,17 @@ export default function TeacherProfileView() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Teaching Experience</p>
-          <p className="text-2xl font-800 text-foreground metric-value">12+ <span className="text-xs font-normal text-muted-foreground">Years</span></p>
+          <p className="text-2xl font-800 text-foreground metric-value">
+            12+ <span className="text-xs font-normal text-muted-foreground">Years</span>
+          </p>
           <p className="text-[11px] text-accent font-600 mt-1">Senior Faculty</p>
         </div>
 
         <div className="glass-card rounded-2xl p-4 border border-border">
           <p className="text-xs text-muted-foreground mb-1">Student Course Rating</p>
-          <p className="text-2xl font-800 text-success metric-value">4.9 <span className="text-xs font-normal text-muted-foreground">/ 5.0</span></p>
+          <p className="text-2xl font-800 text-success metric-value">
+            4.9 <span className="text-xs font-normal text-muted-foreground">/ 5.0</span>
+          </p>
           <p className="text-[11px] text-success font-600 mt-1">★ Top Rated Teacher</p>
         </div>
 
@@ -101,15 +106,22 @@ export default function TeacherProfileView() {
       <div className="glass-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-700 text-foreground">Peer-Reviewed Research Publications</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Key contributions in distributed computing and systems research</p>
+            <h3 className="text-base font-700 text-foreground">
+              Peer-Reviewed Research Publications
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Key contributions in distributed computing and systems research
+            </p>
           </div>
           <Badge variant="cyan">IEEE / ACM</Badge>
         </div>
 
         <div className="space-y-3">
           {publications.map((pub, idx) => (
-            <div key={idx} className="p-3.5 rounded-xl bg-muted/20 border border-border/40 flex items-start justify-between gap-4">
+            <div
+              key={idx}
+              className="p-3.5 rounded-xl bg-muted/20 border border-border/40 flex items-start justify-between gap-4"
+            >
               <div>
                 <h4 className="text-sm font-600 text-foreground mb-0.5">{pub.title}</h4>
                 <p className="text-xs text-muted-foreground">{pub.journal}</p>

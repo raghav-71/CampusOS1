@@ -23,7 +23,11 @@ export class FacultyService {
     return this.repo.getSubmissions(assignmentId);
   }
 
-  async gradeSubmission(submissionId: string, score: number, feedback?: string): Promise<Submission | null> {
+  async gradeSubmission(
+    submissionId: string,
+    score: number,
+    feedback?: string
+  ): Promise<Submission | null> {
     return this.repo.gradeSubmission(submissionId, score, feedback);
   }
 
@@ -41,7 +45,9 @@ export class FacultyService {
     return allNotes.filter((n) => n.teacher.toLowerCase().includes(teacherName.toLowerCase()));
   }
 
-  async uploadNote(note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>): Promise<NoteDocument> {
+  async uploadNote(
+    note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
+  ): Promise<NoteDocument> {
     return this.repo.uploadNote(note);
   }
 }

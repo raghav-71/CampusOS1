@@ -41,12 +41,7 @@ export default function StudentTimetableFull() {
       </div>
 
       {/* Day Selector Tabs */}
-      <Tabs
-        tabs={days}
-        activeTab={selectedDay}
-        onChange={setSelectedDay}
-        variant="pills"
-      />
+      <Tabs tabs={days} activeTab={selectedDay} onChange={setSelectedDay} variant="pills" />
 
       {/* Schedule Slots */}
       <div className="space-y-3">
@@ -83,7 +78,10 @@ export default function StudentTimetableFull() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Instructor: <span className="text-foreground font-500">{slot.teacher}</span> &nbsp;·&nbsp; Location: <span className="text-accent font-600">{slot.room}</span> &nbsp;·&nbsp; Type: {slot.type}
+                    Instructor: <span className="text-foreground font-500">{slot.teacher}</span>{' '}
+                    &nbsp;·&nbsp; Location:{' '}
+                    <span className="text-accent font-600">{slot.room}</span> &nbsp;·&nbsp; Type:{' '}
+                    {slot.type}
                   </p>
                 </div>
               </div>
