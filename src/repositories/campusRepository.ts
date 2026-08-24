@@ -14,6 +14,11 @@ import {
   DepartmentNotesMetric,
   FacultyAttendanceMetric,
   GradeDistributionMetric,
+  MarksCardDocument,
+  ExamSchedule,
+  ExamCategory,
+  ExamType,
+  TeacherFilterState,
   Role,
 } from '@/types/campus';
 
@@ -28,11 +33,13 @@ import {
   mockAssignments,
   mockSubmissions,
   mockActivities,
-  mockStudyProgressData,
+  mockStudyProgressBySemester,
   mockEnrollmentData,
   mockDepartmentNotes,
   mockFacultyAttendanceTrends,
   mockGradeDistributions,
+  mockExams,
+  mockMarksCardSubmissions,
 } from './mockData';
 
 export interface ICampusRepository {
@@ -46,6 +53,7 @@ export interface ICampusRepository {
   // Departments & Subjects
   getDepartments(): Promise<Department[]>;
   getSubjects(department?: string): Promise<Subject[]>;
+  getSubjectsBySemester(semester: number, department?: string): Promise<Subject[]>;
 
   // Timetable & Attendance
   getStudentTimetable(department?: string, semester?: string): Promise<TimetableSlot[]>;
@@ -74,8 +82,24 @@ export interface ICampusRepository {
     feedback?: string
   ): Promise<Submission | null>;
 
+  // Exams
+  getExams(filters?: {
+    semester?: number;
+    category?: ExamCategory;
+    type?: ExamType;
+    subject?: string;
+  }): Promise<ExamSchedule[]>;
+
+  // Marks Cards
+  getMarksCardSubmissions(studentId?: string): Promise<MarksCardDocument[]>;
+  submitMarksCard(
+    semester: number,
+    file: { name: string; size: string; type: 'pdf' | 'image'; previewUrl?: string }
+  ): Promise<MarksCardDocument>;
+  deleteMarksCard(semester: number): Promise<boolean>;
+
   // Metrics & Analytics
-  getStudyProgress(): Promise<StudyProgressMetric[]>;
+  getStudyProgress(semester?: number): Promise<StudyProgressMetric[]>;
   getEnrollmentTrends(): Promise<EnrollmentMetric[]>;
   getDepartmentNotes(): Promise<DepartmentNotesMetric[]>;
   getFacultyAttendanceTrends(): Promise<FacultyAttendanceMetric[]>;
@@ -85,11 +109,14 @@ export interface ICampusRepository {
 
 export class MockCampusRepository implements ICampusRepository {
   private users: UserProfile[] = [...mockUsers];
+  private subjects: Subject[] = [...mockSubjects];
   private notes: NoteDocument[] = [...mockNotes];
   private announcements: Announcement[] = [...mockAnnouncements];
   private assignments: Assignment[] = [...mockAssignments];
   private submissions: Submission[] = [...mockSubmissions];
   private activities: ActivityItem[] = [...mockActivities];
+  private exams: ExamSchedule[] = [...mockExams];
+  private marksCards: MarksCardDocument[] = [...mockMarksCardSubmissions];
   private attendanceRecords: AttendanceRecord[] = [
     {
       id: 'att-1',
@@ -142,14 +169,14 @@ export class MockCampusRepository implements ICampusRepository {
       this.users[existingIndex] = { ...this.users[existingIndex], ...user };
       return this.users[existingIndex];
     }
-    this.users.unshift(user);
+    this.users.push(user);
     return user;
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    const prevLen = this.users.length;
+    const initialLen = this.users.length;
     this.users = this.users.filter((u) => u.id !== id);
-    return this.users.length < prevLen;
+    return this.users.length < initialLen;
   }
 
   async getDepartments(): Promise<Department[]> {
@@ -157,77 +184,99 @@ export class MockCampusRepository implements ICampusRepository {
   }
 
   async getSubjects(department?: string): Promise<Subject[]> {
-    if (!department) return [...mockSubjects];
-    return mockSubjects.filter((s) => s.department === department);
+    let list = [...this.subjects];
+    if (department && department !== 'All') {
+      list = list.filter((s) => s.department.toLowerCase() === department.toLowerCase());
+    }
+    return list;
   }
 
-  async getStudentTimetable(_department?: string, _semester?: string): Promise<TimetableSlot[]> {
-    return [...mockTimetable];
+  async getSubjectsBySemester(semester: number, department?: string): Promise<Subject[]> {
+    let list = this.subjects.filter((s) => s.semesterNumber === semester);
+    if (department && department !== 'All') {
+      list = list.filter((s) => s.department.toLowerCase() === department.toLowerCase());
+    }
+    return list;
   }
 
-  async getTeacherSchedule(_teacherName?: string): Promise<TimetableSlot[]> {
-    return [...mockTeacherSchedule];
+  async getStudentTimetable(department?: string, semester?: string): Promise<TimetableSlot[]> {
+    let list = [...mockTimetable];
+    if (department) list = list.filter((t) => t.department === department);
+    if (semester) list = list.filter((t) => t.semester === semester);
+    return list;
+  }
+
+  async getTeacherSchedule(teacherName?: string): Promise<TimetableSlot[]> {
+    let list = [...mockTeacherSchedule];
+    if (teacherName) list = list.filter((t) => t.teacher.includes(teacherName));
+    return list;
   }
 
   async getAttendance(subject?: string, date?: string): Promise<AttendanceRecord[]> {
-    let result = [...this.attendanceRecords];
-    if (subject) result = result.filter((r) => r.subject.toLowerCase() === subject.toLowerCase());
-    if (date) result = result.filter((r) => r.date === date);
-    return result;
+    let list = [...this.attendanceRecords];
+    if (subject) list = list.filter((a) => a.subject === subject);
+    if (date) list = list.filter((a) => a.date === date);
+    return list;
   }
 
   async recordAttendance(records: AttendanceRecord[]): Promise<AttendanceRecord[]> {
-    for (const rec of records) {
-      const idx = this.attendanceRecords.findIndex(
-        (r) => r.studentId === rec.studentId && r.subject === rec.subject && r.date === rec.date
-      );
-      if (idx >= 0) {
-        this.attendanceRecords[idx] = rec;
-      } else {
-        this.attendanceRecords.push({ ...rec, id: rec.id || `att-${Date.now()}-${Math.random()}` });
-      }
-    }
+    this.attendanceRecords.push(...records);
     return records;
   }
 
   async getNotes(subject?: string, query?: string): Promise<NoteDocument[]> {
-    let result = [...this.notes];
-    if (subject && subject !== 'All' && subject !== 'All Subjects') {
-      result = result.filter((n) => n.subject.toLowerCase() === subject.toLowerCase());
+    let list = [...this.notes];
+    if (subject) {
+      list = list.filter(
+        (n) =>
+          n.subject.toLowerCase().includes(subject.toLowerCase()) ||
+          n.subjectId?.toLowerCase() === subject.toLowerCase()
+      );
     }
     if (query) {
       const q = query.toLowerCase();
-      result = result.filter(
+      list = list.filter(
         (n) =>
           n.title.toLowerCase().includes(q) ||
           n.subject.toLowerCase().includes(q) ||
           n.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
-    return result;
+    return list;
   }
 
   async saveNote(note: NoteDocument): Promise<NoteDocument> {
-    this.notes.unshift(note);
+    const idx = this.notes.findIndex((n) => n.id === note.id);
+    if (idx >= 0) {
+      this.notes[idx] = note;
+    } else {
+      this.notes.unshift(note);
+    }
     return note;
   }
 
   async uploadNote(
-    noteInput: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
+    note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
   ): Promise<NoteDocument> {
     const newNote: NoteDocument = {
-      ...noteInput,
+      ...note,
       id: `note-${Date.now()}`,
       uploadedAt: 'Just now',
       downloads: 0,
       isNew: true,
+      rating: 5.0,
+      views: 1,
     };
     this.notes.unshift(newNote);
     return newNote;
   }
 
-  async getAnnouncements(_role?: Role): Promise<Announcement[]> {
-    return [...this.announcements];
+  async getAnnouncements(role?: Role): Promise<Announcement[]> {
+    let list = [...this.announcements];
+    if (role) {
+      list = list.filter((a) => !a.targetRole || a.targetRole === 'all' || a.targetRole === role);
+    }
+    return list;
   }
 
   async createAnnouncement(announcement: Announcement): Promise<Announcement> {
@@ -235,8 +284,10 @@ export class MockCampusRepository implements ICampusRepository {
     return announcement;
   }
 
-  async getAssignments(_teacherName?: string): Promise<Assignment[]> {
-    return [...this.assignments];
+  async getAssignments(teacherName?: string): Promise<Assignment[]> {
+    let list = [...this.assignments];
+    if (teacherName) list = list.filter((a) => a.teacher.includes(teacherName));
+    return list;
   }
 
   async createAssignment(assignment: Assignment): Promise<Assignment> {
@@ -245,8 +296,9 @@ export class MockCampusRepository implements ICampusRepository {
   }
 
   async getSubmissions(assignmentId?: string): Promise<Submission[]> {
-    if (!assignmentId) return [...this.submissions];
-    return this.submissions.filter((s) => s.assignmentId === assignmentId);
+    let list = [...this.submissions];
+    if (assignmentId) list = list.filter((s) => s.assignmentId === assignmentId);
+    return list;
   }
 
   async gradeSubmission(
@@ -257,13 +309,89 @@ export class MockCampusRepository implements ICampusRepository {
     const sub = this.submissions.find((s) => s.id === submissionId);
     if (!sub) return null;
     sub.score = score;
-    sub.feedback = feedback;
     sub.status = 'graded';
-    return { ...sub };
+    if (feedback) sub.feedback = feedback;
+    return sub;
   }
 
-  async getStudyProgress(): Promise<StudyProgressMetric[]> {
-    return [...mockStudyProgressData];
+  async getExams(filters?: {
+    semester?: number;
+    category?: ExamCategory;
+    type?: ExamType;
+    subject?: string;
+  }): Promise<ExamSchedule[]> {
+    let list = [...this.exams];
+    if (filters?.semester) {
+      list = list.filter((e) => e.semesterNumber === filters.semester);
+    }
+    if (filters?.category) {
+      list = list.filter((e) => e.examCategory === filters.category);
+    }
+    if (filters?.type) {
+      list = list.filter((e) => e.examType === filters.type);
+    }
+    if (filters?.subject) {
+      const q = filters.subject.toLowerCase();
+      list = list.filter(
+        (e) => e.subject.toLowerCase().includes(q) || e.subjectCode.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
+
+  async getMarksCardSubmissions(studentId?: string): Promise<MarksCardDocument[]> {
+    return [...this.marksCards];
+  }
+
+  async submitMarksCard(
+    semester: number,
+    file: { name: string; size: string; type: 'pdf' | 'image'; previewUrl?: string }
+  ): Promise<MarksCardDocument> {
+    const existingIdx = this.marksCards.findIndex((m) => m.semester === semester);
+    const newDoc: MarksCardDocument = {
+      id: `mc-sem${semester}`,
+      semester,
+      year: Math.ceil(semester / 2),
+      semesterLabel: `Semester ${semester}`,
+      status: 'SUBMITTED',
+      fileName: file.name,
+      fileSize: file.size,
+      uploadedAt: new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      fileType: file.type,
+      previewUrl: file.previewUrl,
+      adminRemarks: 'Submitted by student. Awaiting academic verification.',
+    };
+
+    if (existingIdx >= 0) {
+      this.marksCards[existingIdx] = newDoc;
+    } else {
+      this.marksCards.push(newDoc);
+    }
+    return newDoc;
+  }
+
+  async deleteMarksCard(semester: number): Promise<boolean> {
+    const existingIdx = this.marksCards.findIndex((m) => m.semester === semester);
+    if (existingIdx >= 0) {
+      this.marksCards[existingIdx] = {
+        id: `mc-sem${semester}`,
+        semester,
+        year: Math.ceil(semester / 2),
+        semesterLabel: `Semester ${semester}`,
+        status: 'NOT_SUBMITTED',
+        adminRemarks: 'Previous marks card removed. Pending upload.',
+      };
+      return true;
+    }
+    return false;
+  }
+
+  async getStudyProgress(semester: number = 5): Promise<StudyProgressMetric[]> {
+    return mockStudyProgressBySemester[semester] || mockStudyProgressBySemester[5];
   }
 
   async getEnrollmentTrends(): Promise<EnrollmentMetric[]> {

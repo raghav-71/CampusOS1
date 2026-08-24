@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { providerChain } from '@/lib/ai/providers/ProviderChain';
+import { providerChain } from '@/lib/ai/provider/providerChain';
 
 export async function GET() {
   try {
@@ -12,16 +12,18 @@ export async function GET() {
       isFree: health.isFree,
       message: health.message,
       latencyMs: health.latencyMs,
+      apiKeyConfigured: providerChain.isAnyProviderConfigured(),
     });
   } catch (err: any) {
     return NextResponse.json(
       {
         success: false,
         status: 'offline',
-        provider: 'Local Campus Intelligence',
-        model: 'deterministic-engine',
+        provider: 'Campus Intelligence (Local)',
+        model: 'deterministic-campus-engine',
         isFree: true,
         message: err.message || 'Status check error',
+        apiKeyConfigured: false,
       },
       { status: 200 }
     );

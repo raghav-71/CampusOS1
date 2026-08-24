@@ -9,6 +9,7 @@ export interface UserProfile {
   initials: string;
   department?: string;
   semester?: string;
+  semesterNumber?: number;
   rollNumber?: string;
   subjects?: string[];
   avatarUrl?: string;
@@ -28,16 +29,21 @@ export interface Department {
 
 export interface Subject {
   id: string;
+  subjectId?: string;
   code: string;
   name: string;
   department: string;
   semester: string;
+  semesterNumber?: number;
+  year?: number;
   credits: number;
   instructor: string;
+  type?: 'THEORY' | 'LAB';
   syllabusCoveragePct: number;
   syllabusProgress?: number;
   attendanceRate?: number;
   colorBadge?: string;
+  description?: string;
 }
 
 export interface TimetableSlot {
@@ -50,6 +56,7 @@ export interface TimetableSlot {
   teacher: string;
   department: string;
   semester: string;
+  semesterNumber?: number;
   dayOfWeek: string;
   type?: 'Lecture' | 'Lab' | 'Tutorial' | 'Seminar';
   status?: 'upcoming' | 'ongoing' | 'completed';
@@ -69,8 +76,10 @@ export interface Assignment {
   id: string;
   title: string;
   subject: string;
+  subjectId?: string;
   department: string;
   semester: string;
+  semesterNumber?: number;
   teacher: string;
   dueDate: string;
   totalSubmissions: number;
@@ -100,7 +109,9 @@ export interface NoteDocument {
   id: string;
   title: string;
   subject: string;
+  subjectId?: string;
   semester: string;
+  semesterNumber?: number;
   department?: string;
   teacher: string;
   tags: string[];
@@ -129,15 +140,55 @@ export interface Announcement {
   targetDepartment?: string;
 }
 
+export type ExamCategory = 'INTERNAL_1' | 'INTERNAL_2' | 'END_SEMESTER';
+export type ExamType = 'THEORY' | 'LAB';
+
 export interface ExamSchedule {
   id: string;
+  subjectId?: string;
   subject: string;
   subjectCode: string;
   date: string;
   time: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: string;
   room: string;
   semester: string;
+  semesterNumber?: number;
+  year?: number;
   department: string;
+  examCategory?: ExamCategory;
+  examType?: ExamType;
+  faculty?: string;
+  maxMarks?: number;
+  syllabusCovered?: string;
+}
+
+export type MarksCardStatus =
+  | 'NOT_SUBMITTED'
+  | 'UPLOADING'
+  | 'SUBMITTED'
+  | 'REVIEWING'
+  | 'APPROVED'
+  | 'REJECTED';
+
+export interface MarksCardDocument {
+  id: string;
+  semester: number;
+  year: number;
+  semesterLabel: string;
+  status: MarksCardStatus;
+  sgpa?: string;
+  totalCredits?: number;
+  fileName?: string;
+  fileSize?: string;
+  uploadedAt?: string;
+  fileType?: 'pdf' | 'image';
+  previewUrl?: string;
+  adminRemarks?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export interface EventItem {
@@ -213,4 +264,11 @@ export interface FacultyAttendanceMetric {
 export interface GradeDistributionMetric {
   gradeRange: string;
   studentCount: number;
+}
+
+export interface TeacherFilterState {
+  gradeYear: string;
+  semester: string;
+  subject: string;
+  section: string;
 }

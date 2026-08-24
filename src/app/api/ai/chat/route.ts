@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { AIRouter } from '@/lib/ai/aiRouter';
+import { CampusAgent } from '@/lib/ai/agent/campusAgent';
 import { UserProfile } from '@/types/campus';
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid message string is required.' }, { status: 400 });
     }
 
-    // Default profile fallback if client did not pass one
     const profile: UserProfile = userProfile || {
       id: 'usr-001',
       name: 'Arjun Sharma',
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
       subjects: ['Operating Systems', 'DBMS', 'Computer Networks', 'Java Programming', 'DAA'],
     };
 
-    const aiResponse = await AIRouter.handleRequest({
+    const aiResponse = await CampusAgent.handleRequest({
       message,
       userProfile: profile,
       currentPath: currentPath || '/student-dashboard',

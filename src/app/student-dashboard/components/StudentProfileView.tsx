@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useProfile } from '@/hooks/useProfile';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import MarksCardSubmissionSection from './MarksCardSubmissionSection';
 
 const semesterGrades = [
   { sem: 'Semester 1', gpa: '8.40', credits: 22, status: 'Passed (Distinction)' },
@@ -27,7 +28,7 @@ export default function StudentProfileView() {
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl">
       {/* Profile Banner */}
-      <div className="glass-card rounded-3xl p-6 sm:p-8 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div className="glass-card rounded-3xl p-6 sm:p-8 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-glass">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-2xl font-800 text-white shadow-glow">
             {initials}
@@ -96,8 +97,11 @@ export default function StudentProfileView() {
         </div>
       </div>
 
+      {/* Marks Card Submission Section */}
+      <MarksCardSubmissionSection />
+
       {/* Semester History Table */}
-      <div className="glass-card rounded-2xl p-6 border border-border">
+      <div className="glass-card rounded-3xl p-6 sm:p-7 border border-border shadow-glass">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-700 text-foreground">Semester Academic Progression</h3>

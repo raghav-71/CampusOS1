@@ -3,15 +3,15 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { mockEvents } from '@/repositories/mockData';
-import Badge from '@/components/ui/Badge';
+import { EventItem } from '@/types/campus';
 import Button from '@/components/ui/Button';
 
 export default function StudentEventsView() {
-  const [eventsList, setEventsList] = useState(mockEvents);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [eventsList] = useState<EventItem[]>(mockEvents);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [rsvpList, setRsvpList] = useState<string[]>(['evt-001']);
 
-  const filtered = eventsList.filter((e) =>
+  const filtered = eventsList.filter((e: EventItem) =>
     selectedCategory === 'all' ? true : e.category.toLowerCase() === selectedCategory.toLowerCase()
   );
 
@@ -51,7 +51,7 @@ export default function StudentEventsView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map((evt) => {
+        {filtered.map((evt: EventItem) => {
           const isRegistered = rsvpList.includes(evt.id);
           return (
             <div

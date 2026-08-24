@@ -1,4 +1,15 @@
-import { Role } from '@/types/campus';
+import { Role, UserProfile } from '@/types/campus';
+
+export type AIIntent =
+  | 'NAVIGATE'
+  | 'SEARCH'
+  | 'DATA_LOOKUP'
+  | 'ANALYZE'
+  | 'EXPLAIN'
+  | 'GENERATE'
+  | 'RECOMMEND'
+  | 'ACTION'
+  | 'GENERAL';
 
 export type AIMode =
   | 'tutor'
@@ -30,6 +41,8 @@ export interface AIChatMessage {
   toolCalls?: AIToolCall[];
   action?: AIActionPayload;
   quiz?: AIQuizData;
+  studyPlan?: AIStudyPlan;
+  questionPaper?: AIQuestionPaper;
 }
 
 export interface AIToolCall {
@@ -85,6 +98,7 @@ export interface AIContextData {
 export interface AIActionPayload {
   type:
     | 'navigate'
+    | 'open_entity'
     | 'generate_quiz'
     | 'generate_study_plan'
     | 'generate_paper'
@@ -92,10 +106,13 @@ export interface AIActionPayload {
     | 'highlight_data';
   label?: string;
   route?: string;
+  entityType?: 'assignment' | 'note' | 'exam' | 'subject' | 'announcement';
+  entityId?: string;
   payload?: any;
 }
 
 export interface AIQuizData {
+  title?: string;
   question: string;
   options: string[];
   correctIndex: number;
@@ -120,12 +137,48 @@ export interface AIStudyPlan {
   revisionTips: string[];
 }
 
+export interface AIQuestionPaperSection {
+  name: string;
+  instructions?: string;
+  marksPerQuestion?: number;
+  totalSectionMarks?: number;
+  questions: string[];
+}
+
+export interface AIQuestionPaper {
+  title: string;
+  subject: string;
+  semester?: string;
+  difficulty?: string;
+  totalMarks: number;
+  duration?: string;
+  instructions?: string[];
+  sections: AIQuestionPaperSection[];
+  answerKey?: {
+    rubrics: string[];
+  };
+}
+
 export interface AIResponsePayload {
   answer: string;
-  category: AIMode;
+  category: AIIntent | AIMode | string;
   action?: AIActionPayload;
   quizData?: AIQuizData;
   studyPlan?: AIStudyPlan;
+  questionPaper?: AIQuestionPaper;
   toolsUsed?: string[];
   suggestedPrompts?: string[];
+  modelUsed?: string;
+  provider?: string;
+  isOfflineFallback?: boolean;
+}
+
+export interface AIRouterRequest {
+  message: string;
+  userProfile: UserProfile;
+  currentPath?: string;
+  currentTab?: string;
+  sessionId?: string;
+  selectedEntity?: Record<string, any>;
+  mode?: string;
 }

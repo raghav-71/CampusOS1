@@ -1,6 +1,8 @@
 'use client';
 
+import React from 'react';
 import dynamic from 'next/dynamic';
+import { TeacherFilterState } from '@/types/campus';
 
 const TeacherAttendanceChart = dynamic(
   () => import('@/app/teacher-dashboard/components/TeacherAttendanceChart'),
@@ -11,10 +13,14 @@ const TeacherGradeChart = dynamic(
   { ssr: false }
 );
 
-export default function TeacherChartsRow() {
+interface TeacherChartsRowProps {
+  filters?: TeacherFilterState;
+}
+
+export default function TeacherChartsRow({ filters }: TeacherChartsRowProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-2 gap-5">
-      <TeacherAttendanceChart />
+      <TeacherAttendanceChart filters={filters} />
       <TeacherGradeChart />
     </div>
   );

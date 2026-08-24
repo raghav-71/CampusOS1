@@ -1,8 +1,10 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { TeacherFilterState } from '@/types/campus';
 import TeacherDashboardHeader from '@/app/teacher-dashboard/components/TeacherDashboardHeader';
+import TeacherFilterBar from '@/app/teacher-dashboard/components/TeacherFilterBar';
 import TeacherKPIGrid from '@/app/teacher-dashboard/components/TeacherKPIGrid';
 import TeacherChartsRow from '@/app/teacher-dashboard/components/TeacherChartsRow';
 import TeacherScheduleWidget from '@/app/teacher-dashboard/components/TeacherScheduleWidget';
@@ -20,9 +22,16 @@ function TeacherTabRouter() {
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('tab') || 'overview';
 
+  const [sharedFilters, setSharedFilters] = useState<TeacherFilterState>({
+    gradeYear: 'all',
+    semester: 'all',
+    subject: 'all',
+    section: 'all',
+  });
+
   switch (currentTab) {
     case 'classes':
-      return <TeacherClassesView />;
+      return <TeacherClassesView externalFilters={sharedFilters} />;
     case 'attendance':
       return <TeacherAttendanceRegister />;
     case 'assignments':
@@ -41,10 +50,12 @@ function TeacherTabRouter() {
     case 'overview':
     default:
       return (
-        <>
-          <TeacherKPIGrid />
-          <TeacherChartsRow />
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
+        <div className="space-y-5 animate-fade-in">
+          {/* Global Filter Bar on Overview */}
+          <TeacherFilterBar filters={sharedFilters} onChange={setSharedFilters} />
+          <TeacherKPIGrid filters={sharedFilters} />
+          <TeacherChartsRow filters={sharedFilters} />
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             <div className="xl:col-span-2">
               <TeacherScheduleWidget />
             </div>
@@ -52,7 +63,7 @@ function TeacherTabRouter() {
               <TeacherSubmissionsFeed />
             </div>
           </div>
-        </>
+        </div>
       );
   }
 }

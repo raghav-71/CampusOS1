@@ -11,17 +11,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-
-const data = [
-  { week: 'W1', os: 12, dbms: 8, cn: 10, java: 6 },
-  { week: 'W2', os: 18, dbms: 14, cn: 15, java: 12 },
-  { week: 'W3', os: 22, dbms: 18, cn: 20, java: 16 },
-  { week: 'W4', os: 28, dbms: 20, cn: 28, java: 22 },
-  { week: 'W5', os: 35, dbms: 26, cn: 32, java: 25 },
-  { week: 'W6', os: 42, dbms: 30, cn: 38, java: 28 },
-  { week: 'W7', os: 50, dbms: 38, cn: 45, java: 34 },
-  { week: 'W8', os: 58, dbms: 44, cn: 52, java: 40 },
-];
+import { mockStudyProgressBySemester } from '@/repositories/mockData';
+import { getSubjectColor } from '@/lib/academicColors';
 
 interface TooltipPayloadItem {
   color: string;
@@ -38,13 +29,13 @@ interface CustomTooltipProps {
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="glass-card rounded-xl p-3 border border-border text-xs">
+    <div className="glass-card rounded-xl p-3 border border-border text-xs shadow-glass">
       <p className="font-600 text-foreground mb-2">{label}</p>
       {payload.map((entry) => (
         <div key={`tip-${entry.name}`} className="flex items-center justify-between gap-4 mb-1">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
-            <span className="text-muted-foreground capitalize">{entry.name}</span>
+            <span className="text-muted-foreground">{entry.name}</span>
           </div>
           <span className="font-600 text-foreground metric-value">{entry.value}%</span>
         </div>
@@ -53,35 +44,45 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-export default function StudyProgressChart() {
+interface StudyProgressChartProps {
+  selectedSemester?: number;
+}
+
+export default function StudyProgressChart({ selectedSemester = 5 }: StudyProgressChartProps) {
+  const data = mockStudyProgressBySemester[selectedSemester] || mockStudyProgressBySemester[5];
+
+  // Extract subject keys from dataset (ignoring "week")
+  const subjectKeys = data.length > 0 ? Object.keys(data[0]).filter((k) => k !== 'week') : [];
+
   return (
-    <div className="glass-card rounded-2xl p-5 border border-border">
+    <div className="glass-card rounded-2xl p-5 border border-border/80 shadow-glass">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h3 className="text-base font-600 text-foreground">Study Progress</h3>
+          <h3 className="text-base font-700 text-foreground">Study Progress</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Topic completion by subject — last 8 weeks
+            Topic completion by subject — Semester {selectedSemester} (8 Weeks)
           </p>
         </div>
-        <span className="badge-violet text-xs px-2.5 py-1 rounded-lg font-500">Sem 5</span>
+        <span className="badge-cyan text-xs px-2.5 py-1 rounded-lg font-700">
+          Sem {selectedSemester}
+        </span>
       </div>
-      <ResponsiveContainer width="100%" height={220}>
+
+      <ResponsiveContainer width="100%" height={230}>
         <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <defs>
-            <linearGradient id="gradOS" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="gradDBMS" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="gradCN" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--success)" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
-            </linearGradient>
+            {subjectKeys.map((subjectName) => {
+              const color = getSubjectColor(subjectName);
+              const gradId = `grad-${subjectName.replace(/[^a-zA-Z0-9]/g, '')}`;
+              return (
+                <linearGradient key={gradId} id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color.hex} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={color.hex} stopOpacity={0} />
+                </linearGradient>
+              );
+            })}
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
           <XAxis
             dataKey="week"
             tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
@@ -89,6 +90,7 @@ export default function StudyProgressChart() {
             tickLine={false}
           />
           <YAxis
+            domain={[0, 100]}
             tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
             axisLine={false}
             tickLine={false}
@@ -97,30 +99,22 @@ export default function StudyProgressChart() {
           <Legend
             wrapperStyle={{ fontSize: 11, color: 'var(--muted-foreground)', paddingTop: 8 }}
           />
-          <Area
-            type="monotone"
-            dataKey="os"
-            name="OS"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            fill="url(#gradOS)"
-          />
-          <Area
-            type="monotone"
-            dataKey="dbms"
-            name="DBMS"
-            stroke="var(--accent)"
-            strokeWidth={2}
-            fill="url(#gradDBMS)"
-          />
-          <Area
-            type="monotone"
-            dataKey="cn"
-            name="CN"
-            stroke="var(--success)"
-            strokeWidth={2}
-            fill="url(#gradCN)"
-          />
+
+          {subjectKeys.map((subjectName) => {
+            const color = getSubjectColor(subjectName);
+            const gradId = `grad-${subjectName.replace(/[^a-zA-Z0-9]/g, '')}`;
+            return (
+              <Area
+                key={subjectName}
+                type="monotone"
+                dataKey={subjectName}
+                name={subjectName}
+                stroke={color.hex}
+                strokeWidth={2}
+                fill={`url(#${gradId})`}
+              />
+            );
+          })}
         </AreaChart>
       </ResponsiveContainer>
     </div>

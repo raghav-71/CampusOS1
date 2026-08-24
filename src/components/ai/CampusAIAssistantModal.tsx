@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useProfile } from '@/hooks/useProfile';
 import { Role } from '@/types/campus';
-import { AIChatMessage } from '@/lib/ai/aiTypes';
+import { AIChatMessage, AIStudyPlan } from '@/lib/ai/aiTypes';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
@@ -20,6 +20,7 @@ interface AIStatusData {
   model: string;
   isFree: boolean;
   message: string;
+  apiKeyConfigured?: boolean;
 }
 
 function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModalProps) {
@@ -33,10 +34,11 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
   const [aiStatus, setAiStatus] = useState<AIStatusData>({
     status: 'offline',
-    provider: 'Local Campus Intelligence',
-    model: 'deterministic-engine',
+    provider: 'Campus Intelligence (Local)',
+    model: 'openrouter/free',
     isFree: true,
-    message: 'Local mode active',
+    message: 'Local campus mode active',
+    apiKeyConfigured: false,
   });
 
   const [messages, setMessages] = useState<AIChatMessage[]>([
@@ -53,9 +55,9 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const [activeToolStatus, setActiveToolStatus] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch genuine AI provider status on mount
+  // Fetch real AI provider health status on mount
   useEffect(() => {
-    fetch('/api/ai/status')
+    fetch('/api/ai/health')
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -65,6 +67,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             model: data.model,
             isFree: data.isFree ?? true,
             message: data.message,
+            apiKeyConfigured: data.apiKeyConfigured,
           });
         }
       })
@@ -93,33 +96,33 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         },
         {
           label: '📝 Next Exam',
-          query: "What's my next exam?",
-          toolHint: 'Checking exam dates...',
+          query: 'What is my next exam?',
+          toolHint: 'Checking exam schedule...',
         },
         {
           label: '📋 Pending Assignments',
-          query: 'Which assignments are pending?',
+          query: 'What assignments do I have pending?',
           toolHint: 'Checking assignments...',
         },
         {
           label: '📚 Find DBMS Notes',
           query: 'Find my DBMS notes',
-          toolHint: 'Searching notes...',
-        },
-        {
-          label: '🎯 Practice Quiz',
-          query: 'Generate a quick practice quiz on Operating Systems',
-          toolHint: 'Generating quiz...',
+          toolHint: 'Searching notes library...',
         },
         {
           label: '🗓️ What to study today?',
           query: 'What should I study today?',
-          toolHint: 'Generating study recommendation...',
+          toolHint: 'Synthesizing revision recommendations...',
         },
         {
           label: '🧠 Teach me Dijkstra',
-          query: 'Explain Dijkstra with step-by-step intuition',
-          toolHint: 'Analyzing algorithm...',
+          query: 'Explain Dijkstra',
+          toolHint: 'Explaining algorithm...',
+        },
+        {
+          label: '🎯 10-Question DAA Quiz',
+          query: 'Give me a 10-question DAA quiz',
+          toolHint: 'Generating quiz...',
         },
       ];
     }
@@ -147,8 +150,8 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         },
         {
           label: '➕ Create Assignment',
-          query: 'Create an assignment on normalization',
-          toolHint: 'Drafting assignment...',
+          query: 'Create an assignment about normalization',
+          toolHint: 'Drafting assignment structure...',
         },
       ];
     }
@@ -156,7 +159,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     return [
       {
         label: '🏛️ Campus Overview',
-        query: 'Give me a campus overview',
+        query: 'Give me an overview of campus performance',
         toolHint: 'Compiling institutional analytics...',
       },
       {
@@ -170,11 +173,25 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         toolHint: 'Fetching circulars...',
       },
       {
-        label: '📈 Academic Performance',
-        query: 'Analyze academic performance',
+        label: '📈 Analyze Attendance Trends',
+        query: 'Analyze attendance trends',
         toolHint: 'Scanning student compliance...',
       },
     ];
+  };
+
+  const determineToolHint = (q: string): string => {
+    const lower = q.toLowerCase();
+    if (lower.includes('timetable') || lower.includes('class')) return 'Opening timetable...';
+    if (lower.includes('attendance')) return 'Reading attendance records...';
+    if (lower.includes('exam')) return 'Checking exam schedule...';
+    if (lower.includes('assignment')) return 'Checking assignments...';
+    if (lower.includes('note') || lower.includes('find') || lower.includes('search')) return 'Searching Campus OS...';
+    if (lower.includes('quiz')) return 'Generating quiz...';
+    if (lower.includes('paper')) return 'Generating question paper...';
+    if (lower.includes('study plan') || lower.includes('study today')) return 'Synthesizing revision plan...';
+    if (lower.includes('explain') || lower.includes('teach')) return 'Formulating explanation...';
+    return 'Reasoning & querying Campus OS...';
   };
 
   const sendMessage = async (textToSend?: string, toolHint?: string) => {
@@ -191,10 +208,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setIsLoading(true);
-    setActiveToolStatus(toolHint || 'Thinking & querying Campus OS...');
+    setActiveToolStatus(toolHint || determineToolHint(query));
 
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await fetch('/api/ai/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -209,7 +226,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to get response from AI');
+        throw new Error(data.error || 'Failed to get response from Campus OS AI');
       }
 
       const aiMsg: AIChatMessage = {
@@ -218,12 +235,13 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         content: data.answer || 'I have processed your request.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         quiz: data.quizData,
+        studyPlan: data.studyPlan,
         action: data.action,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
 
-      // If response includes automatic navigation action, execute smoothly
+      // If response includes direct navigation action, execute navigation
       if (data.action?.type === 'navigate' && data.action.route) {
         toast.success(`Navigating to ${data.action.label || data.action.route}`);
         router.push(data.action.route);
@@ -236,7 +254,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           id: `ai-err-${Date.now()}`,
           role: 'assistant',
           content:
-            '⚠️ I encountered a temporary connection issue. You can ask for timetable, attendance, or notes which will be handled seamlessly via local intelligence.',
+            '⚠️ I encountered a temporary connection issue. You can ask for timetable, attendance, or notes which will be handled seamlessly via deterministic campus intelligence.',
           timestamp: 'Just now',
         },
       ]);
@@ -275,7 +293,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-accent flex items-center justify-center text-white shadow-glow">
+            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-accent flex items-center justify-center text-white shadow-glow animate-pulse-glow">
               <svg
                 width="22"
                 height="22"
@@ -296,7 +314,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                 <Badge variant={aiStatus.status === 'online' ? 'success' : 'cyan'}>
                   {aiStatus.status === 'online'
                     ? '🟢 AI Online (Free)'
-                    : '🔵 Local Campus OS Intelligence'}
+                    : '🔵 Campus Intelligence Mode'}
                 </Badge>
               </div>
               <p className="text-[11px] text-muted-foreground">
@@ -366,6 +384,51 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                     >
                       🚀 {msg.action.label || 'Open View'} →
                     </button>
+                  </div>
+                )}
+
+                {/* Interactive Study Plan Component */}
+                {msg.studyPlan && (
+                  <div className="mt-4 p-4 rounded-2xl bg-card/85 border border-primary/40 space-y-3 text-xs shadow-glow">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                      <h4 className="font-800 text-foreground text-sm">
+                        🗓️ {msg.studyPlan.subject} Revision Plan
+                      </h4>
+                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded-md font-700">
+                        {msg.studyPlan.totalDays} Days
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {msg.studyPlan.schedule.map((day) => (
+                        <div key={day.day} className="p-2.5 rounded-xl bg-muted/30 border border-border/60">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-700 text-primary">Day {day.day}: {day.title}</span>
+                            <span className="text-[10px] text-muted-foreground">{day.duration}</span>
+                          </div>
+                          <p className="text-muted-foreground text-[11px]">{day.topics.join(' · ')}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => router.push('/student-dashboard?tab=notes')}
+                        className="text-xs"
+                      >
+                        Open Notes
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => sendMessage(`Generate a 5-question quiz on ${msg.studyPlan?.subject}`)}
+                        className="text-xs"
+                      >
+                        Create Quiz
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -455,7 +518,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           >
             <input
               type="text"
-              placeholder={`Ask about timetable, attendance, notes, exams, algorithms...`}
+              placeholder={`Ask naturally: "Open my timetable", "What's my attendance?", "Explain Dijkstra"...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="input-field py-2.5 text-xs sm:text-sm"
