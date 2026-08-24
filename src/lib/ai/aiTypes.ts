@@ -1,4 +1,4 @@
-import { Role, UserProfile } from '@/types/campus';
+import { Role } from '@/types/campus';
 
 export type AIMode =
   | 'tutor'
@@ -10,7 +10,15 @@ export type AIMode =
   | 'attendance_intel'
   | 'admin_copilot'
   | 'search'
-  | 'general';
+  | 'general'
+  | 'navigation'
+  | 'data_lookup'
+  | 'analysis'
+  | 'academic_help'
+  | 'generation'
+  | 'recommendation'
+  | 'action'
+  | 'general_question';
 
 export interface AIChatMessage {
   id: string;
@@ -48,6 +56,11 @@ export interface AIToolDefinition {
 }
 
 export interface AIContextData {
+  userId?: string;
+  userName?: string;
+  userRole?: Role;
+  department?: string;
+  semester?: string;
   user: {
     id: string;
     email: string;
@@ -63,6 +76,8 @@ export interface AIContextData {
     tab?: string;
     title?: string;
   };
+  selectedEntityContext?: Record<string, any>;
+  visibleDataContext?: Record<string, any>;
   selectedContext?: Record<string, any>;
   recentHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }

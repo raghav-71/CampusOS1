@@ -63,6 +63,18 @@ export const VALID_CAMPUS_ROUTES: Record<string, RouteTarget> = {
     title: 'Student Profile',
     allowedRoles: ['student', 'admin'],
   },
+  'student:attendance': {
+    route: '/student-dashboard?tab=attendance',
+    tab: 'attendance',
+    title: 'Student Attendance',
+    allowedRoles: ['student', 'admin'],
+  },
+  'student:assignments': {
+    route: '/student-dashboard?tab=assignments',
+    tab: 'assignments',
+    title: 'Student Assignments',
+    allowedRoles: ['student', 'admin'],
+  },
 
   // Teacher routes
   'teacher:overview': {
@@ -178,16 +190,12 @@ export const VALID_CAMPUS_ROUTES: Record<string, RouteTarget> = {
 };
 
 export class AINavigationManager {
-  /**
-   * Resolves a natural-language navigation request or key to a validated internal route.
-   */
   static resolveNavigation(
     target: string,
     userRole: Role
   ): { valid: boolean; route?: string; title?: string; message?: string } {
     const normalized = target.toLowerCase().trim();
 
-    // 1. Direct match with keys
     if (VALID_CAMPUS_ROUTES[target]) {
       const match = VALID_CAMPUS_ROUTES[target];
       if (match.allowedRoles.includes(userRole)) {
@@ -195,7 +203,6 @@ export class AINavigationManager {
       }
     }
 
-    // 2. Keyword heuristic mapping
     if (userRole === 'student') {
       if (
         normalized.includes('timetable') ||
@@ -268,6 +275,28 @@ export class AINavigationManager {
         };
       }
       if (
+        normalized.includes('attendance') ||
+        normalized.includes('present') ||
+        normalized.includes('percentage')
+      ) {
+        return {
+          valid: true,
+          route: '/student-dashboard?tab=attendance',
+          title: 'Student Attendance',
+        };
+      }
+      if (
+        normalized.includes('assignment') ||
+        normalized.includes('homework') ||
+        normalized.includes('submission')
+      ) {
+        return {
+          valid: true,
+          route: '/student-dashboard?tab=assignments',
+          title: 'Student Assignments',
+        };
+      }
+      if (
         normalized.includes('profile') ||
         normalized.includes('account') ||
         normalized.includes('my info')
@@ -300,9 +329,19 @@ export class AINavigationManager {
         };
       }
       if (
+        normalized.includes('class') ||
+        normalized.includes('course') ||
+        normalized.includes('batch')
+      ) {
+        return {
+          valid: true,
+          route: '/teacher-dashboard?tab=classes',
+          title: 'My Classes & Courses',
+        };
+      }
+      if (
         normalized.includes('assignment') ||
         normalized.includes('submission') ||
-        normalized.includes('grade') ||
         normalized.includes('grading')
       ) {
         return {
@@ -314,7 +353,7 @@ export class AINavigationManager {
       if (
         normalized.includes('paper') ||
         normalized.includes('question paper') ||
-        normalized.includes('exam question')
+        normalized.includes('exam archive')
       ) {
         return {
           valid: true,
@@ -323,9 +362,9 @@ export class AINavigationManager {
         };
       }
       if (
-        normalized.includes('aigen') ||
-        normalized.includes('generate paper') ||
-        normalized.includes('generator')
+        normalized.includes('ai') ||
+        normalized.includes('generator') ||
+        normalized.includes('assessment')
       ) {
         return {
           valid: true,
@@ -334,16 +373,9 @@ export class AINavigationManager {
         };
       }
       if (
-        normalized.includes('class') ||
-        normalized.includes('student list') ||
-        normalized.includes('batches')
-      ) {
-        return { valid: true, route: '/teacher-dashboard?tab=classes', title: 'My Classes' };
-      }
-      if (
         normalized.includes('note') ||
         normalized.includes('upload') ||
-        normalized.includes('publish')
+        normalized.includes('slide')
       ) {
         return {
           valid: true,
@@ -352,14 +384,14 @@ export class AINavigationManager {
         };
       }
       if (
-        normalized.includes('schedule') ||
         normalized.includes('timetable') ||
-        normalized.includes('slots')
+        normalized.includes('schedule') ||
+        normalized.includes('lecture')
       ) {
         return {
           valid: true,
           route: '/teacher-dashboard?tab=timetable',
-          title: 'Teaching Schedule',
+          title: 'Faculty Teaching Schedule',
         };
       }
       if (
@@ -446,7 +478,6 @@ export class AINavigationManager {
       }
     }
 
-    // Safety fallback: only internal dashboard route
     const safeDefault =
       userRole === 'admin'
         ? '/admin-dashboard'
@@ -454,5 +485,91 @@ export class AINavigationManager {
           ? '/teacher-dashboard'
           : '/student-dashboard';
     return { valid: true, route: safeDefault, title: 'Dashboard' };
+  }
+
+  static parseNavigationIntent(input: string, role: Role): { label: string; route: string } | null {
+    const q = input.toLowerCase().trim();
+    const isExplicitNav =
+      q.startsWith('open ') ||
+      q.startsWith('go to ') ||
+      q.startsWith('take me to ') ||
+      q.startsWith('navigate to ') ||
+      q.startsWith('jump to ') ||
+      q.includes('open my timetable') ||
+      q.includes('open timetable') ||
+      q.includes('open attendance') ||
+      q.includes('take me to my attendance') ||
+      q.includes('open notes') ||
+      q.includes('open exams');
+
+    if (!isExplicitNav) {
+      return null;
+    }
+
+    if (q.includes('timetable')) {
+      return { label: 'Class Timetable', route: '/student-dashboard?tab=timetable' };
+    }
+    if (q.includes('attendance')) {
+      return {
+        label: 'Attendance Register',
+        route:
+          role === 'teacher'
+            ? '/teacher-dashboard?tab=attendance'
+            : '/student-dashboard?tab=attendance',
+      };
+    }
+    if (q.includes('note')) {
+      return {
+        label: 'Notes & Materials',
+        route: role === 'teacher' ? '/teacher-dashboard?tab=notes' : '/student-dashboard?tab=notes',
+      };
+    }
+    if (q.includes('exam')) {
+      return { label: 'Exam Schedule', route: '/student-dashboard?tab=exams' };
+    }
+    if (q.includes('assignment')) {
+      return {
+        label: 'Assignments Portal',
+        route:
+          role === 'teacher'
+            ? '/teacher-dashboard?tab=assignments'
+            : '/student-dashboard?tab=assignments',
+      };
+    }
+    if (q.includes('copilot') || (q.includes('admin') && q.includes('surveillance'))) {
+      return { label: 'Admin Copilot', route: '/admin-dashboard?tab=copilot' };
+    }
+
+    const res = this.resolveNavigation(input, role);
+    if (res.valid && res.route && res.title && res.title !== 'Dashboard') {
+      return { label: res.title, route: res.route };
+    }
+
+    return null;
+  }
+
+  static resolveSafeRoute(route: string, role: string): string | null {
+    if (!route.startsWith('/')) return null;
+    const clean = route.split('#')[0];
+    if (
+      clean.startsWith('/student-dashboard') ||
+      clean.startsWith('/teacher-dashboard') ||
+      clean.startsWith('/admin-dashboard')
+    ) {
+      return route;
+    }
+    return null;
+  }
+
+  static getRouteLabel(route: string): string {
+    if (route.includes('tab=timetable')) return 'Class Timetable';
+    if (route.includes('tab=attendance')) return 'Attendance';
+    if (route.includes('tab=notes')) return 'Notes Explorer';
+    if (route.includes('tab=exams')) return 'Exam Schedule';
+    if (route.includes('tab=assignments')) return 'Assignments';
+    if (route.includes('tab=classes')) return 'My Classes';
+    if (route.includes('tab=copilot')) return 'Admin Copilot';
+    if (route.includes('tab=students')) return 'Student Directory';
+    return 'View';
   }
 }

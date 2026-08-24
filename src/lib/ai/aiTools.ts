@@ -5,10 +5,10 @@ import {
   mockStudyProgressData,
   mockEnrollmentData,
   mockDepartmentNotes,
-  mockFacultyAttendanceTrends,
   mockGradeDistributions,
+  mockUsers,
 } from '@/repositories/mockData';
-import { AIToolDefinition, AIContextData } from './aiTypes';
+import { AIToolDefinition } from './aiTypes';
 import { AIPermissionsManager } from './aiPermissions';
 import { AINavigationManager } from './aiNavigation';
 
@@ -16,20 +16,55 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
   {
     type: 'function',
     function: {
-      name: 'searchCampusData',
+      name: 'searchCampus',
       description:
-        'Search across campus subjects, lecture notes, timetable slots, announcements, and events.',
+        'Universal search across campus subjects, lecture notes, timetable slots, announcements, assignments, and events.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Search term or subject/topic name' },
+          query: { type: 'string', description: 'Search term or topic/subject name' },
           category: {
             type: 'string',
-            enum: ['all', 'notes', 'subjects', 'timetable', 'announcements', 'events'],
-            description: 'Specific category filter',
+            enum: [
+              'all',
+              'notes',
+              'subjects',
+              'timetable',
+              'announcements',
+              'events',
+              'assignments',
+            ],
+            description: 'Optional category filter',
           },
         },
         required: ['query'],
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCurrentUser',
+      description: 'Get profile details and role of the currently authenticated user in session.',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getStudentProfile',
+      description:
+        'Get student academic profile, enrolled degree program, semester, and roll number.',
+      parameters: {
+        type: 'object',
+        properties: {
+          studentId: { type: 'string', description: 'Optional student user ID' },
+        },
       },
     },
     allowedRoles: ['student', 'teacher', 'admin'],
@@ -84,59 +119,12 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     function: {
       name: 'getStudentAttendance',
       description:
-        'Get attendance statistics and history for a student across their enrolled subjects.',
+        'Get attendance statistics, percentages, and history for a student across enrolled subjects.',
       parameters: {
         type: 'object',
         properties: {
           subject: { type: 'string', description: 'Optional subject name to filter' },
-        },
-      },
-    },
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getNotes',
-      description: 'Get lecture notes, study documents, chapter summaries, and revision guides.',
-      parameters: {
-        type: 'object',
-        properties: {
-          subject: { type: 'string', description: 'Subject name e.g. Operating Systems, DBMS' },
-          query: { type: 'string', description: 'Keyword query e.g. Virtual Memory, Paging, SQL' },
-        },
-      },
-    },
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getAnnouncements',
-      description:
-        'Get official campus announcements, exam reschedules, event alerts, and administrative notices.',
-      parameters: {
-        type: 'object',
-        properties: {
-          category: {
-            type: 'string',
-            description: 'Optional category: Exam, Event, General, Academic',
-          },
-        },
-      },
-    },
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getEvents',
-      description:
-        'Get upcoming campus events, hackathons, guest lectures, sports competitions, and cultural galas.',
-      parameters: {
-        type: 'object',
-        properties: {
-          category: { type: 'string', enum: ['technical', 'cultural', 'sports', 'academic'] },
+          studentId: { type: 'string', description: 'Optional student ID' },
         },
       },
     },
@@ -146,11 +134,83 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     type: 'function',
     function: {
       name: 'getStudentAssignments',
-      description: 'Get student assignments, due dates, submission statuses, and maximum scores.',
+      description: 'Get assignments list, due dates, submission status, and max marks.',
       parameters: {
         type: 'object',
         properties: {
-          status: { type: 'string', enum: ['active', 'grading', 'closed', 'all'] },
+          subject: { type: 'string', description: 'Optional subject filter' },
+          studentId: { type: 'string', description: 'Optional student ID' },
+        },
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getStudentGrades',
+      description: 'Get internal assessment grades and academic marks distribution.',
+      parameters: {
+        type: 'object',
+        properties: {
+          studentId: { type: 'string', description: 'Optional student ID' },
+        },
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getStudentNotes',
+      description: 'Search lecture notes, study documents, chapters, and PDF resources.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Keyword or topic to search' },
+          subject: { type: 'string', description: 'Subject name filter' },
+        },
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getStudentFlashcards',
+      description: 'Retrieve quick revision flashcards for exam study and memorization.',
+      parameters: {
+        type: 'object',
+        properties: {
+          subject: { type: 'string', description: 'Subject name e.g. Operating Systems' },
+        },
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getAnnouncements',
+      description: 'Get official campus announcements, notices, circulars, and urgent alerts.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Number of announcements to retrieve (default 5)' },
+        },
+      },
+    },
+    allowedRoles: ['student', 'teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getEvents',
+      description: 'Get upcoming campus events, hackathons, sports meets, and guest lectures.',
+      parameters: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Number of events to retrieve (default 5)' },
         },
       },
     },
@@ -160,10 +220,41 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     type: 'function',
     function: {
       name: 'getFacultyClasses',
-      description: 'Get faculty teaching classes, enrolled students count, and subject codes.',
+      description:
+        'Get teaching classes, batches, enrolled student counts, and lecture halls for faculty.',
       parameters: {
         type: 'object',
-        properties: {},
+        properties: {
+          facultyId: { type: 'string', description: 'Optional faculty ID' },
+        },
+      },
+    },
+    allowedRoles: ['teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getFacultyStudents',
+      description: 'Get roster of enrolled students in a specific class or subject batch.',
+      parameters: {
+        type: 'object',
+        properties: {
+          classId: { type: 'string', description: 'Class or subject identifier' },
+        },
+      },
+    },
+    allowedRoles: ['teacher', 'admin'],
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getFacultyAssignments',
+      description: 'Get assignments created by faculty, submission counts, and pending grading.',
+      parameters: {
+        type: 'object',
+        properties: {
+          facultyId: { type: 'string', description: 'Optional faculty user ID' },
+        },
       },
     },
     allowedRoles: ['teacher', 'admin'],
@@ -172,7 +263,7 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     type: 'function',
     function: {
       name: 'getSubmissions',
-      description: 'Get student submissions for evaluation, grading status, and scores.',
+      description: 'Get student assignment submissions awaiting evaluation and score entry.',
       parameters: {
         type: 'object',
         properties: {
@@ -185,9 +276,24 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'getAdminUsers',
+      description: 'Get directory of students, faculty members, and campus administrators.',
+      parameters: {
+        type: 'object',
+        properties: {
+          role: { type: 'string', enum: ['student', 'teacher', 'admin', 'all'] },
+          department: { type: 'string', description: 'Filter by department' },
+        },
+      },
+    },
+    allowedRoles: ['admin'],
+  },
+  {
+    type: 'function',
+    function: {
       name: 'getAdminAnalytics',
       description:
-        'Get institutional analytics: at-risk students below 75% attendance cutoff, curriculum pace anomalies, department metrics, and enrollment trends.',
+        'Get institutional compliance metrics, at-risk attendance anomalies, and curriculum velocity.',
       parameters: {
         type: 'object',
         properties: {},
@@ -200,38 +306,25 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     function: {
       name: 'getDepartments',
       description:
-        'Get university departments, student counts, faculty counts, and Head of Department names.',
+        'Get list of university academic departments, student counts, and faculty head info.',
       parameters: {
         type: 'object',
         properties: {},
       },
     },
-    allowedRoles: ['teacher', 'admin'],
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getUsers',
-      description: 'Get campus user directory (students and faculty) with department and status.',
-      parameters: {
-        type: 'object',
-        properties: {
-          role: { type: 'string', enum: ['student', 'teacher', 'admin'] },
-          department: { type: 'string' },
-        },
-      },
-    },
-    allowedRoles: ['admin'],
+    allowedRoles: ['student', 'teacher', 'admin'],
   },
   {
     type: 'function',
     function: {
       name: 'getAuditLogs',
       description:
-        'Get campus activity and security audit logs, user registrations, logins, and uploads.',
+        'Get security audit logs, system logins, role changes, and administrative actions.',
       parameters: {
         type: 'object',
-        properties: {},
+        properties: {
+          limit: { type: 'number', description: 'Number of logs to retrieve' },
+        },
       },
     },
     allowedRoles: ['admin'],
@@ -241,17 +334,20 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
     function: {
       name: 'navigateToRoute',
       description:
-        'Instruct the user interface to navigate directly to a validated internal dashboard view/tab.',
+        'Navigate the user interface to an authorized internal Campus OS dashboard page or tab.',
       parameters: {
         type: 'object',
         properties: {
-          target: {
+          route: {
             type: 'string',
-            description:
-              'Destination keyword or key e.g. timetable, notes, exams, attendance, assignments, classes, profile',
+            description: 'Target internal route e.g. /student-dashboard?tab=timetable',
+          },
+          label: {
+            type: 'string',
+            description: 'Human-readable action description e.g. Open Timetable',
           },
         },
-        required: ['target'],
+        required: ['route'],
       },
     },
     allowedRoles: ['student', 'teacher', 'admin'],
@@ -259,257 +355,445 @@ export const CAMPUS_AI_TOOL_DEFINITIONS: AIToolDefinition[] = [
 ];
 
 export class AIToolsExecutor {
-  /**
-   * Executes a tool invocation securely using MockCampusRepository and mock data.
-   */
   static async executeTool(
-    name: string,
+    toolName: string,
     args: Record<string, any>,
-    context: AIContextData
+    userRole: string
   ): Promise<{ success: boolean; data?: any; error?: string; action?: any }> {
-    // 1. Check Server-Side RBAC
-    const perm = AIPermissionsManager.checkToolPermission(name, context.user.role);
-    if (!perm.allowed) {
-      return { success: false, error: perm.reason || 'Permission denied for this operation.' };
+    const isAllowed = AIPermissionsManager.canRoleAccessTool(userRole, toolName);
+    if (!isAllowed) {
+      return {
+        success: false,
+        error: `Permission Denied: Your role '${userRole}' is not authorized to execute tool '${toolName}'.`,
+      };
     }
 
     try {
-      switch (name) {
+      switch (toolName) {
+        case 'searchCampus':
         case 'searchCampusData': {
           const q = (args.query || '').toLowerCase();
-          const [subjects, notes, timetable, announcements] = await Promise.all([
-            campusRepository.getSubjects(),
-            campusRepository.getNotes(undefined, q),
-            campusRepository.getStudentTimetable(),
-            campusRepository.getAnnouncements(),
-          ]);
-
-          const matchedSubjects = subjects.filter(
-            (s) => s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)
-          );
-          const matchedTimetable = timetable.filter(
-            (t) =>
-              t.subject.toLowerCase().includes(q) ||
-              (t.teacher && t.teacher.toLowerCase().includes(q))
-          );
-          const matchedAnnouncements = announcements.filter(
-            (a) => a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)
-          );
-          const matchedEvents = mockEvents.filter(
-            (e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q)
-          );
+          const subjects = await campusRepository.getSubjects();
+          const notes = await campusRepository.getNotes();
+          const timetable = await campusRepository.getStudentTimetable();
+          const announcements = await campusRepository.getAnnouncements();
+          const assignments = await campusRepository.getAssignments();
 
           return {
             success: true,
             data: {
-              query: args.query,
-              subjects: matchedSubjects.slice(0, 4),
-              notes: notes.slice(0, 4),
-              timetableSlots: matchedTimetable.slice(0, 4),
-              announcements: matchedAnnouncements.slice(0, 3),
-              events: matchedEvents.slice(0, 3),
+              subjects: subjects.filter(
+                (s) =>
+                  s.name.toLowerCase().includes(q) ||
+                  s.code.toLowerCase().includes(q) ||
+                  s.department.toLowerCase().includes(q)
+              ),
+              notes: notes.filter(
+                (n) =>
+                  n.title.toLowerCase().includes(q) ||
+                  n.subject.toLowerCase().includes(q) ||
+                  n.tags.some((t) => t.toLowerCase().includes(q))
+              ),
+              timetable: timetable.filter(
+                (t) =>
+                  t.subject.toLowerCase().includes(q) ||
+                  t.teacher.toLowerCase().includes(q) ||
+                  t.room.toLowerCase().includes(q)
+              ),
+              announcements: announcements.filter(
+                (a) => a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)
+              ),
+              assignments: assignments.filter(
+                (asg) =>
+                  asg.title.toLowerCase().includes(q) || asg.subject.toLowerCase().includes(q)
+              ),
+            },
+          };
+        }
+
+        case 'getCurrentUser':
+        case 'getStudentProfile': {
+          const user = mockUsers[0];
+          return {
+            success: true,
+            data: {
+              id: user.id,
+              name: user.fullName,
+              email: user.email,
+              role: user.role,
+              department: user.department,
+              semester: user.semester,
+              rollNumber: user.rollNumber,
+              stats: mockStudyProgressData,
             },
           };
         }
 
         case 'getStudentSubjects': {
-          const subjects = await campusRepository.getSubjects(args.department);
+          const subjects = await campusRepository.getSubjects();
           return { success: true, data: subjects };
         }
 
         case 'getStudentTimetable': {
-          const slots = await campusRepository.getStudentTimetable();
+          const timetable = await campusRepository.getStudentTimetable();
           if (args.dayOfWeek) {
-            const filtered = slots.filter(
-              (s) => s.dayOfWeek.toLowerCase() === args.dayOfWeek.toLowerCase()
-            );
-            return { success: true, data: filtered };
+            return {
+              success: true,
+              data: timetable.filter(
+                (t) => t.dayOfWeek.toLowerCase() === args.dayOfWeek.toLowerCase()
+              ),
+            };
           }
-          return { success: true, data: slots };
+          return { success: true, data: timetable };
         }
 
         case 'getStudentExams': {
-          let exams = [...mockExams];
           if (args.subject) {
-            exams = exams.filter((e) =>
-              e.subject.toLowerCase().includes(args.subject.toLowerCase())
-            );
+            return {
+              success: true,
+              data: mockExams.filter((e) =>
+                e.subject.toLowerCase().includes(args.subject.toLowerCase())
+              ),
+            };
           }
-          return { success: true, data: exams };
+          return { success: true, data: mockExams };
         }
 
         case 'getStudentAttendance': {
-          const records = await campusRepository.getAttendance(args.subject);
-          const subjects = await campusRepository.getSubjects();
-          const attendanceSummary = subjects.map((sub) => ({
-            subject: sub.name,
-            code: sub.code,
-            attendanceRate: sub.attendanceRate || 92.0,
-            status: (sub.attendanceRate || 92.0) >= 75 ? 'Satisfactory' : 'Critical (Below 75%)',
-          }));
+          const subjectsList = [
+            {
+              subjectCode: 'CS501',
+              subjectName: 'Operating Systems',
+              attended: 42,
+              totalClasses: 45,
+              percentage: 93.3,
+            },
+            {
+              subjectCode: 'CS502',
+              subjectName: 'Database Management Systems',
+              attended: 35,
+              totalClasses: 40,
+              percentage: 87.5,
+            },
+            {
+              subjectCode: 'CS503',
+              subjectName: 'Computer Networks',
+              attended: 30,
+              totalClasses: 38,
+              percentage: 78.9,
+            },
+            {
+              subjectCode: 'CS504',
+              subjectName: 'Java Programming',
+              attended: 40,
+              totalClasses: 42,
+              percentage: 95.2,
+            },
+            {
+              subjectCode: 'CS505',
+              subjectName: 'Design & Analysis of Algorithms',
+              attended: 32,
+              totalClasses: 40,
+              percentage: 80.0,
+            },
+          ];
+
+          if (args.subject) {
+            const match = subjectsList.find(
+              (s) =>
+                s.subjectName.toLowerCase().includes(args.subject.toLowerCase()) ||
+                s.subjectCode.toLowerCase().includes(args.subject.toLowerCase())
+            );
+            return {
+              success: true,
+              data: match || { message: 'Subject not found in attendance records' },
+            };
+          }
 
           return {
             success: true,
             data: {
-              overallAttendance: '92.1%',
-              subjectRates: attendanceSummary,
-              recentLogs: records.slice(0, 10),
+              overall: { attended: 179, totalLectures: 205, percentage: 87.3 },
+              subjects: subjectsList,
             },
           };
-        }
-
-        case 'getNotes': {
-          const notes = await campusRepository.getNotes(args.subject, args.query);
-          return { success: true, data: notes };
-        }
-
-        case 'getAnnouncements': {
-          const announcements = await campusRepository.getAnnouncements(context.user.role);
-          if (args.category) {
-            return {
-              success: true,
-              data: announcements.filter(
-                (a) => a.category.toLowerCase() === args.category.toLowerCase()
-              ),
-            };
-          }
-          return { success: true, data: announcements };
-        }
-
-        case 'getEvents': {
-          let events = [...mockEvents];
-          if (args.category) {
-            events = events.filter((e) => e.category === args.category);
-          }
-          return { success: true, data: events };
         }
 
         case 'getStudentAssignments': {
           const assignments = await campusRepository.getAssignments();
-          const submissions = await campusRepository.getSubmissions();
-          const enriched = assignments.map((asg) => {
-            const sub = submissions.find(
-              (s) => s.assignmentId === asg.id && s.studentId === context.user.id
-            );
+          if (args.subject) {
             return {
-              ...asg,
-              myStatus: sub ? sub.status : 'pending',
-              myScore: sub?.score,
-              feedback: sub?.feedback,
+              success: true,
+              data: assignments.filter((a) =>
+                a.subject.toLowerCase().includes(args.subject.toLowerCase())
+              ),
             };
-          });
-          return { success: true, data: enriched };
+          }
+          return { success: true, data: assignments };
         }
 
-        case 'getFacultyClasses': {
-          const subjects = await campusRepository.getSubjects();
-          const teacherSchedule = await campusRepository.getTeacherSchedule(context.user.name);
+        case 'getStudentGrades': {
           return {
             success: true,
             data: {
-              teachingSubjects: subjects.filter(
-                (s) =>
-                  s.instructor.toLowerCase().includes(context.user.name.toLowerCase()) ||
-                  context.user.role === 'admin'
-              ),
-              schedule: teacherSchedule,
+              gpa: 3.84,
+              scale: 4.0,
+              distributions: mockGradeDistributions,
+              semesterRank: 4,
+              totalCohort: 60,
             },
           };
         }
 
+        case 'getStudentNotes':
+        case 'getNotes': {
+          const notes = await campusRepository.getNotes();
+          if (args.query) {
+            const q = args.query.toLowerCase();
+            return {
+              success: true,
+              data: notes.filter(
+                (n) =>
+                  n.title.toLowerCase().includes(q) ||
+                  n.subject.toLowerCase().includes(q) ||
+                  n.tags.some((t) => t.toLowerCase().includes(q))
+              ),
+            };
+          }
+          return { success: true, data: notes };
+        }
+
+        case 'getStudentFlashcards': {
+          return {
+            success: true,
+            data: [
+              {
+                id: 'fc-1',
+                subject: args.subject || 'Operating Systems',
+                front: 'What is Belady’s Anomaly?',
+                back: 'A phenomenon where increasing the number of page frames results in an increase in the number of page faults (occurs in FIFO page replacement).',
+              },
+              {
+                id: 'fc-2',
+                subject: args.subject || 'Operating Systems',
+                front: 'What are the 4 Coffman conditions for Deadlock?',
+                back: '1. Mutual Exclusion\n2. Hold and Wait\n3. No Preemption\n4. Circular Wait',
+              },
+              {
+                id: 'fc-3',
+                subject: args.subject || 'Operating Systems',
+                front: 'What is EMAT in Paging with TLB?',
+                back: 'Effective Memory Access Time = Hit_Ratio × (TLB_Time + Mem_Time) + (1 - Hit_Ratio) × (TLB_Time + 2 × Mem_Time)',
+              },
+            ],
+          };
+        }
+
+        case 'getAnnouncements': {
+          const announcements = await campusRepository.getAnnouncements();
+          const limit = args.limit || 5;
+          return { success: true, data: announcements.slice(0, limit) };
+        }
+
+        case 'getEvents': {
+          const limit = args.limit || 5;
+          return { success: true, data: mockEvents.slice(0, limit) };
+        }
+
+        case 'getFacultyClasses': {
+          return {
+            success: true,
+            data: [
+              {
+                id: 'cls-1',
+                subject: 'Operating Systems (CS501)',
+                batch: 'BCA Sem 5 - Div A',
+                studentsCount: 60,
+                room: 'Room A-204',
+                timing: 'Mon, Wed, Fri 10:30 AM',
+              },
+              {
+                id: 'cls-2',
+                subject: 'System Architecture (MCA302)',
+                batch: 'MCA Sem 3 - Div B',
+                studentsCount: 45,
+                room: 'Room B-102',
+                timing: 'Tue, Thu 2:00 PM',
+              },
+              {
+                id: 'cls-3',
+                subject: 'OS Lab (CS501L)',
+                batch: 'BCA Sem 5 - Batch 1',
+                studentsCount: 30,
+                room: 'Lab 3 (Block A)',
+                timing: 'Friday 2:00 PM – 4:00 PM',
+              },
+            ],
+          };
+        }
+
+        case 'getFacultyStudents': {
+          const students = mockUsers.filter((u) => u.role === 'student');
+          return {
+            success: true,
+            data: students.map((s) => ({
+              id: s.id,
+              name: s.fullName,
+              rollNumber: s.rollNumber,
+              department: s.department,
+              attendancePct: s.id === 'usr-006' ? 68.5 : s.id === 'usr-008' ? 62.0 : 94.2,
+            })),
+          };
+        }
+
+        case 'getFacultyAssignments': {
+          const assignments = await campusRepository.getAssignments();
+          return {
+            success: true,
+            data: assignments.map((a) => ({
+              id: a.id,
+              title: a.title,
+              subject: a.subject,
+              dueDate: a.dueDate,
+              totalSubmissions: 54,
+              pendingGrading: 12,
+            })),
+          };
+        }
+
         case 'getSubmissions': {
-          const submissions = await campusRepository.getSubmissions(args.assignmentId);
+          const submissions = await campusRepository.getSubmissions();
           return { success: true, data: submissions };
         }
 
+        case 'getAdminUsers': {
+          const users = await campusRepository.getUsers();
+          if (args.role && args.role !== 'all') {
+            return { success: true, data: users.filter((u) => u.role === args.role) };
+          }
+          return { success: true, data: users };
+        }
+
         case 'getAdminAnalytics': {
-          const [users, depts, subjects, activities] = await Promise.all([
-            campusRepository.getUsers(),
-            campusRepository.getDepartments(),
-            campusRepository.getSubjects(),
-            campusRepository.getActivities(),
-          ]);
-
-          // Dynamically detect at-risk students below 75%
-          const atRiskStudents = [
-            {
-              id: 'usr-008',
-              name: 'Karthik Nambiar',
-              rollNumber: 'MCA2612',
-              department: 'MCA Sem 1',
-              attendancePct: 62.4,
-              reason: 'Severe attendance deficiency below 75% cutoff threshold in 3 subjects',
-              recommendedAction: 'Issue Academic Warning Letter & Parent-Teacher Counseling',
-            },
-            {
-              id: 'usr-004',
-              name: 'Rohit Verma',
-              rollNumber: 'BBA2415',
-              department: 'BBA Sem 4',
-              attendancePct: 68.0,
-              reason: 'Absence during mid-term test cycle & 2 missed assignments',
-              recommendedAction: 'Schedule remedial evaluation with Dr. Ramesh Gupta',
-            },
-          ];
-
-          const curriculumAnomalies = subjects
-            .filter((s) => s.syllabusCoveragePct < 60)
-            .map((s) => ({
-              subject: `${s.name} (${s.code})`,
-              department: `${s.department} ${s.semester}`,
-              coveragePct: s.syllabusCoveragePct,
-              issue: `Syllabus coverage at ${s.syllabusCoveragePct}% with upcoming exam schedule`,
-              recommendedAction: 'Schedule 2 additional catch-up review lab slots',
-            }));
+          const students = mockUsers.filter((u) => u.role === 'student');
+          const atRisk = students.filter((s) => s.id === 'usr-006' || s.id === 'usr-008');
 
           return {
             success: true,
             data: {
-              totalStudents: users.filter((u) => u.role === 'student').length * 120, // scale factor for demo
-              totalFaculty: users.filter((u) => u.role === 'teacher').length * 8,
-              totalDepartments: depts.length,
-              atRiskStudents,
-              curriculumAnomalies,
-              departmentNotes: mockDepartmentNotes,
-              gradeDistributions: mockGradeDistributions,
-              recentAuditEvents: activities.slice(0, 6),
+              totalStudentsEnrolled: 2418,
+              totalFacultyMembers: 86,
+              averageInstitutionalAttendance: 91.4,
+              atRiskStudentsCount: atRisk.length,
+              atRiskStudents: [
+                {
+                  id: 'usr-006',
+                  name: 'Vikram Mehta',
+                  rollNumber: 'BCA24-042',
+                  attendancePct: 68.5,
+                  department: 'BCA',
+                  reason: 'Medical absence',
+                  recommendedAction: 'Issue warning circular & schedule makeup lab',
+                },
+                {
+                  id: 'usr-008',
+                  name: 'Ananya Gupta',
+                  rollNumber: 'MCA25-019',
+                  attendancePct: 62.0,
+                  department: 'MCA',
+                  reason: 'Repeated unauthorized leave',
+                  recommendedAction: 'Schedule parent-teacher conference & remedial sessions',
+                },
+              ],
+              curriculumAnomaliesCount: 1,
+              curriculumAnomalies: [
+                {
+                  subject: 'Database Management Systems (CS502)',
+                  department: 'BCA Sem 5',
+                  progressPct: 55,
+                  targetPct: 70,
+                  issue: 'Syllabus coverage pacing is 15% behind target schedule',
+                  recommendedAction: 'Authorize 4 remedial weekend lecture sessions',
+                },
+              ],
+              departmentBreakdowns: mockDepartmentNotes,
+              enrollmentTrends: mockEnrollmentData,
             },
           };
         }
 
         case 'getDepartments': {
-          const depts = await campusRepository.getDepartments();
-          return { success: true, data: depts };
-        }
-
-        case 'getUsers': {
-          const users = await campusRepository.getUsers(args.role, args.department);
-          return { success: true, data: users };
+          return {
+            success: true,
+            data: [
+              {
+                code: 'BCA',
+                name: 'Computer Applications (Undergraduate)',
+                studentsCount: 720,
+                head: 'Dr. Priya Nair',
+              },
+              {
+                code: 'MCA',
+                name: 'Master of Computer Applications (Postgraduate)',
+                studentsCount: 480,
+                head: 'Prof. Ramesh Kulkarni',
+              },
+              {
+                code: 'BTECH-CS',
+                name: 'Computer Science & Engineering',
+                studentsCount: 840,
+                head: 'Dr. Arvind Sharma',
+              },
+              {
+                code: 'BBA',
+                name: 'Business Administration',
+                studentsCount: 378,
+                head: 'Dr. Sunita Rao',
+              },
+            ],
+          };
         }
 
         case 'getAuditLogs': {
           const logs = await campusRepository.getActivities();
-          return { success: true, data: logs };
+          const limit = args.limit || 10;
+          return { success: true, data: logs.slice(0, limit) };
         }
 
         case 'navigateToRoute': {
-          const nav = AINavigationManager.resolveNavigation(args.target, context.user.role);
+          const route = args.route;
+          const label = args.label || AINavigationManager.getRouteLabel(route);
+          const sanitized = AINavigationManager.resolveSafeRoute(route, userRole);
+
+          if (!sanitized) {
+            return {
+              success: false,
+              error: `Navigation Target '${route}' is not a valid or authorized internal Campus OS route for role '${userRole}'.`,
+            };
+          }
+
           return {
             success: true,
-            data: { navigatedTo: nav.route, title: nav.title },
+            data: { navigatedTo: sanitized, label },
             action: {
               type: 'navigate',
-              label: `Open ${nav.title}`,
-              route: nav.route,
+              route: sanitized,
+              label,
             },
           };
         }
 
         default:
-          return { success: false, error: `Tool "${name}" not found.` };
+          return {
+            success: false,
+            error: `Unknown AI Tool '${toolName}'.`,
+          };
       }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Error executing tool.' };
+      return {
+        success: false,
+        error: `Tool execution failed: ${err.message}`,
+      };
     }
   }
 }

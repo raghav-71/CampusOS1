@@ -5,13 +5,21 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useProfile } from '@/hooks/useProfile';
 import { Role } from '@/types/campus';
-import { AIChatMessage, AIQuizData, AIStudyPlan, AIActionPayload } from '@/lib/ai/aiTypes';
+import { AIChatMessage } from '@/lib/ai/aiTypes';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 
 interface CampusAIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface AIStatusData {
+  status: 'online' | 'offline' | 'degraded';
+  provider: string;
+  model: string;
+  isFree: boolean;
+  message: string;
 }
 
 function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModalProps) {
@@ -23,11 +31,19 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
   const userRole: Role = profile?.role || 'student';
 
+  const [aiStatus, setAiStatus] = useState<AIStatusData>({
+    status: 'offline',
+    provider: 'Local Campus Intelligence',
+    model: 'deterministic-engine',
+    isFree: true,
+    message: 'Local mode active',
+  });
+
   const [messages, setMessages] = useState<AIChatMessage[]>([
     {
       id: 'msg-init',
       role: 'assistant',
-      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am the **Campus OS AI Intelligence Layer** ✨\n\nI am deeply integrated into your **${userRole.toUpperCase()}** environment. I can answer academic questions, navigate you across the platform, search lecture notes, check your attendance, generate exam study plans, or create practice quizzes. What can I do for you today?`,
+      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am the **Campus OS AI Intelligence Layer** ✨\n\nI am deeply integrated into your **${userRole.toUpperCase()}** workspace. I understand what page you are currently viewing, your attendance, timetable, and study notes. What can I do for you today?`,
       timestamp: 'Just now',
     },
   ]);
@@ -36,6 +52,24 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const [isLoading, setIsLoading] = useState(false);
   const [activeToolStatus, setActiveToolStatus] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch genuine AI provider status on mount
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setAiStatus({
+            status: data.status,
+            provider: data.provider,
+            model: data.model,
+            isFree: data.isFree ?? true,
+            message: data.message,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -47,30 +81,99 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const getQuickActions = () => {
     if (userRole === 'student') {
       return [
-        { label: '📅 Open Timetable', query: 'Open my class timetable', toolHint: 'Opening timetable...' },
-        { label: '📊 Check Attendance', query: 'What is my attendance rate across subjects?', toolHint: 'Auditing attendance...' },
-        { label: '🗓️ 5-Day DAA Study Plan', query: 'Create a 5-day study plan for my DAA exam', toolHint: 'Generating study plan...' },
-        { label: '🎯 Practice Quiz (OS)', query: 'Generate a practice quiz question on Operating Systems', toolHint: 'Generating quiz...' },
-        { label: '🧠 Explain Dijkstra', query: 'Explain Dijkstra Algorithm with step-by-step intuition', toolHint: 'Analyzing algorithm...' },
-        { label: '📚 Find OS Notes', query: 'Find notes on Virtual Memory and Paging', toolHint: 'Searching notes...' },
+        {
+          label: '📅 Open Timetable',
+          query: 'Open my timetable',
+          toolHint: 'Opening timetable...',
+        },
+        {
+          label: '📊 Check Attendance',
+          query: 'What is my attendance?',
+          toolHint: 'Auditing attendance...',
+        },
+        {
+          label: '📝 Next Exam',
+          query: "What's my next exam?",
+          toolHint: 'Checking exam dates...',
+        },
+        {
+          label: '📋 Pending Assignments',
+          query: 'Which assignments are pending?',
+          toolHint: 'Checking assignments...',
+        },
+        {
+          label: '📚 Find DBMS Notes',
+          query: 'Find my DBMS notes',
+          toolHint: 'Searching notes...',
+        },
+        {
+          label: '🎯 Practice Quiz',
+          query: 'Generate a quick practice quiz on Operating Systems',
+          toolHint: 'Generating quiz...',
+        },
+        {
+          label: '🗓️ What to study today?',
+          query: 'What should I study today?',
+          toolHint: 'Generating study recommendation...',
+        },
+        {
+          label: '🧠 Teach me Dijkstra',
+          query: 'Explain Dijkstra with step-by-step intuition',
+          toolHint: 'Analyzing algorithm...',
+        },
       ];
     }
     if (userRole === 'teacher') {
       return [
-        { label: '👥 My Classes', query: 'Show my teaching classes and enrolled batches', toolHint: 'Loading class rosters...' },
-        { label: '⚠️ Low Attendance (<75%)', query: 'Which students in my classes are below 75% attendance?', toolHint: 'Scanning attendance logs...' },
-        { label: '📝 Generate Question Paper', query: 'Generate a 100-mark exam paper for Operating Systems', toolHint: 'Generating exam blueprint...' },
-        { label: '📋 Open Attendance Register', query: 'Open the attendance register', toolHint: 'Opening attendance...' },
-        { label: '📥 Review Submissions', query: 'Show recent assignment submissions for grading', toolHint: 'Loading submissions...' },
+        {
+          label: '👥 Show My Classes',
+          query: 'Show my classes',
+          toolHint: 'Loading class rosters...',
+        },
+        {
+          label: '⚠️ Low Attendance (<75%)',
+          query: 'Which students have low attendance?',
+          toolHint: 'Scanning attendance logs...',
+        },
+        {
+          label: '📝 Generate DBMS Paper',
+          query: 'Generate a DBMS question paper',
+          toolHint: 'Drafting examination paper...',
+        },
+        {
+          label: '📋 Summarize Submissions',
+          query: 'Summarize my submissions',
+          toolHint: 'Checking submissions...',
+        },
+        {
+          label: '➕ Create Assignment',
+          query: 'Create an assignment on normalization',
+          toolHint: 'Drafting assignment...',
+        },
       ];
     }
     // Admin
     return [
-      { label: '🏛️ Campus Overview', query: 'Give me an institutional overview of campus attendance and departments', toolHint: 'Compiling analytics...' },
-      { label: '🚨 Attendance Anomalies', query: 'Which students are at-risk with attendance below 75%?', toolHint: 'Scanning student compliance...' },
-      { label: '⚡ Syllabus Velocity Warnings', query: 'Identify subjects with low syllabus coverage', toolHint: 'Analyzing curriculum pacing...' },
-      { label: '👤 Open User Management', query: 'Open student directory', toolHint: 'Navigating to directory...' },
-      { label: '📄 Security Audit Logs', query: 'Show recent campus activity and login audit logs', toolHint: 'Fetching audit logs...' },
+      {
+        label: '🏛️ Campus Overview',
+        query: 'Give me a campus overview',
+        toolHint: 'Compiling institutional analytics...',
+      },
+      {
+        label: '🚨 Lowest Attendance Dept',
+        query: 'Which department has the lowest attendance?',
+        toolHint: 'Comparing department stats...',
+      },
+      {
+        label: '📢 Recent Announcements',
+        query: 'Show recent announcements',
+        toolHint: 'Fetching circulars...',
+      },
+      {
+        label: '📈 Academic Performance',
+        query: 'Analyze academic performance',
+        toolHint: 'Scanning student compliance...',
+      },
     ];
   };
 
@@ -126,13 +229,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         router.push(data.action.route);
       }
     } catch (err: any) {
-      toast.error('AI Assistant Error: ' + err.message);
+      toast.error('AI Assistant: ' + err.message);
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-err-${Date.now()}`,
           role: 'assistant',
-          content: '⚠️ I encountered a temporary connection issue while querying Campus OS. Please feel free to try again.',
+          content:
+            '⚠️ I encountered a temporary connection issue. You can ask for timetable, attendance, or notes which will be handled seamlessly via local intelligence.',
           timestamp: 'Just now',
         },
       ]);
@@ -166,26 +270,39 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
       {/* Slide-over 3D Futuristic AI Panel */}
       <div className="relative w-full max-w-xl bg-card/95 backdrop-blur-2xl border-l border-primary/30 h-full flex flex-col shadow-2xl animate-slide-in-right z-10">
-        {/* Header with Visualizer */}
+        {/* Header */}
         <div className="p-4.5 border-b border-border/80 flex items-center justify-between bg-card/70 relative overflow-hidden">
-          {/* Subtle Ambient Light Orb in Header */}
           <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-accent flex items-center justify-center text-white shadow-glow">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <circle cx="12" cy="12" r="3" fill="#00D8F6" />
                 <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
               </svg>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-800 text-foreground tracking-tight">Campus OS AI Intelligence</h3>
-                <Badge variant={userRole === 'admin' ? 'warning' : userRole === 'teacher' ? 'cyan' : 'blue'}>
-                  {userRole.toUpperCase()} COPILOT
+                <h3 className="text-sm font-800 text-foreground tracking-tight">
+                  Campus OS AI Intelligence
+                </h3>
+                <Badge variant={aiStatus.status === 'online' ? 'success' : 'cyan'}>
+                  {aiStatus.status === 'online'
+                    ? '🟢 AI Online (Free)'
+                    : '🔵 Local Campus OS Intelligence'}
                 </Badge>
               </div>
-              <p className="text-[11px] text-muted-foreground">Connected to Campus OS Repository & LLM Engine</p>
+              <p className="text-[11px] text-muted-foreground">
+                {aiStatus.provider} · Viewing:{' '}
+                <span className="text-accent">{currentTab.toUpperCase()}</span>
+              </p>
             </div>
           </div>
 
@@ -194,7 +311,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             className="w-8 h-8 rounded-xl hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/40"
             title="Close Assistant"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -238,7 +362,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                       onClick={() => {
                         if (msg.action?.route) router.push(msg.action.route);
                       }}
-                      className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shadow-glow"
+                      className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shadow-glow cursor-pointer"
                     >
                       🚀 {msg.action.label || 'Open View'} →
                     </button>
@@ -253,16 +377,21 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                         {msg.quiz.subject || 'Interactive Quiz'}
                       </span>
                     </div>
-                    <p className="font-800 text-foreground text-sm leading-snug">{msg.quiz.question}</p>
+                    <p className="font-800 text-foreground text-sm leading-snug">
+                      {msg.quiz.question}
+                    </p>
                     <div className="space-y-2 pt-1">
                       {msg.quiz.options.map((opt, optIdx) => {
                         const isSelected = msg.quiz?.selectedOption === optIdx;
                         const isCorrect = optIdx === msg.quiz?.correctIndex;
-                        let btnStyle = 'border-border/70 bg-muted/30 hover:border-primary/50 text-foreground';
+                        let btnStyle =
+                          'border-border/70 bg-muted/30 hover:border-primary/50 text-foreground';
 
                         if (msg.quiz?.selectedOption !== undefined) {
-                          if (isCorrect) btnStyle = 'border-success bg-success/20 text-success font-700';
-                          else if (isSelected) btnStyle = 'border-danger bg-danger/20 text-danger font-700';
+                          if (isCorrect)
+                            btnStyle = 'border-success bg-success/20 text-success font-700';
+                          else if (isSelected)
+                            btnStyle = 'border-danger bg-danger/20 text-danger font-700';
                         }
 
                         return (
@@ -272,7 +401,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                             onClick={() => handleQuizAnswer(msg.id, optIdx)}
                             className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer ${btnStyle}`}
                           >
-                            <span className="font-700 mr-1.5">{String.fromCharCode(65 + optIdx)}.</span> {opt}
+                            <span className="font-700 mr-1.5">
+                              {String.fromCharCode(65 + optIdx)}.
+                            </span>{' '}
+                            {opt}
                           </button>
                         );
                       })}
@@ -281,9 +413,13 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                     {msg.quiz.selectedOption !== undefined && (
                       <div className="pt-2.5 mt-2 border-t border-border/50 text-xs">
                         <p className="font-700 text-success mb-1">
-                          {msg.quiz.selectedOption === msg.quiz.correctIndex ? '✓ Correct Answer!' : '✗ Incorrect'}
+                          {msg.quiz.selectedOption === msg.quiz.correctIndex
+                            ? '✓ Correct Answer!'
+                            : '✗ Incorrect'}
                         </p>
-                        <p className="text-muted-foreground leading-relaxed">{msg.quiz.explanation}</p>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {msg.quiz.explanation}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -296,7 +432,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           {/* Active Tool / Thinking Indicator */}
           {isLoading && (
             <div className="flex items-center gap-3 p-3.5 glass-card rounded-2xl border border-accent/40 max-w-[75%] animate-fade-in shadow-glow-accent">
-              {/* Voice-like Visualizer Bars */}
               <div className="flex items-end gap-1 h-5">
                 <span className="w-1 bg-accent rounded-full animate-bounce [animation-delay:0.1s] h-3" />
                 <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:0.3s] h-5" />
@@ -320,7 +455,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           >
             <input
               type="text"
-              placeholder={`Ask Campus OS about timetable, notes, exams, algorithms...`}
+              placeholder={`Ask about timetable, attendance, notes, exams, algorithms...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="input-field py-2.5 text-xs sm:text-sm"

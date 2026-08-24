@@ -12,14 +12,23 @@ export class AIPermissionsManager {
   static checkToolPermission(toolName: string, role: Role): PermissionCheckResult {
     // Universal tools accessible to all authenticated users
     const publicTools = [
+      'searchCampus',
       'searchCampusData',
+      'getCurrentUser',
+      'getStudentProfile',
       'getStudentSubjects',
       'getStudentTimetable',
       'getStudentExams',
-      'getAnnouncements',
-      'getEvents',
+      'getStudentAttendance',
+      'getStudentAssignments',
+      'getStudentGrades',
+      'getStudentNotes',
+      'getStudentFlashcards',
       'getNotes',
       'getFlashcards',
+      'getAnnouncements',
+      'getEvents',
+      'getDepartments',
       'navigateToRoute',
       'generateStudyPlan',
       'generateQuiz',
@@ -29,32 +38,12 @@ export class AIPermissionsManager {
       return { allowed: true };
     }
 
-    // Student specific permissions
-    if (role === 'student') {
-      const studentOnlyTools = [
-        'getStudentProfile',
-        'getStudentAttendance',
-        'getStudentAssignments',
-        'getStudentGrades',
-      ];
-      if (studentOnlyTools.includes(toolName)) {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason:
-          'Students do not have permission to access faculty grading records or administrative institutional analytics.',
-      };
-    }
-
     // Faculty specific permissions
     if (role === 'teacher') {
       const facultyTools = [
-        'getStudentProfile',
-        'getStudentAttendance',
-        'getStudentAssignments',
         'getFacultyClasses',
         'getFacultyStudents',
+        'getFacultyAssignments',
         'getSubmissions',
         'getGrades',
         'generateQuestionPaper',
@@ -76,6 +65,11 @@ export class AIPermissionsManager {
     }
 
     return { allowed: false, reason: 'Invalid or unauthorized role.' };
+  }
+
+  static canRoleAccessTool(role: string, toolName: string): boolean {
+    const res = this.checkToolPermission(toolName, role as Role);
+    return res.allowed;
   }
 
   /**

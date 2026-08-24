@@ -6,8 +6,16 @@ import { UserProfile } from '@/types/campus';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, userProfile, currentPath, currentTab, sessionId, selectedContext, mode } =
-      body;
+    const {
+      message,
+      userProfile,
+      currentPath,
+      currentTab,
+      sessionId,
+      selectedEntity,
+      selectedContext,
+      mode,
+    } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Valid message string is required.' }, { status: 400 });
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
       currentPath: currentPath || '/student-dashboard',
       currentTab: currentTab || 'overview',
       sessionId: sessionId || `session_${profile.id}`,
-      selectedContext,
+      selectedEntity: selectedEntity || selectedContext,
       mode,
     });
 
