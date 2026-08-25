@@ -1,6 +1,6 @@
 /**
  * Campus OS Agent Engine
- * Core ReAct loop supporting General AI conversation, semantic tool calling, multi-step reasoning, and security enforcement.
+ * Core ReAct loop supporting General AI conversation, streaming, semantic tool calling, and role security.
  */
 
 import { SystemPromptBuilder } from '../prompts/system';
@@ -8,13 +8,25 @@ import { ProviderChain } from '../providers/ProviderChain';
 import { DeterministicEngine, AgentExecutionResponse, AgentStepExecution } from '../providers/DeterministicEngine';
 import { toolRegistry, AIExecutionContext } from '../tools/ToolRegistry';
 import { AIPermissionsManager } from '../security/permissions';
-import { LLMMessage } from '../providers/types';
+import { LLMMessage, LLMStreamChunk } from '../providers/types';
 
 const MAX_AGENT_STEPS = 5;
 
+export interface StreamEvent {
+  type: 'token' | 'step' | 'action' | 'done' | 'error';
+  content?: string;
+  step?: string;
+  toolName?: string;
+  action?: any;
+  modelUsed?: string;
+  provider?: string;
+  suggestedPrompts?: string[];
+  category?: string;
+}
+
 export class CampusEngine {
   /**
-   * Main intelligent query handler for all user messages.
+   * Main intelligent query handler for all user messages (non-streaming).
    */
   static async process(
     query: string,
@@ -27,12 +39,7 @@ export class CampusEngine {
     let lastActionRequired: any = undefined;
 
     const recordStep = (step: string, toolName?: string, status: 'RUNNING' | 'COMPLETED' | 'FAILED' = 'COMPLETED') => {
-      steps.push({
-        step,
-        toolName,
-        status,
-        durationMs: 25,
-      });
+      steps.push({ step, toolName, status, durationMs: 25 });
       if (toolName && !toolsUsed.includes(toolName)) {
         toolsUsed.push(toolName);
       }
@@ -45,14 +52,8 @@ export class CampusEngine {
         answer: `🛡️ **Access Denied**\n\n${securityCheck.reason || 'You are not authorized to perform this operation under your current role.'}`,
         category: 'ACTION',
         toolsUsed: [],
-        executionSteps: [
-          { step: 'Role security validation', status: 'FAILED', durationMs: 5 },
-        ],
-        suggestedPrompts: [
-          'What is my attendance?',
-          'When is my next exam?',
-          'Open my timetable',
-        ],
+        executionSteps: [{ step: 'Role security validation', status: 'FAILED', durationMs: 5 }],
+        suggestedPrompts: ['What is my attendance?', 'When is my next exam?', 'Open my timetable'],
         modelUsed: 'campus-security-guard',
         provider: 'Campus OS Security',
         durationMs: Date.now() - startTime,
@@ -158,7 +159,7 @@ export class CampusEngine {
         }
       }
 
-      // If loop completed max steps, finalize
+      // Finalize loop
       const finalCompletion = await ProviderChain.executeCompletion(messages);
       return {
         answer: finalCompletion.text,
@@ -171,10 +172,191 @@ export class CampusEngine {
         provider: finalCompletion.provider,
         durationMs: Date.now() - startTime,
       };
-    } catch (err) {
-      console.warn('[CampusEngine] LLM pipeline encountered error or rate limit, using deterministic engine:', err);
-      // Fallback to Deterministic Reasoning Engine
-      return await DeterministicEngine.process(query, context);
+    } catch (err: any) {
+      console.warn('[CampusEngine] LLM provider error:', err?.message || err);
+
+      // Determine if query is asking for a specific campus tool (attendance, timetable, etc.)
+      const lowerQ = query.toLowerCase();
+      const isCampusSpecific = lowerQ.includes('attendance') || lowerQ.includes('timetable') || lowerQ.includes('schedule') || lowerQ.includes('marks') || lowerQ.includes('grades') || lowerQ.includes('notes');
+
+      if (isCampusSpecific) {
+        // Fallback for campus specific data lookup
+        return await DeterministicEngine.process(query, context);
+      }
+
+      // If general question and no LLM is connected, report honest diagnostic error (DO NOT fake offline mode)
+      const status = await ProviderChain.getStatus();
+      return {
+        answer: `### ⚠️ Campus AI: Language Model Not Connected\n\nI could not connect to a real language model to answer your general question.\n\n**Current Provider Status:**\n- **Ollama (Local)**: ${status.providers.ollama.available ? 'Connected' : 'Not reachable at ' + status.providers.ollama.baseUrl}\n- **Groq Cloud**: ${status.providers.groq.configured ? (status.providers.groq.available ? 'Connected' : 'Configured but unreachable') : 'GROQ_API_KEY is not configured'}\n- **OpenRouter**: ${status.providers.openrouter.configured ? (status.providers.openrouter.available ? 'Connected' : 'Configured but unreachable') : 'OPENROUTER_API_KEY is not configured'}\n\n💡 **How to connect:**\n- **Local**: Start Ollama with \`ollama run qwen2.5:7b\`\n- **Production/Vercel**: Add \`GROQ_API_KEY\` to your environment variables (Settings → Environment Variables).`,
+        category: 'GENERAL',
+        toolsUsed: [],
+        executionSteps: [{ step: 'LLM Connection Check', status: 'FAILED', durationMs: 10 }],
+        suggestedPrompts: ['What is my attendance?', 'Open my timetable'],
+        modelUsed: 'none',
+        provider: 'Unconnected',
+        durationMs: Date.now() - startTime,
+      };
+    }
+  }
+
+  /**
+   * Streaming ReAct query handler that emits live SSE events.
+   */
+  static async processStream(
+    query: string,
+    context: AIExecutionContext,
+    chatHistory: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string }> = [],
+    onEvent: (event: StreamEvent) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    // 1. Role Security Check
+    const securityCheck = AIPermissionsManager.checkQueryPermission(query, context.userRole);
+    if (!securityCheck.allowed) {
+      onEvent({
+        type: 'token',
+        content: `🛡️ **Access Denied**\n\n${securityCheck.reason || 'You are not authorized to perform this operation.'}`,
+      });
+      onEvent({
+        type: 'done',
+        category: 'ACTION',
+        modelUsed: 'campus-security-guard',
+        provider: 'Campus OS Security',
+        suggestedPrompts: ['What is my attendance?', 'When is my next exam?'],
+      });
+      return;
+    }
+
+    // 2. Build system prompt & bounded conversation history
+    const systemPrompt = SystemPromptBuilder.getBaseSystemPrompt({
+      userName: context.userName,
+      userRole: context.userRole,
+      department: context.department,
+      semester: context.semester,
+      currentPath: context.currentPath,
+      currentTab: context.currentTab,
+      selectedEntity: context.selectedEntity,
+    });
+
+    const messages: LLMMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...chatHistory.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content || '',
+      })),
+      { role: 'user', content: query },
+    ];
+
+    const tools = toolRegistry.getLLMDefinitionsForRole(context.userRole);
+    const toolsUsed: string[] = [];
+    let lastAction: any = undefined;
+
+    try {
+      // Step 1: Initial call to LLM with tools
+      const initialCompletion = await ProviderChain.executeCompletion(messages, {
+        tools: tools.length > 0 ? tools : undefined,
+        temperature: 0.3,
+        signal,
+      });
+
+      // If no tools called, stream direct answer
+      if (!initialCompletion.toolCalls || initialCompletion.toolCalls.length === 0) {
+        if (initialCompletion.text) {
+          onEvent({ type: 'token', content: initialCompletion.text });
+        }
+        onEvent({
+          type: 'done',
+          category: 'GENERAL',
+          modelUsed: initialCompletion.modelUsed,
+          provider: initialCompletion.provider,
+          suggestedPrompts: this.generateSuggestions(context.userRole, []),
+        });
+        return;
+      }
+
+      // If tools were called, execute tools
+      messages.push({
+        role: 'assistant',
+        content: initialCompletion.text || '',
+        tool_calls: initialCompletion.toolCalls,
+      });
+
+      for (const tc of initialCompletion.toolCalls) {
+        const toolName = tc.function.name;
+        toolsUsed.push(toolName);
+        onEvent({ type: 'step', step: `Accessing ${toolName.replace(/_/g, ' ')}`, toolName });
+
+        let parsedArgs = {};
+        try {
+          parsedArgs = typeof tc.function.arguments === 'string'
+            ? JSON.parse(tc.function.arguments || '{}')
+            : tc.function.arguments || {};
+        } catch {
+          parsedArgs = {};
+        }
+
+        const isAllowed = AIPermissionsManager.canRoleAccessTool(context.userRole, toolName);
+        if (!isAllowed) {
+          messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            content: JSON.stringify({ error: `Permission denied: Role ${context.userRole} cannot execute ${toolName}` }),
+          });
+          continue;
+        }
+
+        const toolResult = await toolRegistry.executeTool(toolName, parsedArgs, context);
+        if (toolResult.actionRequired) {
+          lastAction = {
+            type: toolResult.actionRequired.type,
+            label: `Open ${toolResult.actionRequired.payload?.tab || 'View'}`,
+            payload: toolResult.actionRequired.payload,
+          };
+          onEvent({ type: 'action', action: lastAction });
+        }
+
+        messages.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: JSON.stringify(toolResult.success ? toolResult.data : { error: toolResult.error }),
+        });
+      }
+
+      // Step 2: Stream the final synthesized reasoning from LLM
+      const finalResult = await ProviderChain.streamCompletion(
+        messages,
+        { temperature: 0.3, signal },
+        (chunk: LLMStreamChunk) => {
+          if (chunk.text) {
+            onEvent({ type: 'token', content: chunk.text });
+          }
+        }
+      );
+
+      onEvent({
+        type: 'done',
+        category: 'ACADEMIC',
+        action: lastAction,
+        modelUsed: finalResult.modelUsed,
+        provider: finalResult.provider,
+        suggestedPrompts: this.generateSuggestions(context.userRole, toolsUsed),
+      });
+    } catch (err: any) {
+      if (signal?.aborted) {
+        onEvent({ type: 'done', category: 'GENERAL', modelUsed: 'aborted', provider: 'user' });
+        return;
+      }
+
+      // Fallback
+      const res = await this.process(query, context, chatHistory);
+      onEvent({ type: 'token', content: res.answer });
+      onEvent({
+        type: 'done',
+        category: res.category,
+        action: res.actionRequired,
+        modelUsed: res.modelUsed,
+        provider: res.provider,
+        suggestedPrompts: res.suggestedPrompts,
+      });
     }
   }
 

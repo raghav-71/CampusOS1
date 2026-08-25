@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { CampusEngine } from '@/lib/ai/agent/campusEngine';
 import { CampusAgent } from '@/lib/ai/agent/campusAgent';
 import { UserProfile } from '@/types/campus';
 
@@ -14,7 +15,8 @@ export async function POST(request: NextRequest) {
       sessionId,
       selectedEntity,
       selectedContext,
-      mode,
+      history,
+      stream = true,
     } = body;
 
     if (!message || typeof message !== 'string') {
@@ -34,26 +36,65 @@ export async function POST(request: NextRequest) {
       subjects: ['Operating Systems', 'DBMS', 'Computer Networks', 'Java Programming', 'DAA'],
     };
 
-    const aiResponse = await CampusAgent.handleRequest({
-      message,
-      userProfile: profile,
+    const context = {
+      userId: profile.id || 'usr-001',
+      userName: profile.fullName || profile.name || 'Student',
+      userRole: profile.role || 'student',
+      department: profile.department || 'BCA',
+      semester: profile.semester ? Number(profile.semester.replace(/[^0-9]/g, '')) || 5 : 5,
       currentPath: currentPath || '/student-dashboard',
       currentTab: currentTab || 'overview',
-      sessionId: sessionId || `session_${profile.id}`,
       selectedEntity: selectedEntity || selectedContext,
-      mode,
+    };
+
+    const chatHistory = Array.isArray(history) ? history : [];
+
+    // If non-streaming requested
+    if (stream === false) {
+      const response = await CampusEngine.process(message, context, chatHistory);
+      return NextResponse.json({ success: true, ...response });
+    }
+
+    // Streaming SSE Response
+    const encoder = new TextEncoder();
+    const customReadable = new ReadableStream({
+      async start(controller) {
+        try {
+          await CampusEngine.processStream(
+            message,
+            context,
+            chatHistory,
+            (event) => {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+            },
+            request.signal
+          );
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (err: any) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'error', content: err?.message || 'Streaming error' })}\n\n`
+            )
+          );
+          controller.close();
+        }
+      },
     });
 
-    return NextResponse.json({
-      success: true,
-      ...aiResponse,
+    return new Response(customReadable, {
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (err: any) {
     console.error('AI Chat Route Error:', err);
     return NextResponse.json(
       {
         success: false,
-        error: 'AI is temporarily processing your request. Please try again.',
+        error: 'AI service encountered an error processing your request.',
         details: process.env.NODE_ENV === 'development' ? err.message : undefined,
       },
       { status: 500 }

@@ -1,14 +1,15 @@
 /**
  * Remote Free AI Provider: OpenRouter
- * Accesses high quality free-tier models on OpenRouter with tool calling support.
+ * Fallback provider supporting free open models with streaming and tool calling.
  */
 
-import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall } from './types';
+import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
 
 const CANDIDATE_OPENROUTER_MODELS = [
-  'google/gemma-4-31b-it:free',
+  process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'poolside/laguna-s-2.1:free',
   'liquid/lfm-2.5-2.6b:free',
   'openrouter/free',
 ];
@@ -16,9 +17,11 @@ const CANDIDATE_OPENROUTER_MODELS = [
 export class OpenRouterProvider implements AIProvider {
   name = 'OpenRouter (Free Tier)';
   private apiKey: string;
+  private defaultModel: string;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, defaultModel?: string) {
     this.apiKey = apiKey || process.env.OPENROUTER_API_KEY || '';
+    this.defaultModel = defaultModel || CANDIDATE_OPENROUTER_MODELS[0];
   }
 
   private getCleanKey(): string {
@@ -35,7 +38,7 @@ export class OpenRouterProvider implements AIProvider {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      const res = await fetch('https://openrouter.ai/api/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
       });
@@ -47,27 +50,7 @@ export class OpenRouterProvider implements AIProvider {
   }
 
   async getAvailableModels(): Promise<string[]> {
-    if (!this.isConfigured()) return [];
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch('https://openrouter.ai/api/v1/models', {
-        headers: { Authorization: `Bearer ${this.getCleanKey()}` },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) return CANDIDATE_OPENROUTER_MODELS;
-      const data = await res.json();
-      if (Array.isArray(data.data)) {
-        const free = data.data
-          .filter((m: any) => m.id?.includes(':free') || m.pricing?.prompt === 0 || m.pricing?.prompt === '0')
-          .map((m: any) => m.id);
-        return free.length > 0 ? free : CANDIDATE_OPENROUTER_MODELS;
-      }
-      return CANDIDATE_OPENROUTER_MODELS;
-    } catch {
-      return CANDIDATE_OPENROUTER_MODELS;
-    }
+    return CANDIDATE_OPENROUTER_MODELS;
   }
 
   async chatCompletion(
@@ -80,18 +63,11 @@ export class OpenRouterProvider implements AIProvider {
 
     const startTime = Date.now();
     const key = this.getCleanKey();
-    const model = options?.model || (process.env.AI_MODEL && !process.env.AI_MODEL.includes('qwen') ? process.env.AI_MODEL : 'google/gemma-4-31b-it:free');
 
-    const tools = options?.tools && options.tools.length > 0
-      ? options.tools.map((t) => ({
-          type: 'function',
-          function: {
-            name: t.function.name,
-            description: t.function.description,
-            parameters: t.function.parameters,
-          },
-        }))
-      : undefined;
+    const requestedModel = options?.model || process.env.OPENROUTER_MODEL;
+    const modelChain = requestedModel
+      ? [requestedModel, ...CANDIDATE_OPENROUTER_MODELS.filter((m) => m !== requestedModel)]
+      : CANDIDATE_OPENROUTER_MODELS;
 
     const formattedMessages = messages.map((m) => {
       const msg: Record<string, any> = {
@@ -103,24 +79,23 @@ export class OpenRouterProvider implements AIProvider {
       return msg;
     });
 
-    const candidateModels = [model, ...CANDIDATE_OPENROUTER_MODELS.filter((m) => m !== model)];
     let lastError: any = null;
 
-    for (const currentModel of candidateModels) {
+    for (const model of modelChain) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       try {
-        const payload: Record<string, any> = {
-          model: currentModel,
+        const bodyPayload: Record<string, any> = {
+          model,
           messages: formattedMessages,
           temperature: options?.temperature ?? 0.3,
           max_tokens: options?.maxTokens ?? 2048,
         };
 
-        if (tools && tools.length > 0) {
-          payload.tools = tools;
-          payload.tool_choice = options?.toolChoice || 'auto';
+        if (options?.tools && options.tools.length > 0) {
+          bodyPayload.tools = options.tools;
+          bodyPayload.tool_choice = options.toolChoice || 'auto';
         }
 
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -129,16 +104,16 @@ export class OpenRouterProvider implements AIProvider {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${key}`,
             'HTTP-Referer': 'https://campusos.edu',
-            'X-Title': 'Campus OS AI Assistant',
+            'X-Title': 'CampusOS AI Assistant',
           },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
+          body: JSON.stringify(bodyPayload),
+          signal: options?.signal || controller.signal,
         });
         clearTimeout(timeoutId);
 
         if (!res.ok) {
           const errText = await res.text();
-          lastError = new Error(`OpenRouter (${currentModel}) returned ${res.status}: ${errText}`);
+          lastError = new Error(`OpenRouter model ${model} returned ${res.status}: ${errText}`);
           continue;
         }
 
@@ -170,7 +145,7 @@ export class OpenRouterProvider implements AIProvider {
         return {
           text: cleanedText,
           toolCalls,
-          modelUsed: data.model || currentModel,
+          modelUsed: data.model || model,
           provider: this.name,
           tokensUsed: {
             prompt: data.usage?.prompt_tokens || 0,
@@ -185,7 +160,127 @@ export class OpenRouterProvider implements AIProvider {
       }
     }
 
-    throw lastError || new Error('All candidate OpenRouter models failed.');
+    throw lastError || new Error('All candidate OpenRouter models failed to execute.');
+  }
+
+  async chatCompletionStream(
+    messages: LLMMessage[],
+    options?: LLMCompletionOptions,
+    onChunk?: (chunk: LLMStreamChunk) => void
+  ): Promise<LLMCompletionResult> {
+    if (!this.isConfigured()) {
+      throw new Error('OpenRouter provider is not configured. OPENROUTER_API_KEY is missing.');
+    }
+
+    const startTime = Date.now();
+    const key = this.getCleanKey();
+    const model = options?.model || process.env.OPENROUTER_MODEL || CANDIDATE_OPENROUTER_MODELS[0];
+
+    const formattedMessages = messages.map((m) => {
+      const msg: Record<string, any> = {
+        role: m.role,
+        content: m.content || '',
+      };
+      if (m.tool_calls) msg.tool_calls = m.tool_calls;
+      if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+      return msg;
+    });
+
+    const bodyPayload: Record<string, any> = {
+      model,
+      messages: formattedMessages,
+      temperature: options?.temperature ?? 0.3,
+      max_tokens: options?.maxTokens ?? 2048,
+      stream: true,
+    };
+
+    if (options?.tools && options.tools.length > 0) {
+      bodyPayload.tools = options.tools;
+      bodyPayload.tool_choice = options.toolChoice || 'auto';
+    }
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+        'HTTP-Referer': 'https://campusos.edu',
+        'X-Title': 'CampusOS AI Assistant',
+      },
+      body: JSON.stringify(bodyPayload),
+      signal: options?.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`OpenRouter streaming returned ${res.status}: ${errText}`);
+    }
+
+    if (!res.body) {
+      throw new Error('OpenRouter response body is empty.');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedText = '';
+    let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (trimmed === 'data: [DONE]') continue;
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(trimmed.slice(6));
+            const delta = data.choices?.[0]?.delta;
+            if (!delta) continue;
+
+            if (delta.content) {
+              accumulatedText += delta.content;
+              onChunk?.({ text: delta.content, modelUsed: model, provider: this.name });
+            }
+
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                if (!toolCallsMap[idx]) {
+                  toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
+                }
+                if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
+                if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
+              }
+            }
+          } catch {
+            // Ignore parse errors on partial chunks
+          }
+        }
+      }
+    }
+
+    const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
+      ? Object.values(toolCallsMap).map((tc) => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: tc.arguments },
+        }))
+      : undefined;
+
+    return {
+      text: accumulatedText,
+      toolCalls,
+      modelUsed: model,
+      provider: this.name,
+      durationMs: Date.now() - startTime,
+    };
   }
 }
 

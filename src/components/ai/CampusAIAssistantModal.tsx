@@ -201,9 +201,26 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const startTime = Date.now();
+    const aiMsgId = `ai-${Date.now()}`;
+
+    // Insert assistant message placeholder for streaming
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: aiMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
 
     try {
-      const res = await fetch('/api/ai/agent', {
+      const historyPayload = messages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
@@ -213,49 +230,103 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           currentPath: pathname,
           currentTab,
           sessionId: `session_${profile?.id || 'guest'}`,
+          history: historyPayload,
+          stream: true,
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to process AI request');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(errJson.error || `Server returned ${res.status}`);
       }
 
-      const durationMs = Date.now() - startTime;
+      if (res.headers.get('content-type')?.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-      const aiMsg: MessageWithMetadata = {
-        id: `ai-${Date.now()}`,
-        role: 'assistant',
-        content: data.answer || 'I have analyzed your request.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action: data.action,
-        executionSteps: data.executionSteps,
-        toolsUsed: data.toolsUsed,
-        modelUsed: data.modelUsed,
-        provider: data.provider,
-        durationMs,
-      };
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      setMessages((prev) => [...prev, aiMsg]);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-      // If action is direct navigation, navigate smoothly
-      if (data.action?.type === 'navigate' && data.action.route) {
-        toast.success(`Navigating to ${data.action.label || data.action.route}`);
-        router.push(data.action.route);
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith(':')) continue;
+            if (trimmed === 'data: [DONE]') continue;
+            if (trimmed.startsWith('data: ')) {
+              try {
+                const event = JSON.parse(trimmed.slice(6));
+                if (event.type === 'token' && event.content) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId ? { ...m, content: m.content + event.content } : m
+                    )
+                  );
+                } else if (event.type === 'step') {
+                  setActiveToolStatus(event.step || 'Executing tool...');
+                } else if (event.type === 'action' && event.action) {
+                  setMessages((prev) =>
+                    prev.map((m) => (m.id === aiMsgId ? { ...m, action: event.action } : m))
+                  );
+                  if (event.action.type === 'navigate' && event.action.route) {
+                    toast.success(`Navigating to ${event.action.label || event.action.route}`);
+                    router.push(event.action.route);
+                  }
+                } else if (event.type === 'done') {
+                  const durationMs = Date.now() - startTime;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId
+                        ? {
+                            ...m,
+                            modelUsed: event.modelUsed,
+                            provider: event.provider,
+                            durationMs,
+                          }
+                        : m
+                    )
+                  );
+                }
+              } catch {
+                // Ignore parse errors on partial JSON chunks
+              }
+            }
+          }
+        }
+      } else {
+        const data = await res.json();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? {
+                  ...m,
+                  content: data.answer || 'Response received.',
+                  action: data.action,
+                  modelUsed: data.modelUsed,
+                  provider: data.provider,
+                  durationMs: Date.now() - startTime,
+                }
+              : m
+          )
+        );
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       toast.error('AI Error: ' + err.message);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-err-${Date.now()}`,
-          role: 'assistant',
-          content: `⚠️ **Notice**: ${err.message}`,
-          timestamp: 'Just now',
-        },
-      ]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiMsgId
+            ? {
+                ...m,
+                content: `⚠️ **Notice**: ${err.message}`,
+              }
+            : m
+        )
+      );
     } finally {
       setIsLoading(false);
       setActiveToolStatus(null);

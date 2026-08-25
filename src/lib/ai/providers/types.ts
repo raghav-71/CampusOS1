@@ -38,6 +38,7 @@ export interface LLMCompletionOptions {
   maxTokens?: number;
   tools?: LLMToolDefinition[];
   toolChoice?: 'auto' | 'none' | 'required';
+  signal?: AbortSignal;
 }
 
 export interface LLMCompletionResult {
@@ -53,6 +54,14 @@ export interface LLMCompletionResult {
   durationMs: number;
 }
 
+export interface LLMStreamChunk {
+  text?: string;
+  toolCalls?: LLMToolCall[];
+  done?: boolean;
+  modelUsed?: string;
+  provider?: string;
+}
+
 export interface AIProvider {
   name: string;
   isAvailable(): Promise<boolean>;
@@ -60,5 +69,10 @@ export interface AIProvider {
   chatCompletion(
     messages: LLMMessage[],
     options?: LLMCompletionOptions
+  ): Promise<LLMCompletionResult>;
+  chatCompletionStream?(
+    messages: LLMMessage[],
+    options?: LLMCompletionOptions,
+    onChunk?: (chunk: LLMStreamChunk) => void
   ): Promise<LLMCompletionResult>;
 }

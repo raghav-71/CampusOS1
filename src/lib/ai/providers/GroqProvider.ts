@@ -1,14 +1,15 @@
 /**
  * Remote Free AI Provider: Groq
- * High-speed inference using free-tier models (openai/gpt-oss-120b, qwen/qwen3.6-27b, openai/gpt-oss-20b)
+ * High-speed inference using free-tier models with streaming and tool calling.
  */
 
-import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall } from './types';
+import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
 
 const CANDIDATE_GROQ_MODELS = [
-  'openai/gpt-oss-120b',
+  process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
   'qwen/qwen3.6-27b',
   'openai/gpt-oss-20b',
+  'llama-3.3-70b-versatile',
 ];
 
 export class GroqProvider implements AIProvider {
@@ -34,7 +35,7 @@ export class GroqProvider implements AIProvider {
     if (!this.isConfigured()) return false;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const res = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
@@ -80,8 +81,7 @@ export class GroqProvider implements AIProvider {
     const startTime = Date.now();
     const key = this.getCleanKey();
 
-    // Determine model chain to attempt
-    const requestedModel = options?.model;
+    const requestedModel = options?.model || process.env.GROQ_MODEL;
     const modelChain = requestedModel
       ? [requestedModel, ...CANDIDATE_GROQ_MODELS.filter((m) => m !== requestedModel)]
       : CANDIDATE_GROQ_MODELS;
@@ -102,12 +102,8 @@ export class GroqProvider implements AIProvider {
         role: m.role,
         content: m.content || '',
       };
-      if (m.tool_calls) {
-        msg.tool_calls = m.tool_calls;
-      }
-      if (m.tool_call_id) {
-        msg.tool_call_id = m.tool_call_id;
-      }
+      if (m.tool_calls) msg.tool_calls = m.tool_calls;
+      if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
       return msg;
     });
 
@@ -137,14 +133,14 @@ export class GroqProvider implements AIProvider {
             Authorization: `Bearer ${key}`,
           },
           body: JSON.stringify(bodyPayload),
-          signal: controller.signal,
+          signal: options?.signal || controller.signal,
         });
         clearTimeout(timeoutId);
 
         if (!res.ok) {
           const errText = await res.text();
           lastError = new Error(`Groq model ${model} returned ${res.status}: ${errText}`);
-          continue; // Try next candidate model
+          continue;
         }
 
         const data = await res.json();
@@ -191,6 +187,135 @@ export class GroqProvider implements AIProvider {
     }
 
     throw lastError || new Error('All candidate Groq models failed to execute.');
+  }
+
+  async chatCompletionStream(
+    messages: LLMMessage[],
+    options?: LLMCompletionOptions,
+    onChunk?: (chunk: LLMStreamChunk) => void
+  ): Promise<LLMCompletionResult> {
+    if (!this.isConfigured()) {
+      throw new Error('Groq provider is not configured. GROQ_API_KEY is missing.');
+    }
+
+    const startTime = Date.now();
+    const key = this.getCleanKey();
+    const model = options?.model || process.env.GROQ_MODEL || CANDIDATE_GROQ_MODELS[0];
+
+    const groqTools = options?.tools && options.tools.length > 0
+      ? options.tools.map((t) => ({
+          type: 'function',
+          function: {
+            name: t.function.name,
+            description: t.function.description,
+            parameters: t.function.parameters,
+          },
+        }))
+      : undefined;
+
+    const formattedMessages = messages.map((m) => {
+      const msg: Record<string, any> = {
+        role: m.role,
+        content: m.content || '',
+      };
+      if (m.tool_calls) msg.tool_calls = m.tool_calls;
+      if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+      return msg;
+    });
+
+    const bodyPayload: Record<string, any> = {
+      model,
+      messages: formattedMessages,
+      temperature: options?.temperature ?? 0.3,
+      max_tokens: options?.maxTokens ?? 2048,
+      stream: true,
+    };
+
+    if (groqTools && groqTools.length > 0) {
+      bodyPayload.tools = groqTools;
+      bodyPayload.tool_choice = options?.toolChoice || 'auto';
+    }
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(bodyPayload),
+      signal: options?.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Groq streaming returned ${res.status}: ${errText}`);
+    }
+
+    if (!res.body) {
+      throw new Error('Groq response body is empty.');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedText = '';
+    let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (trimmed === 'data: [DONE]') continue;
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(trimmed.slice(6));
+            const delta = data.choices?.[0]?.delta;
+            if (!delta) continue;
+
+            if (delta.content) {
+              accumulatedText += delta.content;
+              onChunk?.({ text: delta.content, modelUsed: model, provider: this.name });
+            }
+
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                if (!toolCallsMap[idx]) {
+                  toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
+                }
+                if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
+                if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
+              }
+            }
+          } catch {
+            // Ignore parse errors on partial lines
+          }
+        }
+      }
+    }
+
+    const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
+      ? Object.values(toolCallsMap).map((tc) => ({
+          id: tc.id,
+          type: 'function',
+          function: { name: tc.name, arguments: tc.arguments },
+        }))
+      : undefined;
+
+    return {
+      text: accumulatedText,
+      toolCalls,
+      modelUsed: model,
+      provider: this.name,
+      durationMs: Date.now() - startTime,
+    };
   }
 }
 
