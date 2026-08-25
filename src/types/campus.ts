@@ -1,5 +1,9 @@
 export type Role = 'student' | 'teacher' | 'admin';
 
+export type BcaSemester = 1 | 2 | 3 | 4 | 5 | 6;
+export type BcaYear = 1 | 2 | 3;
+export type BcaSection = 'A' | 'B' | 'Batch 1' | 'Batch 2';
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -7,9 +11,11 @@ export interface UserProfile {
   fullName: string;
   name?: string;
   initials: string;
-  department?: string;
+  department: 'BCA';
   semester?: string;
-  semesterNumber?: number;
+  semesterNumber?: BcaSemester;
+  year?: BcaYear;
+  section?: BcaSection;
   rollNumber?: string;
   subjects?: string[];
   avatarUrl?: string;
@@ -20,11 +26,18 @@ export interface UserProfile {
 
 export interface Department {
   id: string;
-  code: string;
+  code: 'BCA';
   name: string;
   headOfDepartment: string;
   totalStudents: number;
   totalFaculty: number;
+  description?: string;
+  academicYears: {
+    year: BcaYear;
+    label: string;
+    semesters: BcaSemester[];
+    totalStudents: number;
+  }[];
 }
 
 export interface Subject {
@@ -32,13 +45,14 @@ export interface Subject {
   subjectId?: string;
   code: string;
   name: string;
-  department: string;
+  department: 'BCA';
   semester: string;
-  semesterNumber?: number;
-  year?: number;
+  semesterNumber: BcaSemester;
+  year: BcaYear;
   credits: number;
   instructor: string;
-  type?: 'THEORY' | 'LAB';
+  instructorId?: string;
+  type: 'THEORY' | 'LAB';
   syllabusCoveragePct: number;
   syllabusProgress?: number;
   attendanceRate?: number;
@@ -46,20 +60,26 @@ export interface Subject {
   description?: string;
 }
 
+export type ClassStatus = 'scheduled' | 'LIVE' | 'completed';
+
 export interface TimetableSlot {
   id: string;
   subject: string;
-  subjectCode?: string;
+  subjectCode: string;
   time: string;
   endTime: string;
   room: string;
   teacher: string;
-  department: string;
+  teacherId?: string;
+  department: 'BCA';
   semester: string;
-  semesterNumber?: number;
+  semesterNumber: BcaSemester;
+  year?: BcaYear;
+  section?: string;
   dayOfWeek: string;
   type?: 'Lecture' | 'Lab' | 'Tutorial' | 'Seminar';
-  status?: 'upcoming' | 'ongoing' | 'completed';
+  status: ClassStatus;
+  startedAt?: string;
 }
 
 export interface AttendanceRecord {
@@ -68,8 +88,11 @@ export interface AttendanceRecord {
   studentName: string;
   rollNumber: string;
   subject: string;
+  subjectCode?: string;
   date: string;
   status: 'present' | 'absent' | 'late';
+  semesterNumber?: BcaSemester;
+  section?: string;
 }
 
 export interface Assignment {
@@ -77,10 +100,11 @@ export interface Assignment {
   title: string;
   subject: string;
   subjectId?: string;
-  department: string;
+  department: 'BCA';
   semester: string;
-  semesterNumber?: number;
+  semesterNumber: BcaSemester;
   teacher: string;
+  teacherId?: string;
   dueDate: string;
   totalSubmissions: number;
   gradedSubmissions: number;
@@ -102,6 +126,8 @@ export interface Submission {
   score?: number;
   maxScore: number;
   fileUrl?: string;
+  fileName?: string;
+  fileSize?: string;
   feedback?: string;
 }
 
@@ -111,9 +137,10 @@ export interface NoteDocument {
   subject: string;
   subjectId?: string;
   semester: string;
-  semesterNumber?: number;
-  department?: string;
+  semesterNumber: BcaSemester;
+  department: 'BCA';
   teacher: string;
+  teacherId?: string;
   tags: string[];
   uploadedAt: string;
   downloads: number;
@@ -127,20 +154,44 @@ export interface NoteDocument {
   description?: string;
 }
 
+export type NotificationType =
+  | 'CLASS_STARTED'
+  | 'ASSIGNMENT'
+  | 'EXAM'
+  | 'ANNOUNCEMENT'
+  | 'ATTENDANCE'
+  | 'MARKS'
+  | 'DOCUMENT'
+  | 'AI'
+  | 'SYSTEM';
+
 export interface Announcement {
   id: string;
   title: string;
   body: string;
   priority: 'high' | 'medium' | 'low';
-  category: 'Exam' | 'Event' | 'General' | 'Academic' | 'Emergency';
+  category: 'Exam' | 'Event' | 'General' | 'Academic' | 'Emergency' | 'Class';
+  type?: NotificationType;
   time: string;
+  createdAt?: string;
   author: string;
   read: boolean;
+  recipientUserId?: string;
   targetRole?: Role | 'all';
-  targetDepartment?: string;
+  targetDepartment?: 'BCA' | 'all';
+  targetSemester?: BcaSemester;
+  targetSection?: string;
+  relatedEntity?: 'class' | 'assignment' | 'exam' | 'note' | 'marks';
+  relatedEntityId?: string;
 }
 
-export type ExamCategory = 'INTERNAL_1' | 'INTERNAL_2' | 'END_SEMESTER';
+export type ExamCategory =
+  | 'INTERNAL_1'
+  | 'INTERNAL_2'
+  | 'LAB_INTERNAL_1'
+  | 'LAB_INTERNAL_2'
+  | 'END_SEMESTER';
+
 export type ExamType = 'THEORY' | 'LAB';
 
 export interface ExamSchedule {
@@ -155,14 +206,114 @@ export interface ExamSchedule {
   duration?: string;
   room: string;
   semester: string;
-  semesterNumber?: number;
-  year?: number;
-  department: string;
-  examCategory?: ExamCategory;
-  examType?: ExamType;
-  faculty?: string;
-  maxMarks?: number;
+  semesterNumber: BcaSemester;
+  year: BcaYear;
+  department: 'BCA';
+  examCategory: ExamCategory;
+  examType: ExamType;
+  faculty: string;
+  facultyId?: string;
+  maxMarks: number;
   syllabusCovered?: string;
+}
+
+export interface StudentExamMark {
+  id: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string;
+  semesterNumber: BcaSemester;
+  section: string;
+  examCategory: ExamCategory;
+  marksObtained: number;
+  maxMarks: number;
+  percentage: number;
+  grade: 'O' | 'A+' | 'A' | 'B+' | 'B' | 'C' | 'F';
+  passed: boolean;
+}
+
+export interface StudentPerformanceRecord {
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  semesterNumber: BcaSemester;
+  section: string;
+  internal1Marks: number;
+  internal1Max: number;
+  internal2Marks: number;
+  internal2Max: number;
+  labInternalMarks: number;
+  labInternalMax: number;
+  endSemMarks: number;
+  endSemMax: number;
+  overallPercentage: number;
+  overallGrade: 'O' | 'A+' | 'A' | 'B+' | 'B' | 'C' | 'F';
+  trend: 'improving' | 'steady' | 'needs_attention';
+  attendancePct: number;
+}
+
+export interface TeacherExamPerformance {
+  examCategory: ExamCategory;
+  examLabel: string;
+  totalStudents: number;
+  averageScore: number;
+  highestScore: number;
+  lowestScore: number;
+  medianScore: number;
+  passPercentage: number;
+  failPercentage: number;
+  gradeDistribution: {
+    gradeRange: string;
+    studentCount: number;
+    grade: 'O' | 'A+' | 'A' | 'B+' | 'B' | 'C' | 'F';
+  }[];
+  scoreBuckets: {
+    bucket: string;
+    count: number;
+  }[];
+}
+
+export interface QuestionPaperDocument {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  subjectId: string;
+  subject: string;
+  subjectCode: string;
+  semester: string;
+  semesterNumber: BcaSemester;
+  year: BcaYear;
+  examType: 'Mid-Term' | 'End-Term' | 'Quiz' | 'Practical';
+  examCategory?: ExamCategory;
+  title: string;
+  fileName: string;
+  fileSize: string;
+  fileUrl?: string;
+  uploadedAt: string;
+  status: 'Published' | 'Draft' | 'Approved by Dean';
+  totalMarks: number;
+  duration: string;
+}
+
+export interface TeacherSubjectAssignment {
+  teacherId: string;
+  teacherName: string;
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string;
+  semester: string;
+  semesterNumber: BcaSemester;
+  year: BcaYear;
+  section: string;
+  credits: number;
+  type: 'THEORY' | 'LAB';
+  room: string;
+  enrolledStudents: number;
+  avgAttendancePct: number;
+  syllabusCoveredPct: number;
 }
 
 export type MarksCardStatus =
@@ -184,7 +335,7 @@ export interface MarksCardDocument {
   fileName?: string;
   fileSize?: string;
   uploadedAt?: string;
-  fileType?: 'pdf' | 'image';
+  fileType?: 'pdf' | 'image' | 'doc';
   previewUrl?: string;
   adminRemarks?: string;
   reviewedBy?: string;
@@ -201,7 +352,8 @@ export interface EventItem {
   location: string;
   organizer: string;
   capacity?: number;
-  registeredCount?: number;
+  registeredCount: number;
+  isRegistered?: boolean;
 }
 
 export interface ActivityItem {
@@ -214,7 +366,8 @@ export interface ActivityItem {
     | 'event'
     | 'login'
     | 'suspension'
-    | 'grade';
+    | 'grade'
+    | 'class_start';
   title: string;
   detail: string;
   time: string;
@@ -226,7 +379,7 @@ export interface ActivityItem {
 export interface KPICardData {
   id: string;
   title: string;
-  value: string;
+  value: string | number;
   unit?: string;
   change: string;
   trend: 'positive' | 'warning' | 'danger' | 'neutral';
@@ -244,6 +397,10 @@ export interface StudyProgressMetric {
 
 export interface EnrollmentMetric {
   month: string;
+  BCA_Year1: number;
+  BCA_Year2: number;
+  BCA_Year3: number;
+  total: number;
   [deptKey: string]: string | number;
 }
 

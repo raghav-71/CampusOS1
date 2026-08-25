@@ -9,6 +9,7 @@ import { getSubjectColor } from '@/lib/academicColors';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import AnimatedCard from '@/components/motion/AnimatedCard';
 
 export default function StudentExamsView() {
   const { profile } = useProfile();
@@ -19,7 +20,7 @@ export default function StudentExamsView() {
 
   const studentName = profile?.fullName ?? 'Arjun Sharma';
   const rollNumber = profile?.rollNumber ?? '2024-BCA-042';
-  const department = profile?.department ?? 'Computer Applications (BCA)';
+  const department = 'Bachelor of Computer Applications (BCA)';
 
   // Filter exams based on selected Semester, Category, and Type
   const filteredExams = mockExams.filter((e) => {
@@ -40,6 +41,10 @@ export default function StudentExamsView() {
         return <span className="badge-cyan text-xs px-2.5 py-0.5 rounded-lg font-700">1st Internal</span>;
       case 'INTERNAL_2':
         return <span className="badge-warning text-xs px-2.5 py-0.5 rounded-lg font-700">2nd Internal</span>;
+      case 'LAB_INTERNAL_1':
+        return <span className="badge-cyan text-xs px-2.5 py-0.5 rounded-lg font-700">1st Lab Internal</span>;
+      case 'LAB_INTERNAL_2':
+        return <span className="badge-warning text-xs px-2.5 py-0.5 rounded-lg font-700">2nd Lab Internal</span>;
       case 'END_SEMESTER':
         return <span className="badge-violet text-xs px-2.5 py-0.5 rounded-lg font-700">End Semester Exam</span>;
       default:
@@ -52,8 +57,8 @@ export default function StudentExamsView() {
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-800 text-foreground tracking-tight">
-              Examination Timetable & Hall Ticket
+            <h2 className="text-xl font-800 text-foreground tracking-tight flex items-center gap-2">
+              <span>📅</span> Examination Timetable & Hall Ticket
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               {currentSemInfo.label} Assessment Timetable · Theory & Laboratory Examinations
@@ -83,7 +88,7 @@ export default function StudentExamsView() {
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="glass-card rounded-3xl p-4 sm:p-5 border border-primary/30 space-y-4 shadow-glass">
+        <AnimatedCard className="p-4 sm:p-5 border-primary/30 space-y-4 shadow-glass">
           {/* Row 1: Semester Selector */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <span className="text-xs font-700 text-muted-foreground whitespace-nowrap mr-2">
@@ -93,7 +98,7 @@ export default function StudentExamsView() {
               <button
                 key={sem.semester}
                 onClick={() => setSelectedSemester(sem.semester)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
                   selectedSemester === sem.semester
                     ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-glow border border-primary/50'
                     : 'glass-card border border-border/70 text-muted-foreground hover:text-foreground'
@@ -117,9 +122,9 @@ export default function StudentExamsView() {
                 <button
                   key={tab.key}
                   onClick={() => setSelectedCategory(tab.key as any)}
-                  className={`px-3 py-1 rounded-xl text-xs font-600 transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
                     selectedCategory === tab.key
-                      ? 'bg-accent/20 text-accent border border-accent/40 font-700'
+                      ? 'bg-accent/20 text-accent border border-accent/40 font-800 shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                   }`}
                 >
@@ -138,7 +143,7 @@ export default function StudentExamsView() {
                 <button
                   key={t.key}
                   onClick={() => setSelectedType(t.key as any)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-600 transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-xl text-xs font-700 transition-all cursor-pointer btn-press ${
                     selectedType === t.key
                       ? 'bg-primary/20 text-primary border border-primary/40'
                       : 'text-muted-foreground hover:text-foreground'
@@ -149,18 +154,18 @@ export default function StudentExamsView() {
               ))}
             </div>
           </div>
-        </div>
+        </AnimatedCard>
 
         {/* Empty State */}
         {filteredExams.length === 0 ? (
-          <div className="glass-card rounded-3xl p-12 text-center text-muted-foreground border border-border/80 space-y-2">
+          <div className="glass-card rounded-3xl p-12 text-center text-muted-foreground border border-border/80 space-y-2 animate-fade-in">
             <p className="text-base font-700 text-foreground">No Examinations Found</p>
             <p className="text-xs">
               No examination schedules match your selected filters for {currentSemInfo.label}.
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fade-in">
             {/* Theory Examinations Section */}
             {theoryExams.length > 0 && (
               <div className="space-y-4">
@@ -174,9 +179,9 @@ export default function StudentExamsView() {
                   {theoryExams.map((exam, index) => {
                     const colorDef = getSubjectColor(exam.subject);
                     return (
-                      <div
+                      <AnimatedCard
                         key={exam.id}
-                        className={`glass-card rounded-3xl p-5 border transition-all flex flex-col justify-between shadow-sm hover:shadow-glow ${
+                        className={`p-6 border transition-all flex flex-col justify-between shadow-sm hover:shadow-glow ${
                           index === 0 && selectedSemester === 5
                             ? 'border-warning/50 bg-warning/5'
                             : 'border-border/80 hover:border-primary/40'
@@ -192,7 +197,7 @@ export default function StudentExamsView() {
                               </span>
                               {getCategoryBadge(exam.examCategory)}
                             </div>
-                            <span className="text-[11px] text-muted-foreground font-600">
+                            <span className="text-[11px] text-muted-foreground font-700">
                               Max: {exam.maxMarks || 50} Marks
                             </span>
                           </div>
@@ -204,24 +209,24 @@ export default function StudentExamsView() {
                             />
                             {exam.subject}
                           </h4>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Location: <span className="text-foreground font-600">{exam.room}</span> · Faculty: {exam.faculty}
+                          <p className="text-xs text-muted-foreground mb-3 font-500">
+                            Location: <span className="text-foreground font-700">{exam.room}</span> · Faculty: {exam.faculty}
                           </p>
 
                           <div className="space-y-2 p-3.5 rounded-2xl bg-muted/20 border border-border/40 text-xs mb-3">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Exam Date:</span>
-                              <span className="font-700 text-foreground">{exam.date}</span>
+                              <span className="font-800 text-foreground">{exam.date}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Time & Duration:</span>
-                              <span className="font-700 text-foreground font-mono-data">
+                              <span className="font-800 text-foreground font-mono-data">
                                 {exam.time} ({exam.duration})
                               </span>
                             </div>
                             {exam.syllabusCovered && (
                               <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
-                                <span className="font-600 text-foreground">Syllabus Scope: </span>
+                                <span className="font-700 text-foreground">Syllabus Scope: </span>
                                 {exam.syllabusCovered}
                               </div>
                             )}
@@ -231,13 +236,13 @@ export default function StudentExamsView() {
                         <div className="pt-2 border-t border-border/40 flex items-center justify-between">
                           <button
                             onClick={() => toast.info(`Viewing curriculum syllabus for ${exam.subject}`)}
-                            className="text-xs text-primary hover:underline font-600 cursor-pointer"
+                            className="text-xs text-primary hover:underline font-700 cursor-pointer btn-press"
                           >
                             View Exam Syllabus →
                           </button>
                           <Badge variant="cyan">Seating Verified</Badge>
                         </div>
-                      </div>
+                      </AnimatedCard>
                     );
                   })}
                 </div>
@@ -257,9 +262,9 @@ export default function StudentExamsView() {
                   {labExams.map((exam) => {
                     const colorDef = getSubjectColor(exam.subject);
                     return (
-                      <div
+                      <AnimatedCard
                         key={exam.id}
-                        className="glass-card rounded-3xl p-5 border border-primary/40 bg-primary/5 transition-all flex flex-col justify-between shadow-sm hover:shadow-glow"
+                        className="p-6 border border-primary/40 bg-primary/5 transition-all flex flex-col justify-between shadow-sm hover:shadow-glow"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
@@ -270,11 +275,11 @@ export default function StudentExamsView() {
                                 {exam.subjectCode}
                               </span>
                               {getCategoryBadge(exam.examCategory)}
-                              <span className="badge-violet text-[10px] px-2 py-0.5 rounded font-700">
+                              <span className="badge-violet text-[10px] px-2 py-0.5 rounded font-800">
                                 Practical
                               </span>
                             </div>
-                            <span className="text-[11px] text-muted-foreground font-600">
+                            <span className="text-[11px] text-muted-foreground font-700">
                               Max: {exam.maxMarks || 50} Marks
                             </span>
                           </div>
@@ -286,24 +291,24 @@ export default function StudentExamsView() {
                             />
                             {exam.subject}
                           </h4>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Laboratory Venue: <span className="text-foreground font-600">{exam.room}</span>
+                          <p className="text-xs text-muted-foreground mb-3 font-500">
+                            Laboratory Venue: <span className="text-foreground font-700">{exam.room}</span>
                           </p>
 
                           <div className="space-y-2 p-3.5 rounded-2xl bg-muted/20 border border-border/40 text-xs mb-3">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Lab Date:</span>
-                              <span className="font-700 text-foreground">{exam.date}</span>
+                              <span className="font-800 text-foreground">{exam.date}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Practical Slot:</span>
-                              <span className="font-700 text-foreground font-mono-data">
+                              <span className="font-800 text-foreground font-mono-data">
                                 {exam.time} ({exam.duration})
                               </span>
                             </div>
                             {exam.syllabusCovered && (
                               <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
-                                <span className="font-600 text-foreground">Lab Experiments: </span>
+                                <span className="font-700 text-foreground">Lab Experiments: </span>
                                 {exam.syllabusCovered}
                               </div>
                             )}
@@ -311,10 +316,10 @@ export default function StudentExamsView() {
                         </div>
 
                         <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Internal & External Viva Included</span>
+                          <span className="text-xs text-muted-foreground font-500">Internal & External Viva Included</span>
                           <Badge variant="success">Lab Ready</Badge>
                         </div>
-                      </div>
+                      </AnimatedCard>
                     );
                   })}
                 </div>
@@ -355,21 +360,21 @@ export default function StudentExamsView() {
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
                 <h4 className="text-base font-800 text-foreground">{studentName}</h4>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-500">
                   {department} · {currentSemInfo.label} ({currentSemInfo.term})
                 </p>
-                <p className="text-xs font-mono-data text-primary font-700 mt-0.5">
+                <p className="text-xs font-mono-data text-primary font-800 mt-0.5">
                   Roll No: {rollNumber}
                 </p>
               </div>
-              <div className="w-16 h-20 rounded-xl bg-muted border border-border flex items-center justify-center text-xs text-muted-foreground text-center font-600">
+              <div className="w-16 h-20 rounded-2xl bg-muted border border-border flex items-center justify-center text-xs text-muted-foreground text-center font-700 shadow-sm">
                 Photo ID
               </div>
             </div>
 
             {/* Exam Table in Admit Card */}
             <div>
-              <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground mb-2">
+              <p className="text-xs font-800 uppercase tracking-wider text-muted-foreground mb-2">
                 Authorized Examinations ({filteredExams.length} Total)
               </p>
               <div className="max-h-64 overflow-y-auto">
@@ -385,16 +390,16 @@ export default function StudentExamsView() {
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {filteredExams.map((e) => (
-                      <tr key={`ht-${e.id}`}>
-                        <td className="py-2 px-1 font-mono-data font-700 text-foreground">
+                      <tr key={`ht-${e.id}`} className="row-hover-glow transition-all">
+                        <td className="py-2 px-1 font-mono-data font-800 text-foreground">
                           {e.subjectCode}
                         </td>
-                        <td className="py-2 px-1 text-foreground font-600">{e.subject}</td>
-                        <td className="py-2 px-1 text-muted-foreground font-500">
+                        <td className="py-2 px-1 text-foreground font-700">{e.subject}</td>
+                        <td className="py-2 px-1 text-muted-foreground font-600">
                           {e.examType === 'LAB' ? '🧪 Lab' : '📝 Theory'}
                         </td>
                         <td className="py-2 px-1 text-muted-foreground">{e.date}</td>
-                        <td className="py-2 px-1 text-right font-700 text-accent">{e.room}</td>
+                        <td className="py-2 px-1 text-right font-800 text-accent">{e.room}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -405,7 +410,7 @@ export default function StudentExamsView() {
             {/* Verification Seal */}
             <div className="flex items-center justify-between pt-3 border-t border-border text-[11px] text-muted-foreground">
               <span>Barcode ID: 8829-1029-4401</span>
-              <span className="text-success font-600">
+              <span className="text-success font-700">
                 ✓ Verified by Controller of Examinations
               </span>
             </div>

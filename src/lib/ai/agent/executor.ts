@@ -281,7 +281,7 @@ export class AgentExecutor {
       case 'handleFacultyClassesLookup': {
         const classes = await FacultyTools.getFacultyClasses();
         let text = `### 👨‍🏫 Your Faculty Teaching Schedule & Batches\n\n`;
-        classes.forEach((c) => {
+        classes.forEach((c: any) => {
           text += `- **${c.subject}**: ${c.batch} · **${c.studentsCount} Students** · Timing: ${c.timing} (${c.room})\n`;
         });
 
@@ -435,23 +435,23 @@ export class AgentExecutor {
         };
       }
 
-      // 13. Lowest Attendance Department (Admin)
+      // 13. Lowest Attendance Cohort / Semester (Admin)
       case 'handleLowestAttendanceDept': {
-        let text = `### 🚨 Department Attendance Compliance Analysis\n\n`;
-        text += `The department with the lowest attendance is **Business Administration (BBA)**:\n\n`;
-        text += `- **BBA:** \`81.4%\` average attendance (Lowest across campus)\n`;
-        text += `- **MCA:** \`84.6%\` average attendance\n`;
-        text += `- **BCA:** \`89.2%\` average attendance\n`;
-        text += `- **BTECH-CS:** \`92.1%\` average attendance (Highest compliance)\n\n`;
+        let text = `### 🚨 BCA Cohort Attendance Compliance Analysis\n\n`;
+        text += `Across the BCA program (384 enrolled students):\n\n`;
+        text += `- **BCA 1st Year (Sem 1 & 2):** \`94.2%\` average attendance (Highest compliance)\n`;
+        text += `- **BCA 2nd Year (Sem 3 & 4):** \`89.5%\` average attendance\n`;
+        text += `- **BCA 3rd Year (Sem 5 & 6):** \`91.8%\` average attendance\n`;
+        text += `- **Lowest Subject Compliance:** **Computer Networks (CS503)** at \`78.9%\`\n\n`;
         text += `> [!WARNING]\n`;
-        text += `> **Institutional Action Recommended:** Issue formal advisory to BBA Department Head (Dr. Sunita Rao) and schedule counseling for chronically absent batches.`;
+        text += `> **Action Recommended:** Issue advisory to BCA 2nd Year coordinator (Dr. Suresh Pillai) regarding missed lab practical cycles in Data Structures.`;
 
         return {
           answer: text,
           category: 'ANALYZE',
           action: {
             type: 'navigate',
-            label: 'Open Department Analytics',
+            label: 'Open Cohort Analytics',
             route: '/admin-dashboard?tab=attendance',
           },
           toolsUsed: ['getAdminAnalytics', 'getDepartments'],
@@ -469,8 +469,8 @@ export class AgentExecutor {
         let targetSemester: number | undefined = undefined;
 
         if (q.includes('dbms')) targetSubject = 'DBMS';
-        else if (q.includes('system architecture') || q.includes('sa')) targetSubject = 'System Architecture';
         else if (q.includes('os') || q.includes('operating systems')) targetSubject = 'Operating Systems';
+        else if (q.includes('data structures') || q.includes('dsa')) targetSubject = 'Data Structures';
 
         if (q.includes('sem 3') || q.includes('semester 3')) targetSemester = 3;
         else if (q.includes('sem 5') || q.includes('semester 5')) targetSemester = 5;
@@ -491,7 +491,7 @@ export class AgentExecutor {
         } else {
           text += `The following **${lowAttStudents.length} student(s)** require academic counseling:\n\n`;
           lowAttStudents.forEach((std, i) => {
-            text += `${i + 1}. **${std.name}** (Roll No: \`${std.rollNumber}\`, ${std.department} Sem ${std.semester}) — **${std.attendancePct}%** attendance\n`;
+            text += `${i + 1}. **${std.name}** (Roll No: \`${std.rollNumber}\`, BCA Sem ${std.semester}) — **${std.attendancePct}%** attendance\n`;
             text += `   - *Course:* ${std.subject}\n`;
             text += `   - *Status:* ${std.reason || 'Attendance below university minimum criteria'}\n`;
             text += `   - *Recommended Action:* Issue warning circular & schedule makeup review\n\n`;
@@ -509,7 +509,7 @@ export class AgentExecutor {
           toolsUsed: ['getFacultyStudents'],
           suggestedPrompts: [
             'Show my classes',
-            'Generate a DBMS question paper',
+            'Generate an exam question paper',
             'Summarize my submissions',
           ],
         };
@@ -518,13 +518,13 @@ export class AgentExecutor {
       // 15. Admin Campus Overview
       case 'handleAdminOverview': {
         const analytics = await AdminTools.getAdminAnalytics();
-        let text = `### 🏛️ Campus OS Institutional Intelligence Overview\n\n`;
-        text += `- **Total Enrolled Students:** **${analytics.totalStudentsEnrolled}** across 4 academic departments\n`;
-        text += `- **Active Faculty Members:** **${analytics.totalFacultyMembers}**\n`;
+        let text = `### 🏛️ Campus OS BCA Institutional Intelligence Overview\n\n`;
+        text += `- **Total Enrolled BCA Students:** **${analytics.totalStudentsEnrolled}** (Years 1, 2, 3)\n`;
+        text += `- **Specialized BCA Faculty Members:** **${analytics.totalFacultyMembers}**\n`;
         text += `- **Institutional Attendance Compliance:** **${analytics.averageInstitutionalAttendance}%**\n`;
         text += `- **At-Risk Students (<75% attendance):** **${analytics.atRiskStudentsCount}** flagged\n`;
-        text += `- **Curriculum Velocity Warnings:** **${analytics.curriculumAnomaliesCount}** (DBMS Sem 5 pacing is 15% behind schedule)\n\n`;
-        text += `All departmental records and security logs are indexed in real-time.`;
+        text += `- **Curriculum Velocity Warnings:** **${analytics.curriculumAnomaliesCount}** (DBMS Sem 5 pacing is 15% behind target)\n\n`;
+        text += `All BCA departmental records and security logs are indexed in real-time.`;
 
         return {
           answer: text,
@@ -536,7 +536,7 @@ export class AgentExecutor {
           },
           toolsUsed: ['getAdminAnalytics'],
           suggestedPrompts: [
-            'Which department has the lowest attendance?',
+            'Which cohort has the lowest attendance?',
             'Show recent announcements',
             'Analyze attendance trends',
           ],

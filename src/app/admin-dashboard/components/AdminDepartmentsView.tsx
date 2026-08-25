@@ -1,25 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { mockDepartments, mockSubjects } from '@/repositories/mockData';
-import { Department, Subject } from '@/types/campus';
+import { mockSubjects } from '@/repositories/mockData';
+import { Subject } from '@/types/campus';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
 export default function AdminDepartmentsView() {
-  const [departments, setDepartments] = useState<Department[]>(mockDepartments);
   const [subjects, setSubjects] = useState<Subject[]>(mockSubjects);
+  const [selectedSemester, setSelectedSemester] = useState<number | 'all'>('all');
   const [addSubjectModalOpen, setAddSubjectModalOpen] = useState(false);
 
   // New Subject Form
   const [newSubName, setNewSubName] = useState('');
   const [newSubCode, setNewSubCode] = useState('');
-  const [newSubDept, setNewSubDept] = useState('BCA');
-  const [newSubSem, setNewSubSem] = useState('Sem 5');
+  const [newSubSem, setNewSubSem] = useState('5');
   const [newSubCredits, setNewSubCredits] = useState('4');
   const [newSubInstructor, setNewSubInstructor] = useState('Dr. Priya Nair');
+
+  const bcaCohorts = [
+    {
+      year: 1,
+      yearLabel: '1st Year (Freshmen)',
+      semesters: 'Semesters 1 & 2',
+      enrolled: 128,
+      facultyCount: 8,
+      coordinator: 'Prof. Anil Kumar',
+      subjectsCount: subjects.filter((s) => s.year === 1).length,
+    },
+    {
+      year: 2,
+      yearLabel: '2nd Year (Sophomores)',
+      semesters: 'Semesters 3 & 4',
+      enrolled: 124,
+      facultyCount: 10,
+      coordinator: 'Dr. Suresh Pillai',
+      subjectsCount: subjects.filter((s) => s.year === 2).length,
+    },
+    {
+      year: 3,
+      yearLabel: '3rd Year (Seniors)',
+      semesters: 'Semesters 5 & 6',
+      enrolled: 132,
+      facultyCount: 12,
+      coordinator: 'Dr. Priya Nair',
+      subjectsCount: subjects.filter((s) => s.year === 3).length,
+    },
+  ];
 
   const handleAddSubject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,13 +57,18 @@ export default function AdminDepartmentsView() {
       return;
     }
 
+    const semNum = parseInt(newSubSem, 10) as 1 | 2 | 3 | 4 | 5 | 6;
+    const yearNum = Math.ceil(semNum / 2) as 1 | 2 | 3;
     const created: Subject = {
       id: `sub-${Date.now()}`,
       name: newSubName,
       code: newSubCode,
-      department: newSubDept,
-      semester: newSubSem,
-      credits: parseInt(newSubCredits) || 4,
+      department: 'BCA',
+      semester: `Semester ${semNum}`,
+      semesterNumber: semNum,
+      year: yearNum,
+      type: 'THEORY',
+      credits: parseInt(newSubCredits, 10) || 4,
       instructor: newSubInstructor,
       syllabusCoveragePct: 0,
       syllabusProgress: 0,
@@ -43,20 +77,29 @@ export default function AdminDepartmentsView() {
     };
 
     setSubjects((prev) => [created, ...prev]);
-    toast.success(`Course "${newSubName} (${newSubCode})" registered into ${newSubDept}!`);
+    toast.success(`Course "${newSubName} (${newSubCode})" registered in BCA Semester ${semNum}!`);
     setAddSubjectModalOpen(false);
     setNewSubName('');
     setNewSubCode('');
   };
+
+  const filteredSubjects = subjects.filter((s) => {
+    if (selectedSemester !== 'all' && s.semesterNumber !== selectedSemester) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <>
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-700 text-foreground">Academic Departments & Curriculum</h2>
+            <h2 className="text-xl font-800 text-foreground tracking-tight">
+              BCA Academic Department & 3-Year Curriculum
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              5 Academic Departments · 1,556 Total Registered Students · 82 Faculty
+              Bachelor of Computer Applications · 384 Enrolled Students · 30 Specialized Faculty
             </p>
           </div>
 
@@ -64,15 +107,9 @@ export default function AdminDepartmentsView() {
             variant="primary"
             size="sm"
             onClick={() => setAddSubjectModalOpen(true)}
+            className="text-xs font-700 shadow-glow"
             leftIcon={
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             }
@@ -81,55 +118,62 @@ export default function AdminDepartmentsView() {
           </Button>
         </div>
 
-        {/* Departments Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {departments.map((dept) => (
+        {/* BCA 3-Year Cohorts Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {bcaCohorts.map((cohort) => (
             <div
-              key={dept.id}
-              className="glass-card rounded-2xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm"
+              key={cohort.year}
+              className="glass-card rounded-3xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm hover:shadow-glow"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <span className="badge-violet text-xs px-2.5 py-0.5 rounded-lg font-700">
-                    {dept.code}
+                    BCA Year {cohort.year}
                   </span>
-                  <span className="text-xs text-muted-foreground font-500">
-                    {dept.totalFaculty} Faculty
+                  <span className="text-xs text-muted-foreground font-mono-data">
+                    {cohort.semesters}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-700 text-foreground mb-1">{dept.name}</h3>
+                <h3 className="text-lg font-800 text-foreground mb-1">{cohort.yearLabel}</h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Head of Dept:{' '}
-                  <span className="text-foreground font-600">{dept.headOfDepartment}</span>
+                  Academic Lead:{' '}
+                  <span className="text-foreground font-700">{cohort.coordinator}</span>
                 </p>
 
-                <div className="p-3.5 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
+                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/40 space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Enrolled</span>
-                    <span className="font-700 text-primary metric-value">
-                      {dept.totalStudents} Students
+                    <span className="text-muted-foreground">Enrolled Students</span>
+                    <span className="font-800 text-primary metric-value">
+                      {cohort.enrolled} Active
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Active Courses</span>
-                    <span className="font-600 text-foreground">
-                      {subjects.filter(
-                        (s) => s.department.toLowerCase() === dept.code.toLowerCase()
-                      ).length || 4}{' '}
-                      Subjects
+                    <span className="text-muted-foreground">Curriculum Courses</span>
+                    <span className="font-700 text-foreground">
+                      {cohort.subjectsCount} Subjects
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Faculty Allocation</span>
+                    <span className="font-600 text-accent">
+                      {cohort.facultyCount} Instructors
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className="pt-3 mt-4 border-t border-border/40 flex items-center justify-between text-xs">
-                <span className="text-success font-600">● Accredited Tier-1</span>
+                <span className="text-success font-700">● Accredited UGC BCA</span>
                 <button
-                  onClick={() => toast.info(`Viewing ${dept.name} curriculum blueprint`)}
-                  className="text-primary hover:underline font-500 cursor-pointer"
+                  onClick={() => {
+                    const targetSem = cohort.year * 2 - 1;
+                    setSelectedSemester(targetSem as any);
+                    toast.info(`Filtered curriculum to BCA Year ${cohort.year}`);
+                  }}
+                  className="text-primary hover:underline font-700 cursor-pointer"
                 >
-                  Manage Curriculum →
+                  View Year Curriculum →
                 </button>
               </div>
             </div>
@@ -137,12 +181,33 @@ export default function AdminDepartmentsView() {
         </div>
 
         {/* Registered Subjects Table */}
-        <div className="glass-card rounded-2xl border border-border overflow-hidden">
-          <div className="p-4 border-b border-border/80 flex items-center justify-between">
-            <h3 className="text-base font-600 text-foreground">
-              Master Course Curriculum ({subjects.length})
-            </h3>
-            <Badge variant="cyan">Fall 2026</Badge>
+        <div className="glass-card rounded-3xl border border-border overflow-hidden shadow-glass">
+          <div className="p-5 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-800 text-foreground tracking-tight">
+                Master BCA Curriculum ({filteredSubjects.length} Courses)
+              </h3>
+              <p className="text-xs text-muted-foreground">Standardized 3-Year Curriculum Directory</p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-700 text-muted-foreground">Semester:</label>
+              <select
+                value={selectedSemester}
+                onChange={(e) =>
+                  setSelectedSemester(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))
+                }
+                className="bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-foreground font-600 outline-none cursor-pointer"
+              >
+                <option value="all">All 6 Semesters</option>
+                <option value="1">Semester 1 (1st Year)</option>
+                <option value="2">Semester 2 (1st Year)</option>
+                <option value="3">Semester 3 (2nd Year)</option>
+                <option value="4">Semester 4 (2nd Year)</option>
+                <option value="5">Semester 5 (3rd Year)</option>
+                <option value="6">Semester 6 (3rd Year)</option>
+              </select>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -151,25 +216,31 @@ export default function AdminDepartmentsView() {
                 <tr className="border-b border-border text-muted-foreground text-left">
                   <th className="py-3.5 px-4">Code</th>
                   <th className="py-3.5 px-4">Course Name</th>
-                  <th className="py-3.5 px-4">Department & Term</th>
+                  <th className="py-3.5 px-4">Term & Year</th>
+                  <th className="py-3.5 px-4">Type</th>
                   <th className="py-3.5 px-4">Credits</th>
-                  <th className="py-3.5 px-4 text-right">Instructor</th>
+                  <th className="py-3.5 px-4 text-right">Primary Faculty</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {subjects.map((sub) => (
+                {filteredSubjects.map((sub) => (
                   <tr key={sub.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-3.5 px-4 font-mono-data font-700 text-foreground">
+                    <td className="py-3.5 px-4 font-mono-data font-800 text-foreground">
                       {sub.code}
                     </td>
-                    <td className="py-3.5 px-4 font-600 text-foreground">{sub.name}</td>
+                    <td className="py-3.5 px-4 font-700 text-foreground">{sub.name}</td>
                     <td className="py-3.5 px-4 text-muted-foreground">
-                      {sub.department} · {sub.semester}
+                      BCA {sub.semester} (Year {sub.year})
                     </td>
-                    <td className="py-3.5 px-4 font-semibold text-primary">
+                    <td className="py-3.5 px-4">
+                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded font-600">
+                        {sub.type}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-primary font-mono-data">
                       {sub.credits} Credits
                     </td>
-                    <td className="py-3.5 px-4 text-right font-500 text-foreground">
+                    <td className="py-3.5 px-4 text-right font-600 text-foreground">
                       {sub.instructor}
                     </td>
                   </tr>
@@ -185,7 +256,7 @@ export default function AdminDepartmentsView() {
         <Modal
           isOpen={addSubjectModalOpen}
           onClose={() => setAddSubjectModalOpen(false)}
-          title="Register New Curriculum Course"
+          title="Register New BCA Curriculum Course"
           description="Add a new academic course, assign credits, and allocate primary faculty"
           footer={
             <div className="flex gap-2">
@@ -201,21 +272,21 @@ export default function AdminDepartmentsView() {
           <form onSubmit={handleAddSubject} className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
                   Course Name
                 </label>
                 <input
                   type="text"
                   value={newSubName}
                   onChange={(e) => setNewSubName(e.target.value)}
-                  placeholder="e.g. Cloud Computing & DevOps"
+                  placeholder="e.g. Cloud Computing & Distributed Systems"
                   className="input-field"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
                   Code
                 </label>
                 <input
@@ -223,47 +294,33 @@ export default function AdminDepartmentsView() {
                   value={newSubCode}
                   onChange={(e) => setNewSubCode(e.target.value)}
                   placeholder="CS506"
-                  className="input-field"
+                  className="input-field font-mono-data"
                   required
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
-                  Department
-                </label>
-                <select
-                  value={newSubDept}
-                  onChange={(e) => setNewSubDept(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="BCA">BCA</option>
-                  <option value="MCA">MCA</option>
-                  <option value="BBA">BBA</option>
-                  <option value="B.Com">B.Com</option>
-                  <option value="MBA">MBA</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
-                  Semester
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
+                  BCA Semester
                 </label>
                 <select
                   value={newSubSem}
                   onChange={(e) => setNewSubSem(e.target.value)}
-                  className="input-field"
+                  className="input-field cursor-pointer font-600"
                 >
-                  <option value="Sem 1">Sem 1</option>
-                  <option value="Sem 3">Sem 3</option>
-                  <option value="Sem 5">Sem 5</option>
+                  <option value="1">Semester 1 (Year 1)</option>
+                  <option value="2">Semester 2 (Year 1)</option>
+                  <option value="3">Semester 3 (Year 2)</option>
+                  <option value="4">Semester 4 (Year 2)</option>
+                  <option value="5">Semester 5 (Year 3)</option>
+                  <option value="6">Semester 6 (Year 3)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
                   Credits
                 </label>
                 <input
@@ -272,13 +329,13 @@ export default function AdminDepartmentsView() {
                   max="6"
                   value={newSubCredits}
                   onChange={(e) => setNewSubCredits(e.target.value)}
-                  className="input-field"
+                  className="input-field font-mono-data"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-600 uppercase tracking-wider text-muted-foreground mb-1">
+              <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
                 Assigned Faculty / Instructor
               </label>
               <input

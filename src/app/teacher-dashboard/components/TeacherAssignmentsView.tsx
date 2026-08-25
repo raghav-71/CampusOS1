@@ -38,6 +38,7 @@ export default function TeacherAssignmentsView() {
       subject: newSubject,
       department: 'BCA',
       semester: 'Sem 5',
+      semesterNumber: 5,
       teacher: 'Dr. Priya Nair',
       dueDate: newDueDate,
       totalSubmissions: 0,

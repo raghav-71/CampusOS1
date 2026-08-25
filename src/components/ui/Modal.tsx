@@ -47,21 +47,21 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fade-in"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
+      {/* Modal Dialog with Spring Pop Animation */}
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative glass-card rounded-2xl p-6 border border-border/80 shadow-2xl w-full animate-fade-in-up ${maxWidthStyles[maxWidth]} ${className}`}
+        className={`relative glass-card rounded-3xl p-6 border border-primary/40 shadow-2xl w-full animate-modal-pop ${maxWidthStyles[maxWidth]} ${className}`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-start justify-between gap-3 mb-4 pb-2 border-b border-border/50">
           <div>
             {title && typeof title === 'string' ? (
-              <h3 className="text-lg font-700 text-foreground leading-snug">{title}</h3>
+              <h3 className="text-lg font-800 text-foreground tracking-tight leading-snug">{title}</h3>
             ) : (
               title
             )}
@@ -69,12 +69,12 @@ export default function Modal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all btn-press cursor-pointer border border-border/40"
             title="Close dialog"
           >
             <svg
-              width="16"
-              height="16"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -90,7 +90,7 @@ export default function Modal({
         <div className="text-sm text-foreground">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="mt-6 flex items-center justify-end gap-3">{footer}</div>}
+        {footer && <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-border/40">{footer}</div>}
       </div>
     </div>
   );

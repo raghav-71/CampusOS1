@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
-import { providerChain } from '@/lib/ai/provider/providerChain';
+import { ProviderChain } from '@/lib/ai/providers/ProviderChain';
 
 export async function GET() {
   try {
-    const health = await providerChain.getHealthStatus();
+    const statusData = await ProviderChain.getStatus();
     return NextResponse.json({
       success: true,
-      status: health.status,
-      provider: health.providerName,
-      model: health.model,
-      isFree: health.isFree,
-      message: health.message,
-      latencyMs: health.latencyMs,
-      apiKeyConfigured: providerChain.isAnyProviderConfigured(),
+      status: statusData.status,
+      provider: statusData.activeProvider,
+      model: statusData.activeModel,
+      isFree: true,
+      hardware: statusData.hardware,
+      providers: statusData.providers,
+      toolsRegistered: statusData.toolsRegistered,
     });
   } catch (err: any) {
     return NextResponse.json(
@@ -20,10 +20,9 @@ export async function GET() {
         success: false,
         status: 'offline',
         provider: 'Campus Intelligence (Local)',
-        model: 'deterministic-campus-engine',
+        model: 'deterministic-offline-engine',
         isFree: true,
         message: err.message || 'Status check error',
-        apiKeyConfigured: false,
       },
       { status: 200 }
     );

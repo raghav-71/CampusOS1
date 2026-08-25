@@ -23,11 +23,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and subject are required' }, { status: 400 });
     }
 
+    const semNum = (parseInt(String(body.semester || '5').replace(/\D/g, '')) || 5) as 1 | 2 | 3 | 4 | 5 | 6;
     const newNote: NoteDocument = {
       id: `note-${Date.now()}`,
       title: body.title,
       subject: body.subject,
       semester: body.semester || 'Sem 5',
+      semesterNumber: semNum,
+      department: 'BCA',
       teacher: body.teacher || 'Dr. Priya Nair',
       tags: body.tags || [],
       uploadedAt: 'Just now',

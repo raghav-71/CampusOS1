@@ -24,8 +24,8 @@ export class AdminService {
     return this.repo.getDepartments();
   }
 
-  async getSubjects(department?: string): Promise<Subject[]> {
-    return this.repo.getSubjects(department);
+  async getSubjects(semester?: number | string): Promise<Subject[]> {
+    return this.repo.getSubjects(semester);
   }
 
   async getActivities(): Promise<ActivityItem[]> {

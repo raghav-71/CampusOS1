@@ -30,9 +30,9 @@ export default function CredentialsBox({
   const roles: Role[] = ['student', 'teacher', 'admin'];
 
   return (
-    <div className="mt-4 glass-card rounded-2xl p-4 border border-primary/10">
+    <div className="mt-4 glass-card rounded-2xl p-4.5 border border-primary/20 shadow-glass">
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-5 h-5 rounded-md bg-warning/20 flex items-center justify-center">
+        <div className="w-5 h-5 rounded-md bg-warning/20 flex items-center justify-center animate-pulse">
           <svg
             width="11"
             height="11"
@@ -45,63 +45,70 @@ export default function CredentialsBox({
             <path d="M12 8v4M12 16h.01" />
           </svg>
         </div>
-        <span className="text-xs font-600 text-warning">Demo Credentials</span>
-        <span className="text-xs text-muted-foreground ml-auto">Click role to autofill</span>
+        <span className="text-xs font-700 text-warning">Demo Credentials</span>
+        <span className="text-[11px] text-muted-foreground ml-auto font-500">Click role to auto-fill</span>
       </div>
 
       <div className="space-y-2">
-        {roles.map((role) => (
-          <div
-            key={`cred-${role}`}
-            className={`flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer ${
-              activeRole === role
-                ? 'bg-primary/10 border border-primary/20'
-                : 'bg-muted/40 border border-transparent hover:border-border'
-            }`}
-            onClick={() => onAutofill(role)}
-          >
-            <div className="flex items-center gap-2.5">
-              <span
-                className={`section-label capitalize ${activeRole === role ? 'text-primary' : 'text-muted-foreground'}`}
-              >
-                {role}
-              </span>
-              <span className="text-xs text-muted-foreground font-mono-data truncate max-w-[140px]">
-                {credentials[role].email}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  copyToClipboard(credentials[role].email, 'Email');
-                }}
-                className="p-1 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
-                title="Copy email"
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+        {roles.map((role) => {
+          const isActive = activeRole === role;
+          return (
+            <div
+              key={`cred-${role}`}
+              className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer group btn-press ${
+                isActive
+                  ? 'bg-primary/20 border border-primary/50 shadow-glow -translate-y-0.5'
+                  : 'bg-muted/40 border border-border/40 hover:border-primary/40 hover:bg-muted/70 hover:-translate-y-0.5'
+              }`}
+              onClick={() => onAutofill(role)}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`text-xs font-800 capitalize transition-colors ${
+                    isActive ? 'text-accent' : 'text-muted-foreground group-hover:text-foreground'
+                  }`}
                 >
-                  <rect x="9" y="9" width="13" height="13" rx="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-              </button>
-              <span
-                className={`text-xs font-600 px-2 py-0.5 rounded-md transition-all ${
-                  activeRole === role ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                Use
-              </span>
+                  {role}
+                </span>
+                <span className="text-xs text-muted-foreground font-mono-data truncate max-w-[140px] group-hover:text-foreground/80">
+                  {credentials[role].email}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(credentials[role].email, 'Email');
+                  }}
+                  className="p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  title="Copy email"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                </button>
+                <span
+                  className={`text-xs font-800 px-2.5 py-1 rounded-lg transition-all shadow-sm ${
+                    isActive
+                      ? 'bg-accent text-black font-900 shadow-glow'
+                      : 'bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white'
+                  }`}
+                >
+                  Use
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

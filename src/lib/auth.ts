@@ -139,7 +139,7 @@ export async function signUp(
             .slice(0, 2)
             .toUpperCase()
         : 'ST',
-      department: profileInput.department ?? 'General',
+      department: 'BCA',
       semester: profileInput.semester ?? 'Sem 1',
     };
     saveProfile(fallbackProfile);

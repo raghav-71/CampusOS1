@@ -8,7 +8,7 @@ interface RoleTabProps {
   onClick: () => void;
 }
 
-const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: string }> = {
+const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: string; activeClasses: string }> = {
   student: {
     label: 'Student',
     icon: (
@@ -18,7 +18,7 @@ const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: st
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.5"
       >
         <path d="M12 2L2 7l10 5 10-5-10-5z" />
         <path d="M2 17l10 5 10-5" />
@@ -26,6 +26,7 @@ const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: st
       </svg>
     ),
     color: 'text-primary',
+    activeClasses: 'border-primary/60 text-primary bg-primary/15 shadow-glow',
   },
   teacher: {
     label: 'Teacher',
@@ -36,13 +37,14 @@ const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: st
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.5"
       >
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8M12 17v4" />
       </svg>
     ),
     color: 'text-accent',
+    activeClasses: 'border-accent/60 text-accent bg-accent/15 shadow-glow-accent',
   },
   admin: {
     label: 'Admin',
@@ -53,12 +55,13 @@ const roleConfig: Record<Role, { label: string; icon: React.ReactNode; color: st
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.5"
       >
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
     color: 'text-warning',
+    activeClasses: 'border-warning/60 text-warning bg-warning/15 shadow-glow',
   },
 };
 
@@ -69,14 +72,14 @@ export default function RoleTab({ role, isActive, onClick }: RoleTabProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-600 transition-all duration-200 ${
+      className={`btn-press flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-800 transition-all duration-200 cursor-pointer ${
         isActive
-          ? `glass-card border ${role === 'student' ? 'border-primary/40 text-primary bg-primary/10' : role === 'teacher' ? 'border-accent/40 text-accent bg-accent/10' : 'border-warning/40 text-warning bg-warning/10'}`
-          : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-border'
+          ? `glass-card border ${config.activeClasses}`
+          : 'text-muted-foreground hover:text-foreground border border-border/40 hover:border-primary/30 hover:bg-muted/40'
       }`}
     >
-      <span className={isActive ? config.color : ''}>{config.icon}</span>
-      {config.label}
+      <span className={isActive ? config.color : 'text-muted-foreground'}>{config.icon}</span>
+      <span>{config.label}</span>
     </button>
   );
 }

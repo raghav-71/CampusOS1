@@ -24,7 +24,7 @@ export class FallbackProvider implements AIProvider {
       fullName: context.user.name,
       name: context.user.name,
       initials: context.user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'CO',
-      department: context.user.department,
+      department: (context.user.department as 'BCA') || 'BCA',
       semester: context.user.semester,
       rollNumber: context.user.rollNumber,
       subjects: context.user.subjects,

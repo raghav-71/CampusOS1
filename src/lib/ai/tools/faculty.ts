@@ -1,30 +1,32 @@
 import { campusRepository } from '@/repositories/campusRepository';
-import { mockUsers } from '@/repositories/mockData';
-import { ALL_TEACHER_CLASSES } from '@/app/teacher-dashboard/components/TeacherClassesView';
+import { mockTeacherSubjectAssignments } from '@/repositories/mockData';
+import { TeacherSubjectAssignment } from '@/types/campus';
 
 export class FacultyTools {
   static async getFacultyClasses(facultyId?: string, semester?: number, subject?: string) {
-    let list = ALL_TEACHER_CLASSES;
+    let list: TeacherSubjectAssignment[] = mockTeacherSubjectAssignments;
     if (semester) {
-      list = list.filter((c) => c.semesterNumber === semester);
+      list = list.filter((c: TeacherSubjectAssignment) => c.semesterNumber === semester);
     }
     if (subject) {
-      list = list.filter((c) => c.name.toLowerCase().includes(subject.toLowerCase()));
+      list = list.filter((c: TeacherSubjectAssignment) =>
+        c.subjectName.toLowerCase().includes(subject.toLowerCase())
+      );
     }
 
-    return list.map((c) => ({
-      id: c.id,
-      subject: `${c.name} (${c.code})`,
-      name: c.name,
-      code: c.code,
+    return list.map((c: TeacherSubjectAssignment) => ({
+      id: c.subjectId,
+      subject: `${c.subjectName} (${c.subjectCode})`,
+      name: c.subjectName,
+      code: c.subjectCode,
       semester: c.semester,
       semesterNumber: c.semesterNumber,
       section: c.section,
-      batch: `${c.department} ${c.semester} - Sec ${c.section}`,
+      batch: `BCA ${c.semester} - Sec ${c.section}`,
       studentsCount: c.enrolledStudents,
       avgAttendancePct: c.avgAttendancePct,
       room: c.room,
-      timing: c.nextLecture,
+      timing: '10:00 AM – 11:00 AM',
     }));
   }
 
@@ -34,7 +36,6 @@ export class FacultyTools {
     semester?: number;
     lowAttendanceOnly?: boolean;
   }) {
-    // If specific class requested
     let roster = [
       {
         id: 'usr-001',
@@ -54,7 +55,7 @@ export class FacultyTools {
         department: 'BCA',
         semester: 5,
         subject: 'Operating Systems',
-        attendancePct: 91.0,
+        attendancePct: 96.0,
         isBelowCutoff: false,
         grade: 'O',
       },
@@ -68,42 +69,42 @@ export class FacultyTools {
         attendancePct: 68.5,
         isBelowCutoff: true,
         grade: 'C',
-        reason: 'Low attendance in OS lecture cycle',
+        reason: 'Low attendance in OS lecture cycle (<75%)',
       },
       {
-        id: 'usr-042',
+        id: 'usr-011',
         name: 'Vikram Mehta',
-        rollNumber: 'BCA24-042',
+        rollNumber: 'BCA2442',
         department: 'BCA',
         semester: 5,
         subject: 'Operating Systems',
         attendancePct: 68.5,
         isBelowCutoff: true,
         grade: 'C',
-        reason: 'Medical leave & missed lectures',
+        reason: 'Medical leave & missed lectures (<75%)',
       },
       {
-        id: 'usr-019',
-        name: 'Ananya Gupta',
-        rollNumber: 'MCA25-019',
-        department: 'MCA',
+        id: 'usr-012',
+        name: 'Pooja Hegde',
+        rollNumber: 'BCA2502',
+        department: 'BCA',
         semester: 3,
-        subject: 'System Architecture',
-        attendancePct: 62.0,
+        subject: 'Data Structures',
+        attendancePct: 71.0,
         isBelowCutoff: true,
-        grade: 'D',
-        reason: 'Unexcused absences in System Architecture',
+        grade: 'B',
+        reason: 'Missed recursion and tree traversal laboratory sessions',
       },
       {
-        id: 'usr-020',
+        id: 'usr-013',
         name: 'Rahul Deshmukh',
-        rollNumber: 'MCA25-001',
-        department: 'MCA',
+        rollNumber: 'BCA2501',
+        department: 'BCA',
         semester: 3,
-        subject: 'System Architecture',
-        attendancePct: 88.0,
+        subject: 'Data Structures',
+        attendancePct: 92.0,
         isBelowCutoff: false,
-        grade: 'A',
+        grade: 'A+',
       },
     ];
 
@@ -111,7 +112,9 @@ export class FacultyTools {
       roster = roster.filter((r) => r.semester === filters.semester);
     }
     if (filters?.subject) {
-      roster = roster.filter((r) => r.subject.toLowerCase().includes(filters.subject!.toLowerCase()));
+      roster = roster.filter((r) =>
+        r.subject.toLowerCase().includes(filters.subject!.toLowerCase())
+      );
     }
     if (filters?.lowAttendanceOnly) {
       roster = roster.filter((r) => r.isBelowCutoff);
@@ -127,8 +130,8 @@ export class FacultyTools {
       title: a.title,
       subject: a.subject,
       dueDate: a.dueDate,
-      totalSubmissions: 54,
-      pendingGrading: 12,
+      totalSubmissions: 64,
+      pendingGrading: 8,
       maxScore: a.maxScore,
     }));
   }

@@ -5,9 +5,11 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useProfile } from '@/hooks/useProfile';
 import { Role } from '@/types/campus';
-import { AIChatMessage, AIStudyPlan } from '@/lib/ai/aiTypes';
+import { AIChatMessage } from '@/lib/ai/aiTypes';
 import Badge from '@/components/ui/Badge';
-import Button from '@/components/ui/Button';
+import AIOrb, { AIThinkingIndicator } from '@/components/motion/AIOrb';
+import MagneticButton from '@/components/motion/MagneticButton';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface CampusAIAssistantModalProps {
   isOpen: boolean;
@@ -15,12 +17,31 @@ interface CampusAIAssistantModalProps {
 }
 
 interface AIStatusData {
-  status: 'online' | 'offline' | 'degraded';
+  status: 'online' | 'local-deterministic' | 'offline';
   provider: string;
   model: string;
+  baseUrl?: string;
   isFree: boolean;
-  message: string;
-  apiKeyConfigured?: boolean;
+  localAvailable: boolean;
+  availableModels?: string[];
+  toolsRegistered?: number;
+  hardware?: {
+    totalRamGb: number;
+    freeRamGb: number;
+    cpuCores: number;
+    cpuModel: string;
+    recommendedLocalModel: string;
+    recommendedAlternativeModels: string[];
+  };
+}
+
+interface MessageWithMetadata extends AIChatMessage {
+  executionSteps?: Array<{ step: string; toolName?: string; status: string; durationMs?: number }>;
+  toolsUsed?: string[];
+  modelUsed?: string;
+  provider?: string;
+  durationMs?: number;
+  attachedFileName?: string;
 }
 
 function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModalProps) {
@@ -31,21 +52,22 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const { profile } = useProfile();
 
   const userRole: Role = profile?.role || 'student';
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [aiStatus, setAiStatus] = useState<AIStatusData>({
-    status: 'offline',
-    provider: 'Campus Intelligence (Local)',
-    model: 'openrouter/free',
+    status: 'online',
+    provider: 'Groq Cloud / Local Ollama',
+    model: 'qwen2.5:7b',
     isFree: true,
-    message: 'Local campus mode active',
-    apiKeyConfigured: false,
+    localAvailable: false,
+    toolsRegistered: 16,
   });
 
-  const [messages, setMessages] = useState<AIChatMessage[]>([
+  const [messages, setMessages] = useState<MessageWithMetadata[]>([
     {
       id: 'msg-init',
       role: 'assistant',
-      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am the **Campus OS AI Intelligence Layer** ✨\n\nI am deeply integrated into your **${userRole.toUpperCase()}** workspace. I understand what page you are currently viewing, your attendance, timetable, and study notes. What can I do for you today?`,
+      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am **Campus AI** ✨\n\nI am a **general-purpose AI assistant** with integrated **Campus OS superpowers**.\n\nAsk me anything:\n- 💡 **General Knowledge & Concepts** (*"What is quantum computing?", "Explain Dijkstra's algorithm"*)\n- 💻 **Programming & Code** (*"Write a Python script to sort students", "Explain polymorphism in Java"*)\n- 🎓 **Academic Tutoring & Prep** (*"Help me prepare for my DBMS viva", "Explain normalization like I'm 10"*)\n- 📊 **Your Academic Records** (*"What is my attendance?", "Which subject am I weakest in?"*)\n- 📅 **Campus Actions & Navigation** (*"Open my timetable", "When is my next exam?"*)\n\nHow can I help you today?`,
       timestamp: 'Just now',
     },
   ]);
@@ -53,6 +75,11 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeToolStatus, setActiveToolStatus] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+  const [showHardwareInfo, setShowHardwareInfo] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch real AI provider health status on mount
@@ -65,9 +92,12 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             status: data.status,
             provider: data.provider,
             model: data.model,
+            baseUrl: data.baseUrl,
             isFree: data.isFree ?? true,
-            message: data.message,
-            apiKeyConfigured: data.apiKeyConfigured,
+            localAvailable: data.localAvailable,
+            availableModels: data.availableModels,
+            toolsRegistered: data.toolsRegistered,
+            hardware: data.hardware,
           });
         }
       })
@@ -80,142 +110,105 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
   if (!isOpen) return null;
 
-  // Role-specific Quick Actions
+  // Role-specific Inspiration Prompts
   const getQuickActions = () => {
     if (userRole === 'student') {
       return [
-        {
-          label: '📅 Open Timetable',
-          query: 'Open my timetable',
-          toolHint: 'Opening timetable...',
-        },
-        {
-          label: '📊 Check Attendance',
-          query: 'What is my attendance?',
-          toolHint: 'Auditing attendance...',
-        },
-        {
-          label: '📝 Next Exam',
-          query: 'What is my next exam?',
-          toolHint: 'Checking exam schedule...',
-        },
-        {
-          label: '📋 Pending Assignments',
-          query: 'What assignments do I have pending?',
-          toolHint: 'Checking assignments...',
-        },
-        {
-          label: '📚 Find DBMS Notes',
-          query: 'Find my DBMS notes',
-          toolHint: 'Searching notes library...',
-        },
-        {
-          label: '🗓️ What to study today?',
-          query: 'What should I study today?',
-          toolHint: 'Synthesizing revision recommendations...',
-        },
-        {
-          label: '🧠 Teach me Dijkstra',
-          query: 'Explain Dijkstra',
-          toolHint: 'Explaining algorithm...',
-        },
-        {
-          label: '🎯 10-Question DAA Quiz',
-          query: 'Give me a 10-question DAA quiz',
-          toolHint: 'Generating quiz...',
-        },
+        { label: '💡 What is Quantum Computing?', query: 'What is quantum computing?' },
+        { label: '💻 Python CGPA Script', query: 'Write a Python program to calculate and sort student CGPA.' },
+        { label: '🎓 DBMS Viva Tutor', query: 'Help me prepare for my DBMS viva. Quiz me step by step.' },
+        { label: '📊 Check My Attendance', query: 'What is my attendance?' },
+        { label: '🎯 Weakest Subject & Plan', query: 'Which subject am I weakest in? Formulate a prioritized study plan.' },
+        { label: '📅 Open Timetable', query: 'Open my timetable' },
+        { label: '📝 Explain Normalization', query: 'Explain DBMS normalization in simple terms with examples.' },
       ];
     }
     if (userRole === 'teacher') {
       return [
-        {
-          label: '👥 Show My Classes',
-          query: 'Show my classes',
-          toolHint: 'Loading class rosters...',
-        },
-        {
-          label: '⚠️ Low Attendance (<75%)',
-          query: 'Which students have low attendance?',
-          toolHint: 'Scanning attendance logs...',
-        },
-        {
-          label: '📝 Generate DBMS Paper',
-          query: 'Generate a DBMS question paper',
-          toolHint: 'Drafting examination paper...',
-        },
-        {
-          label: '📋 Summarize Submissions',
-          query: 'Summarize my submissions',
-          toolHint: 'Checking submissions...',
-        },
-        {
-          label: '➕ Create Assignment',
-          query: 'Create an assignment about normalization',
-          toolHint: 'Drafting assignment structure...',
-        },
+        { label: '👥 Show My Classes', query: 'Show my assigned classes and student counts' },
+        { label: '⚠️ Attendance Risk (<75%)', query: 'Which students have low attendance below 75%?' },
+        { label: '🚀 Start My Next Class', query: 'Start my next class session' },
+        { label: '📝 Question Papers', query: 'Show official question papers' },
+        { label: '💡 Generate Code Example', query: 'Write a Java multi-threading example for students.' },
       ];
     }
     // Admin
     return [
-      {
-        label: '🏛️ Campus Overview',
-        query: 'Give me an overview of campus performance',
-        toolHint: 'Compiling institutional analytics...',
-      },
-      {
-        label: '🚨 Lowest Attendance Dept',
-        query: 'Which department has the lowest attendance?',
-        toolHint: 'Comparing department stats...',
-      },
-      {
-        label: '📢 Recent Announcements',
-        query: 'Show recent announcements',
-        toolHint: 'Fetching circulars...',
-      },
-      {
-        label: '📈 Analyze Attendance Trends',
-        query: 'Analyze attendance trends',
-        toolHint: 'Scanning student compliance...',
-      },
+      { label: '🏛️ Campus Stats', query: 'Show BCA institutional statistics' },
+      { label: '🚨 Attendance Risk', query: 'Show students at academic risk' },
+      { label: '📢 Create Notice', query: 'Broadcast an announcement about exam hall allotment' },
+      { label: '📈 Open Analytics', query: 'Open analytics dashboard' },
     ];
   };
 
-  const determineToolHint = (q: string): string => {
-    const lower = q.toLowerCase();
-    if (lower.includes('timetable') || lower.includes('class')) return 'Opening timetable...';
-    if (lower.includes('attendance')) return 'Reading attendance records...';
-    if (lower.includes('exam')) return 'Checking exam schedule...';
-    if (lower.includes('assignment')) return 'Checking assignments...';
-    if (lower.includes('note') || lower.includes('find') || lower.includes('search')) return 'Searching Campus OS...';
-    if (lower.includes('quiz')) return 'Generating quiz...';
-    if (lower.includes('paper')) return 'Generating question paper...';
-    if (lower.includes('study plan') || lower.includes('study today')) return 'Synthesizing revision plan...';
-    if (lower.includes('explain') || lower.includes('teach')) return 'Formulating explanation...';
-    return 'Reasoning & querying Campus OS...';
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setAttachedFile({ name: file.name, content });
+      toast.success(`Attached document: ${file.name}`);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsLoading(false);
+      setActiveToolStatus(null);
+      toast.info('Generation stopped by user.');
+    }
+  };
+
+  const handleNewConversation = () => {
+    setMessages([
+      {
+        id: `msg-reset-${Date.now()}`,
+        role: 'assistant',
+        content: `**New conversation started.**\n\nI am ready to assist you with general knowledge, code, tutoring, math, documents, or Campus OS academic data. What is on your mind?`,
+        timestamp: 'Just now',
+      },
+    ]);
+    setAttachedFile(null);
+    toast.success('Conversation history reset.');
   };
 
   const sendMessage = async (textToSend?: string, toolHint?: string) => {
     const query = textToSend || inputText;
-    if (!query.trim() || isLoading) return;
+    if ((!query.trim() && !attachedFile) || isLoading) return;
 
-    const userMsg: AIChatMessage = {
+    const finalQuery = attachedFile
+      ? `${query}\n\n[Attached Document: ${attachedFile.name}]\n\`\`\`\n${attachedFile.content.slice(0, 4000)}\n\`\`\``
+      : query;
+
+    const userMsg: MessageWithMetadata = {
       id: `usr-${Date.now()}`,
       role: 'user',
       content: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      attachedFileName: attachedFile?.name,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
+    setAttachedFile(null);
     setIsLoading(true);
-    setActiveToolStatus(toolHint || determineToolHint(query));
+    setActiveToolStatus(toolHint || 'Thinking & reasoning...');
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const startTime = Date.now();
 
     try {
       const res = await fetch('/api/ai/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
-          message: query,
+          message: finalQuery,
           userProfile: profile,
           currentPath: pathname,
           currentTab,
@@ -226,130 +219,162 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to get response from Campus OS AI');
+        throw new Error(data.error || 'Failed to process AI request');
       }
 
-      const aiMsg: AIChatMessage = {
+      const durationMs = Date.now() - startTime;
+
+      const aiMsg: MessageWithMetadata = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
-        content: data.answer || 'I have processed your request.',
+        content: data.answer || 'I have analyzed your request.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        quiz: data.quizData,
-        studyPlan: data.studyPlan,
         action: data.action,
+        executionSteps: data.executionSteps,
+        toolsUsed: data.toolsUsed,
+        modelUsed: data.modelUsed,
+        provider: data.provider,
+        durationMs,
       };
 
       setMessages((prev) => [...prev, aiMsg]);
 
-      // If response includes direct navigation action, execute navigation
+      // If action is direct navigation, navigate smoothly
       if (data.action?.type === 'navigate' && data.action.route) {
         toast.success(`Navigating to ${data.action.label || data.action.route}`);
         router.push(data.action.route);
       }
     } catch (err: any) {
-      toast.error('AI Assistant: ' + err.message);
+      if (err.name === 'AbortError') return;
+      toast.error('AI Error: ' + err.message);
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-err-${Date.now()}`,
           role: 'assistant',
-          content:
-            '⚠️ I encountered a temporary connection issue. You can ask for timetable, attendance, or notes which will be handled seamlessly via deterministic campus intelligence.',
+          content: `⚠️ **Notice**: ${err.message}`,
           timestamp: 'Just now',
         },
       ]);
     } finally {
       setIsLoading(false);
       setActiveToolStatus(null);
+      abortControllerRef.current = null;
     }
   };
 
-  const handleQuizAnswer = (msgId: string, optIndex: number) => {
-    setMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id === msgId && msg.quiz) {
-          return {
-            ...msg,
-            quiz: { ...msg.quiz, selectedOption: optIndex },
-          };
-        }
-        return msg;
-      })
-    );
+  const handleRegenerate = () => {
+    if (messages.length < 2 || isLoading) return;
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    if (lastUserMsg) {
+      sendMessage(lastUserMsg.content);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-md animate-fade-in cursor-pointer"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in cursor-pointer"
         onClick={onClose}
       />
 
-      {/* Slide-over 3D Futuristic AI Panel */}
-      <div className="relative w-full max-w-xl bg-card/95 backdrop-blur-2xl border-l border-primary/30 h-full flex flex-col shadow-2xl animate-slide-in-right z-10">
-        {/* Header */}
-        <div className="p-4.5 border-b border-border/80 flex items-center justify-between bg-card/70 relative overflow-hidden">
+      {/* Slide-over 3D AI Intelligence Core Panel */}
+      <div className="relative w-full sm:max-w-2xl bg-card/95 backdrop-blur-2xl border-l border-primary/40 h-full flex flex-col shadow-2xl animate-slide-right z-10 selection:bg-accent selection:text-black">
+        {/* Header Bar */}
+        <div className="p-4 sm:p-4.5 border-b border-border/80 flex items-center justify-between bg-card/80 relative overflow-hidden">
           <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-primary via-blue-600 to-accent flex items-center justify-center text-white shadow-glow animate-pulse-glow">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="3" fill="#00D8F6" />
-                <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
-              </svg>
-            </div>
+            <AIOrb size="md" status={isLoading ? 'analyzing' : 'idle'} />
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-800 text-foreground tracking-tight">
-                  Campus OS AI Intelligence
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-800 text-foreground tracking-tight flex items-center gap-1.5">
+                  <span>Campus AI</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 font-mono">
+                    GPT-Grade
+                  </span>
                 </h3>
-                <Badge variant={aiStatus.status === 'online' ? 'success' : 'cyan'}>
-                  {aiStatus.status === 'online'
-                    ? '🟢 AI Online (Free)'
-                    : '🔵 Campus Intelligence Mode'}
-                </Badge>
+                <button
+                  onClick={() => setShowHardwareInfo(!showHardwareInfo)}
+                  className="cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  <Badge variant={aiStatus.localAvailable ? 'success' : 'cyan'}>
+                    {aiStatus.localAvailable ? '🟢 Ollama Local Active' : `⚡ ${aiStatus.provider.split(' ')[0]}`}
+                  </Badge>
+                </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                {aiStatus.provider} · Viewing:{' '}
-                <span className="text-accent">{currentTab.toUpperCase()}</span>
+              <p className="text-[11px] text-muted-foreground font-500">
+                Model: <span className="text-foreground font-mono">{aiStatus.model}</span> · Tab: <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-xl hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/40"
-            title="Close Assistant"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewConversation}
+              className="text-[11px] px-2.5 py-1.5 rounded-xl border border-border/60 hover:border-accent hover:text-accent bg-muted/30 font-600 transition-colors cursor-pointer flex items-center gap-1"
+              title="Start New Conversation"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+              <span>✨</span>
+              <span className="hidden sm:inline">New Chat</span>
+            </button>
+            <button
+              onClick={() => setDebugMode(!debugMode)}
+              className={`text-[10px] px-2 py-1 rounded-lg border font-mono cursor-pointer transition-colors ${
+                debugMode
+                  ? 'border-accent text-accent bg-accent/10'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+              title="Toggle AI Tool Debug Inspector"
+            >
+              {debugMode ? '🛠️ Debug: ON' : '🛠️ Debug'}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/40"
+              title="Close Assistant"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Dynamic Quick Action Pills */}
-        <div className="p-3 border-b border-border/50 bg-muted/25 flex gap-2 overflow-x-auto text-xs no-scrollbar">
+        {/* Hardware & Provider Info Popover */}
+        {showHardwareInfo && aiStatus.hardware && (
+          <div className="p-3 bg-muted/40 border-b border-border/80 text-xs space-y-1.5 animate-fade-in">
+            <div className="flex items-center justify-between font-700 text-foreground">
+              <span>🖥️ System Hardware & Recommended Model</span>
+              <button
+                onClick={() => setShowHardwareInfo(false)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+              <div>System RAM: <span className="text-foreground font-600">{aiStatus.hardware.totalRamGb} GB</span> ({aiStatus.hardware.freeRamGb} GB free)</div>
+              <div>CPU: <span className="text-foreground font-600">{aiStatus.hardware.cpuCores} Cores</span></div>
+              <div className="col-span-2">
+                Recommended Local Ollama Model: <code className="text-accent font-mono px-1 bg-black/40 rounded">{aiStatus.hardware.recommendedLocalModel}</code>
+              </div>
+            </div>
+            <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+              Run locally: <code className="text-emerald-400 font-mono">ollama run {aiStatus.hardware.recommendedLocalModel}</code>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Action Pills */}
+        <div className="p-2.5 border-b border-border/50 bg-muted/20 flex gap-2 overflow-x-auto text-xs no-scrollbar">
           {getQuickActions().map((qa, i) => (
             <button
               key={i}
-              onClick={() => sendMessage(qa.query, qa.toolHint)}
-              className="whitespace-nowrap px-3.5 py-1.5 rounded-xl glass-card border border-primary/30 text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all cursor-pointer font-600 text-[11px] shadow-sm flex-shrink-0"
+              onClick={() => sendMessage(qa.query)}
+              className="btn-press whitespace-nowrap px-3 py-1.5 rounded-xl glass-card border border-primary/30 text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all cursor-pointer font-600 text-[11px] shadow-sm flex-shrink-0"
             >
               {qa.label}
             </button>
@@ -364,151 +389,113 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}
             >
               <div
-                className={`max-w-[90%] p-4 rounded-2xl ${
+                className={`max-w-[94%] p-4 sm:p-5 rounded-2xl ${
                   msg.role === 'user'
                     ? 'bg-gradient-to-br from-primary to-blue-600 text-white rounded-tr-none shadow-glow font-500'
                     : 'glass-card border border-border/80 text-foreground rounded-tl-none shadow-glass'
                 }`}
               >
-                <div className="whitespace-pre-line leading-relaxed">{msg.content}</div>
+                {/* Attached document tag */}
+                {msg.attachedFileName && (
+                  <div className="mb-2 px-2.5 py-1 rounded-lg bg-black/30 text-[11px] font-mono flex items-center gap-1.5 text-accent border border-accent/20">
+                    <span>📄</span>
+                    <span>Attached: {msg.attachedFileName}</span>
+                  </div>
+                )}
 
-                {/* Direct Action Trigger Pill */}
+                {/* Multi-step tool execution tracker in message */}
+                {msg.executionSteps && msg.executionSteps.length > 0 && (
+                  <div className="mb-3 p-2.5 rounded-xl bg-muted/40 border border-primary/20 text-[11px] space-y-1.5">
+                    <div className="flex items-center justify-between text-muted-foreground font-700 uppercase tracking-wider text-[10px]">
+                      <span>⚡ Academic Superpower Execution</span>
+                      <span className="text-primary font-mono">{msg.executionSteps.length} Step(s)</span>
+                    </div>
+                    {msg.executionSteps.map((step, sIdx) => (
+                      <div key={sIdx} className="flex items-center gap-2 text-foreground/90 font-500">
+                        <span className="text-accent font-bold">●</span>
+                        <span className="flex-1">{step.step}</span>
+                        {step.toolName && (
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                            {step.toolName}
+                          </span>
+                        )}
+                        <span className="text-emerald-400 font-700">✓</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Rich Markdown Response */}
+                {msg.role === 'assistant' ? (
+                  <MarkdownRenderer content={msg.content} />
+                ) : (
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                )}
+
+                {/* Direct Action Trigger Button */}
                 {msg.action?.route && (
-                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-muted-foreground">Action Available:</span>
+                  <div className="mt-3.5 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-muted-foreground font-600">Action:</span>
                     <button
                       onClick={() => {
                         if (msg.action?.route) router.push(msg.action.route);
                       }}
-                      className="btn-primary text-xs py-1.5 px-3.5 rounded-lg shadow-glow cursor-pointer"
+                      className="btn-primary text-xs py-1.5 px-4 rounded-xl shadow-glow cursor-pointer font-800"
                     >
                       🚀 {msg.action.label || 'Open View'} →
                     </button>
                   </div>
                 )}
 
-                {/* Interactive Study Plan Component */}
-                {msg.studyPlan && (
-                  <div className="mt-4 p-4 rounded-2xl bg-card/85 border border-primary/40 space-y-3 text-xs shadow-glow">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                      <h4 className="font-800 text-foreground text-sm">
-                        🗓️ {msg.studyPlan.subject} Revision Plan
-                      </h4>
-                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded-md font-700">
-                        {msg.studyPlan.totalDays} Days
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {msg.studyPlan.schedule.map((day) => (
-                        <div key={day.day} className="p-2.5 rounded-xl bg-muted/30 border border-border/60">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-700 text-primary">Day {day.day}: {day.title}</span>
-                            <span className="text-[10px] text-muted-foreground">{day.duration}</span>
-                          </div>
-                          <p className="text-muted-foreground text-[11px]">{day.topics.join(' · ')}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => router.push('/student-dashboard?tab=notes')}
-                        className="text-xs"
-                      >
-                        Open Notes
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => sendMessage(`Generate a 5-question quiz on ${msg.studyPlan?.subject}`)}
-                        className="text-xs"
-                      >
-                        Create Quiz
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Interactive Practice Quiz Component */}
-                {msg.quiz && (
-                  <div className="mt-4 p-4 rounded-2xl bg-card/85 border border-border/80 space-y-2.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded-md font-700">
-                        {msg.quiz.subject || 'Interactive Quiz'}
-                      </span>
-                    </div>
-                    <p className="font-800 text-foreground text-sm leading-snug">
-                      {msg.quiz.question}
-                    </p>
-                    <div className="space-y-2 pt-1">
-                      {msg.quiz.options.map((opt, optIdx) => {
-                        const isSelected = msg.quiz?.selectedOption === optIdx;
-                        const isCorrect = optIdx === msg.quiz?.correctIndex;
-                        let btnStyle =
-                          'border-border/70 bg-muted/30 hover:border-primary/50 text-foreground';
-
-                        if (msg.quiz?.selectedOption !== undefined) {
-                          if (isCorrect)
-                            btnStyle = 'border-success bg-success/20 text-success font-700';
-                          else if (isSelected)
-                            btnStyle = 'border-danger bg-danger/20 text-danger font-700';
-                        }
-
-                        return (
-                          <button
-                            key={opt}
-                            disabled={msg.quiz?.selectedOption !== undefined}
-                            onClick={() => handleQuizAnswer(msg.id, optIdx)}
-                            className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer ${btnStyle}`}
-                          >
-                            <span className="font-700 mr-1.5">
-                              {String.fromCharCode(65 + optIdx)}.
-                            </span>{' '}
-                            {opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {msg.quiz.selectedOption !== undefined && (
-                      <div className="pt-2.5 mt-2 border-t border-border/50 text-xs">
-                        <p className="font-700 text-success mb-1">
-                          {msg.quiz.selectedOption === msg.quiz.correctIndex
-                            ? '✓ Correct Answer!'
-                            : '✗ Incorrect'}
-                        </p>
-                        <p className="text-muted-foreground leading-relaxed">
-                          {msg.quiz.explanation}
-                        </p>
-                      </div>
+                {/* Debug Inspector */}
+                {debugMode && msg.role === 'assistant' && (
+                  <div className="mt-3 pt-2 border-t border-dashed border-border/60 text-[10px] font-mono text-muted-foreground space-y-0.5">
+                    <div>Model: <span className="text-foreground">{msg.modelUsed || 'default'}</span></div>
+                    <div>Provider: <span className="text-foreground">{msg.provider || 'Campus OS'}</span></div>
+                    {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+                      <div>Tools: <span className="text-accent">{msg.toolsUsed.join(', ')}</span></div>
                     )}
+                    {msg.durationMs && <div>Latency: <span className="text-foreground">{msg.durationMs}ms</span></div>}
                   </div>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground mt-1 px-1">{msg.timestamp}</span>
+              <span className="text-[10px] text-muted-foreground mt-1 px-1 font-mono">{msg.timestamp}</span>
             </div>
           ))}
 
           {/* Active Tool / Thinking Indicator */}
           {isLoading && (
-            <div className="flex items-center gap-3 p-3.5 glass-card rounded-2xl border border-accent/40 max-w-[75%] animate-fade-in shadow-glow-accent">
-              <div className="flex items-end gap-1 h-5">
-                <span className="w-1 bg-accent rounded-full animate-bounce [animation-delay:0.1s] h-3" />
-                <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:0.3s] h-5" />
-                <span className="w-1 bg-accent rounded-full animate-bounce [animation-delay:0.2s] h-4" />
-                <span className="w-1 bg-primary rounded-full animate-bounce [animation-delay:0.4s] h-2" />
-              </div>
-              <span className="text-xs font-600 text-foreground">{activeToolStatus}</span>
+            <div className="max-w-[85%] animate-fade-in space-y-2">
+              <AIThinkingIndicator statusText={activeToolStatus || 'Reasoning & formulating answer...'} />
+              <button
+                onClick={handleStopGeneration}
+                className="text-[10px] px-2.5 py-1 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer font-600"
+              >
+                ⏹ Stop Generation
+              </button>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Attached Document Bar */}
+        {attachedFile && (
+          <div className="px-4 py-2 bg-primary/10 border-t border-primary/30 flex items-center justify-between text-xs animate-fade-in">
+            <span className="flex items-center gap-1.5 text-accent font-500">
+              <span>📄</span>
+              <span className="truncate max-w-[250px]">{attachedFile.name}</span>
+            </span>
+            <button
+              onClick={() => setAttachedFile(null)}
+              className="text-muted-foreground hover:text-foreground cursor-pointer font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Input Bar */}
-        <div className="p-4 border-t border-border/80 bg-card/80">
+        <div className="p-4 border-t border-border/80 bg-card/90">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -516,24 +503,52 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             }}
             className="flex items-center gap-2"
           >
+            {/* File Upload Trigger */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".txt,.md,.pdf,.json,.csv,.py,.java,.js,.ts"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-10 h-10 rounded-xl border border-border/60 hover:border-accent hover:text-accent flex items-center justify-center text-muted-foreground transition-colors cursor-pointer flex-shrink-0"
+              title="Attach Document for Analysis / RAG"
+            >
+              📎
+            </button>
+
             <input
               type="text"
-              placeholder={`Ask naturally: "Open my timetable", "What's my attendance?", "Explain Dijkstra"...`}
+              placeholder={`Ask anything: "Explain polymorphism", "What is my attendance?", "DBMS study plan"...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="input-field py-2.5 text-xs sm:text-sm"
+              className="input-field py-2.5 text-xs sm:text-sm font-500 flex-1"
               disabled={isLoading}
               autoFocus
             />
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              disabled={!inputText.trim() || isLoading}
-              className="px-5 shadow-glow font-700"
-            >
-              Ask AI
-            </Button>
+
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={handleStopGeneration}
+                className="px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-700 hover:bg-red-500/30 transition-colors cursor-pointer"
+              >
+                Stop
+              </button>
+            ) : (
+              <MagneticButton
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={(!inputText.trim() && !attachedFile) || isLoading}
+                className="px-5 shadow-glow font-800"
+              >
+                Send
+              </MagneticButton>
+            )}
           </form>
         </div>
       </div>

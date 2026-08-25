@@ -1,7 +1,8 @@
 'use client';
 
 import React, { Suspense, lazy } from 'react';
-import GlassCard from '@/components/ui/GlassCard';
+import AnimatedCard from '@/components/motion/AnimatedCard';
+import AnimatedNumber from '@/components/motion/AnimatedNumber';
 
 const Campus3DCore = lazy(() => import('@/components/ui/Campus3DCore'));
 
@@ -9,9 +10,9 @@ const kpiData = [
   {
     id: 'kpi-classes',
     title: "Today's Lectures",
-    value: '3',
+    value: 3,
     unit: 'sessions',
-    change: '+1 from yesterday',
+    change: '3 scheduled today',
     trend: 'neutral',
     icon: (
       <svg
@@ -36,7 +37,7 @@ const kpiData = [
   {
     id: 'kpi-exam',
     title: 'Earliest Exam',
-    value: '3',
+    value: 3,
     unit: 'days away',
     change: 'OS (CS501) — Aug 27, 2026',
     trend: 'warning',
@@ -53,7 +54,7 @@ const kpiData = [
         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
       </svg>
     ),
-    detail: 'Block A, Exam Hall 1',
+    detail: 'Block A, Exam Hall 1 (Internal 1)',
     color: 'text-warning',
     bgColor: 'bg-warning/10',
     borderColor: 'border-warning/30',
@@ -61,7 +62,7 @@ const kpiData = [
   {
     id: 'kpi-attendance',
     title: 'Attendance Rate',
-    value: '92.1',
+    value: 93.3,
     unit: '% cumulative',
     change: 'Above 75% cutoff threshold',
     trend: 'positive',
@@ -78,7 +79,7 @@ const kpiData = [
         <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
     ),
-    detail: 'Eligible for all 5 exams',
+    detail: 'Eligible for all 5 university exams',
     color: 'text-success',
     bgColor: 'bg-success/10',
     borderColor: 'border-success/30',
@@ -86,9 +87,9 @@ const kpiData = [
   {
     id: 'kpi-notes',
     title: 'Study Materials',
-    value: '247',
+    value: 48,
     unit: 'documents',
-    change: '+6 newly uploaded',
+    change: '+3 newly uploaded',
     trend: 'positive',
     icon: (
       <svg
@@ -105,7 +106,7 @@ const kpiData = [
         <line x1="16" y1="17" x2="8" y2="17" />
       </svg>
     ),
-    detail: 'Dr. Priya Nair uploaded Ch 7',
+    detail: 'Dr. Priya Nair published Ch 8',
     color: 'text-accent',
     bgColor: 'bg-accent/10',
     borderColor: 'border-accent/30',
@@ -130,12 +131,7 @@ export default function StudentKPIGrid() {
 
 function Hero3DStudyCard() {
   return (
-    <GlassCard
-      interactive3D
-      hoverEffect
-      glow="primary"
-      className="p-6 relative overflow-hidden h-full flex flex-col justify-between"
-    >
+    <AnimatedCard className="p-6 relative overflow-hidden h-full flex flex-col justify-between border-primary/40 shadow-glass">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
         <div className="max-w-xs">
           <div className="flex items-center gap-2 mb-1.5">
@@ -145,19 +141,19 @@ function Hero3DStudyCard() {
             </span>
           </div>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-            Academic Performance
+            Academic Standing
           </h3>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            Semester 5 · 94.2% Attendance · 5 Enrolled Subjects
+            BCA Semester 5 · 93.3% Attendance · 5 Enrolled Subjects
           </p>
 
           <div className="mt-4 flex items-center gap-3">
-            <div className="px-3 py-1.5 rounded-xl glass-card border border-primary/40 text-xs font-700 text-foreground">
-              Overall: <span className="text-accent">A Grade</span>
+            <div className="px-3.5 py-1.5 rounded-xl glass-card border border-primary/40 text-xs font-800 text-foreground">
+              Overall: <span className="text-accent">A+ Grade</span>
             </div>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('campusos:open-ai'))}
-              className="px-3.5 py-1.5 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/40 text-xs font-700 text-foreground transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/40 text-xs font-800 text-foreground transition-all cursor-pointer flex items-center gap-1.5 btn-press shadow-glow"
             >
               Ask AI Mentor ✨
             </button>
@@ -177,7 +173,7 @@ function Hero3DStudyCard() {
           </Suspense>
         </div>
       </div>
-    </GlassCard>
+    </AnimatedCard>
   );
 }
 
@@ -194,15 +190,13 @@ function KPICard({ kpi }: KPICardProps) {
   };
 
   return (
-    <GlassCard
-      interactive3D
-      hoverEffect
+    <AnimatedCard
       className={`p-5 border ${kpi.borderColor} relative overflow-hidden flex flex-col justify-between`}
     >
       <div>
         <div className="flex items-center justify-between mb-3">
           <div
-            className={`w-10 h-10 rounded-xl ${kpi.bgColor} border ${kpi.borderColor} flex items-center justify-center ${kpi.color}`}
+            className={`w-10 h-10 rounded-2xl ${kpi.bgColor} border ${kpi.borderColor} flex items-center justify-center ${kpi.color} shadow-sm`}
           >
             {kpi.icon}
           </div>
@@ -211,16 +205,18 @@ function KPICard({ kpi }: KPICardProps) {
           </span>
         </div>
         <div className="flex items-baseline gap-1.5 mb-1">
-          <span className="text-3xl font-800 text-foreground metric-value">{kpi.value}</span>
-          <span className="text-xs text-muted-foreground font-500">{kpi.unit}</span>
+          <span className="text-3xl font-800 text-foreground">
+            <AnimatedNumber value={kpi.value} />
+          </span>
+          <span className="text-xs text-muted-foreground font-600">{kpi.unit}</span>
         </div>
         <p className={`text-xs font-600 ${trendColors[kpi.trend as keyof typeof trendColors]}`}>
           {kpi.change}
         </p>
       </div>
-      <p className="text-xs text-muted-foreground/90 mt-3 pt-2.5 border-t border-border/40 truncate">
+      <p className="text-xs text-muted-foreground/90 mt-3 pt-2.5 border-t border-border/40 truncate font-500">
         {kpi.detail}
       </p>
-    </GlassCard>
+    </AnimatedCard>
   );
 }

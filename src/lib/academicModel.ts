@@ -60,7 +60,12 @@ export interface SubjectEntity {
 }
 
 // Examination Categories & Types
-export type ExamCategory = 'INTERNAL_1' | 'INTERNAL_2' | 'END_SEMESTER';
+export type ExamCategory =
+  | 'INTERNAL_1'
+  | 'INTERNAL_2'
+  | 'LAB_INTERNAL_1'
+  | 'LAB_INTERNAL_2'
+  | 'END_SEMESTER';
 export type ExamType = 'THEORY' | 'LAB';
 
 export interface ExamEntity {

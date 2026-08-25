@@ -1,7 +1,7 @@
 import { campusRepository } from '@/repositories/campusRepository';
 import {
   mockExams,
-  mockStudyProgressData,
+  mockStudyProgressBySemester,
   mockGradeDistributions,
   mockUsers,
   mockMarksCardSubmissions,
@@ -46,15 +46,15 @@ export class StudentTools {
       department: user.department,
       semester: user.semester,
       rollNumber: user.rollNumber,
-      stats: mockStudyProgressData,
+      stats: mockStudyProgressBySemester[5] || [],
     };
   }
 
   static async getStudentSubjects(department?: string, semester?: number) {
     if (semester) {
-      return await campusRepository.getSubjectsBySemester(semester, department);
+      return await campusRepository.getSubjectsBySemester(semester);
     }
-    return await campusRepository.getSubjects(department);
+    return await campusRepository.getSubjects();
   }
 
   static async getStudentTimetable(dayOfWeek?: string) {

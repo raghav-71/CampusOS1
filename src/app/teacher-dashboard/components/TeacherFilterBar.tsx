@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TeacherFilterState } from '@/types/campus';
+import AnimatedCard from '@/components/motion/AnimatedCard';
 
 interface TeacherFilterBarProps {
   filters: TeacherFilterState;
@@ -12,7 +13,7 @@ interface TeacherFilterBarProps {
 export default function TeacherFilterBar({
   filters,
   onChange,
-  totalFilteredStudents = 138,
+  totalFilteredStudents = 154,
 }: TeacherFilterBarProps) {
   const handleFilterChange = (key: keyof TeacherFilterState, value: string) => {
     onChange({
@@ -37,14 +38,14 @@ export default function TeacherFilterBar({
     filters.section !== 'all';
 
   return (
-    <div className="glass-card rounded-3xl p-4 sm:p-5 border border-primary/30 space-y-3 shadow-glass">
+    <AnimatedCard className="p-4 sm:p-5 border-primary/30 space-y-3 shadow-glass">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-border/50">
         <div className="flex items-center gap-2">
-          <span className="text-sm">🎯</span>
+          <span className="text-sm animate-float-slow">🎯</span>
           <span className="text-xs font-800 uppercase tracking-wider text-foreground">
-            Academic Cohort & Class Filter
+            BCA Academic Cohort & Subject Filter
           </span>
-          <span className="badge-cyan text-[10px] px-2 py-0.5 rounded-md font-700">
+          <span className="badge-cyan text-[10px] px-2.5 py-0.5 rounded-full font-800 shadow-sm">
             {totalFilteredStudents} Students In Scope
           </span>
         </div>
@@ -52,7 +53,7 @@ export default function TeacherFilterBar({
         {isFiltered && (
           <button
             onClick={handleReset}
-            className="text-xs text-accent hover:underline font-600 self-start md:self-auto cursor-pointer"
+            className="text-xs text-accent hover:underline font-700 self-start md:self-auto cursor-pointer btn-press"
           >
             Reset Filters ↺
           </button>
@@ -64,29 +65,29 @@ export default function TeacherFilterBar({
         {/* Grade / Year */}
         <div>
           <label className="block text-[10px] font-700 uppercase tracking-wider text-muted-foreground mb-1">
-            Grade / Academic Year
+            BCA Academic Year
           </label>
           <select
             value={filters.gradeYear}
             onChange={(e) => handleFilterChange('gradeYear', e.target.value)}
-            className="input-field py-1.5 text-xs"
+            className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
             <option value="all">All Years (1st, 2nd, 3rd)</option>
-            <option value="1">1st Year (Freshman)</option>
-            <option value="2">2nd Year (Sophomore)</option>
-            <option value="3">3rd Year (Senior)</option>
+            <option value="1">1st Year (Sem 1 & 2)</option>
+            <option value="2">2nd Year (Sem 3 & 4)</option>
+            <option value="3">3rd Year (Sem 5 & 6)</option>
           </select>
         </div>
 
         {/* Semester */}
         <div>
           <label className="block text-[10px] font-700 uppercase tracking-wider text-muted-foreground mb-1">
-            Semester
+            BCA Semester
           </label>
           <select
             value={filters.semester}
             onChange={(e) => handleFilterChange('semester', e.target.value)}
-            className="input-field py-1.5 text-xs"
+            className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
             <option value="all">All Semesters</option>
             <option value="1">Semester 1</option>
@@ -106,13 +107,15 @@ export default function TeacherFilterBar({
           <select
             value={filters.subject}
             onChange={(e) => handleFilterChange('subject', e.target.value)}
-            className="input-field py-1.5 text-xs"
+            className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
             <option value="all">All Assigned Subjects</option>
             <option value="Operating Systems">Operating Systems (CS501)</option>
             <option value="OS Lab Practical">OS Lab Practical (CS501L)</option>
-            <option value="System Architecture">System Architecture (MCA302)</option>
             <option value="Data Structures">Data Structures (CS301)</option>
+            <option value="Database Management Systems">DBMS (CS502)</option>
+            <option value="Computer Networks">Computer Networks (CS503)</option>
+            <option value="Java Programming">Java Programming (CS504)</option>
           </select>
         </div>
 
@@ -124,7 +127,7 @@ export default function TeacherFilterBar({
           <select
             value={filters.section}
             onChange={(e) => handleFilterChange('section', e.target.value)}
-            className="input-field py-1.5 text-xs"
+            className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
             <option value="all">All Sections & Batches</option>
             <option value="A">Section A (Theory)</option>
@@ -134,6 +137,6 @@ export default function TeacherFilterBar({
           </select>
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   );
 }

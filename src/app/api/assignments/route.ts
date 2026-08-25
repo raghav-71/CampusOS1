@@ -22,12 +22,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and subject are required' }, { status: 400 });
     }
 
+    const semNum = (parseInt(String(body.semester || '5').replace(/\D/g, '')) || 5) as 1 | 2 | 3 | 4 | 5 | 6;
     const newAssignment: Assignment = {
       id: `asg-${Date.now()}`,
       title: body.title,
       subject: body.subject,
-      department: body.department || 'BCA',
+      department: 'BCA',
       semester: body.semester || 'Sem 5',
+      semesterNumber: semNum,
       teacher: body.teacher || 'Dr. Priya Nair',
       dueDate: body.dueDate || 'Aug 30, 2026',
       totalSubmissions: 0,

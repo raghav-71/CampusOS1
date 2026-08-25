@@ -4,16 +4,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { MarksCardDocument, MarksCardStatus } from '@/types/campus';
 import { campusRepository } from '@/repositories/campusRepository';
+import { fileStorageService } from '@/services/fileStorageService';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
 export default function MarksCardSubmissionSection() {
   const [documents, setDocuments] = useState<MarksCardDocument[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<MarksCardDocument | null>(null);
   const [previewDoc, setPreviewDoc] = useState<MarksCardDocument | null>(null);
   const [uploadSemester, setUploadSemester] = useState<number | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'processing' | 'uploaded' | 'failed'>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadDocuments = async () => {
@@ -59,41 +60,50 @@ export default function MarksCardSubmissionSection() {
     const file = e.target.files?.[0];
     if (!file || uploadSemester === null) return;
 
-    // Validation: Supported formats
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Unsupported file format. Please upload a PDF, JPG, or PNG document.');
+    // Validate using fileStorageService
+    const validation = fileStorageService.validateFile(file, {
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
+      maxSizeBytes: 10 * 1024 * 1024,
+    });
+
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
       return;
     }
 
-    // Validation: Max file size 5MB
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File exceeds maximum 5MB size limit. Please upload a compressed document.');
-      return;
-    }
-
-    setIsUploading(true);
-    const sizeInMB = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
-    const isImage = file.type.startsWith('image/');
-
-    // Local object URL for preview
-    const previewUrl = URL.createObjectURL(file);
+    setUploadState('uploading');
+    setUploadProgress(0);
 
     try {
+      const stored = await fileStorageService.uploadFile(
+        file,
+        'marks-card',
+        { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp'] },
+        (pct) => {
+          setUploadProgress(pct);
+          if (pct >= 90) setUploadState('processing');
+        }
+      );
+
       await campusRepository.submitMarksCard(uploadSemester, {
-        name: file.name,
-        size: sizeInMB,
-        type: isImage ? 'image' : 'pdf',
-        previewUrl,
+        name: stored.fileName,
+        size: stored.fileSize,
+        type: stored.fileType === 'pdf' ? 'pdf' : 'image',
+        previewUrl: stored.previewUrl,
       });
+
+      setUploadState('uploaded');
       await loadDocuments();
       toast.success(`Semester ${uploadSemester} marks card submitted successfully!`);
     } catch (err: any) {
+      setUploadState('failed');
       toast.error('Upload failed: ' + err.message);
     } finally {
-      setIsUploading(false);
-      setUploadSemester(null);
+      setTimeout(() => {
+        setUploadState('idle');
+        setUploadProgress(0);
+        setUploadSemester(null);
+      }, 1200);
     }
   };
 
@@ -111,7 +121,7 @@ export default function MarksCardSubmissionSection() {
         type="file"
         ref={fileInputRef}
         onChange={handleFileChange}
-        accept=".pdf,.jpg,.jpeg,.png"
+        accept=".pdf,.jpg,.jpeg,.png,.webp"
         className="hidden"
       />
 
@@ -120,15 +130,35 @@ export default function MarksCardSubmissionSection() {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">📜</span>
             <h3 className="text-lg font-800 text-foreground tracking-tight">
-              Previous Semester Marks Cards & Official Grade Sheets
+              BCA Semester Marks Cards & Official Grade Sheets
             </h3>
           </div>
           <p className="text-xs text-muted-foreground">
-            Upload official grade cards for verification by the Controller of Examinations (PDF, JPG, PNG ≤ 5MB)
+            Upload official grade cards for verification by Controller of Examinations (PDF, JPG, PNG ≤ 10MB)
           </p>
         </div>
-        <Badge variant="cyan">Academic Records</Badge>
+        <Badge variant="cyan">BCA Academic Records</Badge>
       </div>
+
+      {uploadState !== 'idle' && (
+        <div className="p-4 rounded-2xl bg-card border border-primary/40 space-y-2 animate-pulse">
+          <div className="flex justify-between text-xs font-700 text-foreground">
+            <span>
+              {uploadState === 'uploading' && 'Uploading document...'}
+              {uploadState === 'processing' && 'Validating & hashing cryptographic signature...'}
+              {uploadState === 'uploaded' && '✓ Upload Complete!'}
+              {uploadState === 'failed' && '✕ Upload Failed'}
+            </span>
+            <span className="text-primary">{uploadProgress}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-muted/60 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-200"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* List of Semesters */}
       <div className="space-y-3.5">
@@ -137,13 +167,13 @@ export default function MarksCardSubmissionSection() {
           return (
             <div
               key={doc.id}
-              className={`p-4.5 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+              className={`p-4.5 rounded-2xl border transition-all duration-200 row-hover-glow flex flex-col md:flex-row md:items-center justify-between gap-4 ${
                 doc.status === 'APPROVED'
-                  ? 'bg-success/5 border-success/30'
+                  ? 'bg-success/5 border-success/30 hover:border-success/60'
                   : doc.status === 'REVIEWING'
-                  ? 'bg-warning/5 border-warning/30'
+                  ? 'bg-warning/5 border-warning/30 hover:border-warning/60'
                   : doc.status === 'SUBMITTED'
-                  ? 'bg-cyan-500/5 border-cyan-500/30'
+                  ? 'bg-cyan-500/5 border-cyan-500/30 hover:border-cyan-500/60'
                   : 'bg-card/60 border-border/70 hover:border-primary/40'
               }`}
             >
@@ -173,7 +203,7 @@ export default function MarksCardSubmissionSection() {
 
                 {doc.adminRemarks && (
                   <p className="text-[11px] text-muted-foreground pt-0.5">
-                    <span className="font-600 text-foreground">Note: </span>
+                    <span className="font-700 text-foreground">COE Remark: </span>
                     {doc.adminRemarks}
                   </p>
                 )}
@@ -195,7 +225,7 @@ export default function MarksCardSubmissionSection() {
                       variant="secondary"
                       size="sm"
                       onClick={() => handleTriggerUpload(doc.semester)}
-                      disabled={isUploading}
+                      disabled={uploadState !== 'idle'}
                       className="text-xs"
                     >
                       🔄 Replace
@@ -214,7 +244,7 @@ export default function MarksCardSubmissionSection() {
                     variant="primary"
                     size="sm"
                     onClick={() => handleTriggerUpload(doc.semester)}
-                    disabled={isUploading}
+                    disabled={uploadState !== 'idle'}
                     className="text-xs shadow-glow font-700"
                   >
                     📤 Upload Marks Card
@@ -289,9 +319,10 @@ export default function MarksCardSubmissionSection() {
             {/* Document Viewer Frame */}
             <div className="h-80 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden relative group">
               {previewDoc.previewUrl && previewDoc.fileType === 'image' ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={previewDoc.previewUrl}
-                  alt={previewDoc.fileName}
+                  alt={previewDoc.fileName || 'Marks card document preview'}
                   className="w-full h-full object-contain p-2"
                 />
               ) : (
@@ -302,10 +333,10 @@ export default function MarksCardSubmissionSection() {
                   <div>
                     <h5 className="font-800 text-sm text-foreground">{previewDoc.fileName}</h5>
                     <p className="text-xs text-muted-foreground">
-                      Official University Grade Statement Document
+                      BCA Official University Grade Statement Document
                     </p>
                   </div>
-                  <p className="text-[11px] text-success font-600">
+                  <p className="text-[11px] text-success font-700">
                     ✓ Verified Digital Cryptographic Signature Attached
                   </p>
                 </div>

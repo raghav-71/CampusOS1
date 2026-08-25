@@ -1,4 +1,5 @@
 import { Role } from '@/types/campus';
+import { toolRegistry } from '../tools/ToolRegistry';
 
 export interface PermissionCheckResult {
   allowed: boolean;
@@ -10,7 +11,17 @@ export class AIPermissionsManager {
    * Validates if a user role is authorized to execute a given tool.
    */
   static checkToolPermission(toolName: string, role: Role): PermissionCheckResult {
-    // Universal tools accessible to all roles
+    // Check against ToolRegistry first
+    const registeredTool = toolRegistry.getTool(toolName);
+    if (registeredTool) {
+      const allowed = registeredTool.allowedRoles.includes(role as any);
+      return {
+        allowed,
+        reason: allowed ? undefined : `Access Denied: Role '${role}' is not authorized to execute tool '${toolName}'.`,
+      };
+    }
+
+    // Universal legacy tools accessible to all roles
     const universalTools = [
       'searchCampusData',
       'searchCampus',
@@ -30,6 +41,18 @@ export class AIPermissionsManager {
       'navigateToRoute',
       'generateStudyPlan',
       'generateQuiz',
+      'get_student_profile',
+      'get_subjects',
+      'get_student_attendance',
+      'get_exam_schedule',
+      'get_marks_and_performance',
+      'get_today_timetable',
+      'get_next_class',
+      'search_academic_documents',
+      'get_question_papers',
+      'navigate_to_page',
+      'calculate_academic_study_plan',
+      'calculate_expression',
     ];
 
     if (universalTools.includes(toolName)) {
@@ -46,6 +69,10 @@ export class AIPermissionsManager {
         'generateQuestionPaper',
         'analyzeClassAttendance',
         'getAuditLogs',
+        'start_class',
+        'get_teacher_assigned_classes',
+        'get_students_at_attendance_risk',
+        'create_announcement',
       ];
       if (facultyTools.includes(toolName)) {
         return { allowed: true };

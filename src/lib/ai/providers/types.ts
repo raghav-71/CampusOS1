@@ -1,45 +1,64 @@
-import {
-  AIChatMessage,
-  AIToolCall,
-  AIToolDefinition,
-  AIContextData,
-  AIQuizData,
-  AIStudyPlan,
-  AIActionPayload,
-} from '../aiTypes';
+/**
+ * Provider Types for Campus OS AI Engine
+ */
 
-export interface AIProviderResponse {
+export interface LLMMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
-  toolCalls?: AIToolCall[];
-  finishReason: string;
-  provider: 'openrouter' | 'groq' | 'fallback';
-  modelUsed: string;
-  quizData?: AIQuizData;
-  studyPlan?: AIStudyPlan;
-  action?: AIActionPayload;
-  isOfflineFallback?: boolean;
+  name?: string;
+  tool_calls?: LLMToolCall[];
+  tool_call_id?: string;
 }
 
-export type ProviderStatusType = 'online' | 'offline' | 'degraded';
+export interface LLMToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string | Record<string, any>;
+  };
+}
 
-export interface ProviderStatusInfo {
-  providerName: string;
-  status: ProviderStatusType;
-  model: string;
-  isFree: boolean;
-  message: string;
-  latencyMs?: number;
+export interface LLMToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: 'object';
+      properties: Record<string, any>;
+      required?: string[];
+    };
+  };
+}
+
+export interface LLMCompletionOptions {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  tools?: LLMToolDefinition[];
+  toolChoice?: 'auto' | 'none' | 'required';
+}
+
+export interface LLMCompletionResult {
+  text: string;
+  toolCalls?: LLMToolCall[];
+  modelUsed: string;
+  provider: string;
+  tokensUsed?: {
+    prompt: number;
+    completion: number;
+    total: number;
+  };
+  durationMs: number;
 }
 
 export interface AIProvider {
-  name: 'openrouter' | 'groq' | 'fallback';
-  isConfigured(): boolean;
-  generateResponse(
-    messages: AIChatMessage[],
-    tools: AIToolDefinition[],
-    context: AIContextData,
-    systemPrompt: string
-  ): Promise<AIProviderResponse>;
-  generateStructured<T>(prompt: string, systemPrompt: string, schemaHint?: string): Promise<T>;
-  checkHealth(): Promise<ProviderStatusInfo>;
+  name: string;
+  isAvailable(): Promise<boolean>;
+  getAvailableModels(): Promise<string[]>;
+  chatCompletion(
+    messages: LLMMessage[],
+    options?: LLMCompletionOptions
+  ): Promise<LLMCompletionResult>;
 }

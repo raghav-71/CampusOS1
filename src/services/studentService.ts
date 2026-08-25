@@ -8,20 +8,20 @@ export class StudentService {
     return this.repo.getNotes(subject);
   }
 
-  async getTimetable(department?: string, semester?: string): Promise<TimetableSlot[]> {
-    return this.repo.getStudentTimetable(department, semester);
+  async getTimetable(semester?: string | number): Promise<TimetableSlot[]> {
+    return this.repo.getStudentTimetable(semester);
   }
 
   async getAnnouncements(): Promise<Announcement[]> {
     return this.repo.getAnnouncements('student');
   }
 
-  async getStudyProgress(): Promise<StudyProgressMetric[]> {
-    return this.repo.getStudyProgress();
+  async getStudyProgress(semester?: number): Promise<StudyProgressMetric[]> {
+    return this.repo.getStudyProgress(semester);
   }
 
-  async getSubjects(department?: string) {
-    return this.repo.getSubjects(department);
+  async getSubjects(semester?: number | string) {
+    return this.repo.getSubjects(semester);
   }
 }
 

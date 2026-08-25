@@ -13,6 +13,7 @@ import AdminAuditLogsView from './AdminAuditLogsView';
 import AdminReportsView from './AdminReportsView';
 import AdminSettingsView from './AdminSettingsView';
 import AdminAICopilot from '@/components/ai/AdminAICopilot';
+import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
 function AdminTabRouter() {
   const searchParams = useSearchParams();
@@ -39,18 +40,24 @@ function AdminTabRouter() {
     case 'overview':
     default:
       return (
-        <>
-          <AdminKPIGrid />
-          <AdminChartsRow />
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
-            <div className="xl:col-span-2">
-              <AdminUserTable />
+        <div className="space-y-6">
+          <StaggerItem order={1}>
+            <AdminKPIGrid />
+          </StaggerItem>
+          <StaggerItem order={2}>
+            <AdminChartsRow />
+          </StaggerItem>
+          <StaggerItem order={3}>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mt-5">
+              <div className="xl:col-span-2">
+                <AdminUserTable />
+              </div>
+              <div>
+                <AdminActivityFeed />
+              </div>
             </div>
-            <div>
-              <AdminActivityFeed />
-            </div>
-          </div>
-        </>
+          </StaggerItem>
+        </div>
       );
   }
 }
@@ -59,9 +66,11 @@ export default function AdminDashboardContent() {
   return (
     <div className="min-h-screen px-4 lg:px-8 xl:px-10 2xl:px-12 py-6 max-w-screen-2xl mx-auto">
       <AdminDashboardHeader />
-      <Suspense fallback={<div className="h-64 rounded-2xl glass-card animate-pulse" />}>
-        <AdminTabRouter />
-      </Suspense>
+      <PageTransition>
+        <Suspense fallback={<div className="h-64 rounded-3xl glass-card animate-pulse" />}>
+          <AdminTabRouter />
+        </Suspense>
+      </PageTransition>
     </div>
   );
 }

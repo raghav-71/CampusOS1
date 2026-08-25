@@ -167,6 +167,7 @@ export interface AIResponsePayload {
   studyPlan?: AIStudyPlan;
   questionPaper?: AIQuestionPaper;
   toolsUsed?: string[];
+  executionSteps?: Array<{ step: string; toolName?: string; status: string; durationMs?: number }>;
   suggestedPrompts?: string[];
   modelUsed?: string;
   provider?: string;

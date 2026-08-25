@@ -814,21 +814,25 @@ function SidebarInner({ role }: SidebarProps) {
                   <Link
                     key={item.id}
                     href={item.href}
-                    className={`sidebar-nav-item ${isActive ? 'active' : ''} ${
+                    className={`sidebar-nav-item group ${isActive ? 'active' : ''} ${
                       collapsed ? 'justify-center' : ''
                     }`}
                     title={collapsed ? item.label : undefined}
                     onClick={() => setMobileOpen(false)}
                   >
-                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span className="flex-shrink-0 transition-transform duration-200 group-hover:scale-115 group-hover:text-accent">
+                      {item.icon}
+                    </span>
                     {!collapsed && (
                       <>
-                        <span className="flex-1 truncate">{item.label}</span>
+                        <span className="flex-1 truncate transition-transform duration-200 group-hover:translate-x-0.5">
+                          {item.label}
+                        </span>
                         {item.badge !== undefined && (
                           <span
-                            className={`text-xs px-2 py-0.5 rounded-lg font-700 ${
+                            className={`text-xs px-2 py-0.5 rounded-lg font-800 transition-all ${
                               item.badgeColor || 'badge-muted'
-                            }`}
+                            } ${isActive ? 'shadow-glow-accent' : ''}`}
                           >
                             {item.badge}
                           </span>
