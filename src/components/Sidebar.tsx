@@ -206,6 +206,26 @@ const studentNav: NavGroup[] = [
         ),
       },
       {
+        id: 'nav-codelab',
+        tabKey: 'codelab',
+        label: 'Code Lab IDE',
+        href: '/student-dashboard?tab=codelab',
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <polyline points="16 18 22 12 16 6" />
+            <polyline points="8 6 2 12 8 18" />
+          </svg>
+        ),
+        badgeColor: 'badge-cyan',
+      },
+      {
         id: 'nav-flashcards',
         tabKey: 'flashcards',
         label: 'Flashcards',
@@ -368,6 +388,26 @@ const teacherNav: NavGroup[] = [
     id: 'grp-teacher-academic',
     title: 'Academic & AI',
     items: [
+      {
+        id: 'nav-teacher-codelab',
+        tabKey: 'codelab',
+        label: 'Faculty Code Lab',
+        href: '/teacher-dashboard?tab=codelab',
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <polyline points="16 18 22 12 16 6" />
+            <polyline points="8 6 2 12 8 18" />
+          </svg>
+        ),
+        badgeColor: 'badge-purple',
+      },
       {
         id: 'nav-teacher-aigen',
         tabKey: 'aigen',

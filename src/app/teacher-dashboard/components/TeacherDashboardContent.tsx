@@ -18,6 +18,7 @@ import TeacherQuestionPapersView from '@/app/teacher-dashboard/components/Teache
 import TeacherTimetableFull from '@/app/teacher-dashboard/components/TeacherTimetableFull';
 import TeacherProfileView from '@/app/teacher-dashboard/components/TeacherProfileView';
 import FacultyAIEngine from '@/components/ai/FacultyAIEngine';
+import FacultyCodeLabWorkspace from '@/components/codelab/faculty/FacultyCodeLabWorkspace';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
 function TeacherTabRouter() {
@@ -32,6 +33,12 @@ function TeacherTabRouter() {
   });
 
   switch (currentTab) {
+    case 'codelab':
+      return (
+        <div className="w-full h-[calc(100dvh-5.5rem)] min-w-0 max-w-full overflow-hidden rounded-2xl border border-purple-500/30 shadow-glow">
+          <FacultyCodeLabWorkspace />
+        </div>
+      );
     case 'classes':
       return <TeacherClassesView externalFilters={sharedFilters} />;
     case 'attendance':

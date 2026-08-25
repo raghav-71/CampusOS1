@@ -6,12 +6,12 @@
 import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
 
 const CANDIDATE_OPENROUTER_MODELS = [
-  process.env.OPENROUTER_MODEL || 'google/gemma-4-31b-it:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'poolside/laguna-s-2.1:free',
-  'liquid/lfm-2.5-2.6b:free',
-  'openrouter/free',
+  process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+  'google/gemini-2.0-flash-exp:free',
+  'qwen/qwen-2.5-coder-32b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'deepseek/deepseek-r1:free',
+  'openrouter/auto',
 ];
 
 export class OpenRouterProvider implements AIProvider {

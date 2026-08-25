@@ -15,6 +15,7 @@ import StudentTimetableFull from './StudentTimetableFull';
 import StudentExamsView from './StudentExamsView';
 import StudentEventsView from './StudentEventsView';
 import StudentProfileView from './StudentProfileView';
+import CodeLabWorkspace from '@/components/codelab/CodeLabWorkspace';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
 function StudentTabRouter() {
@@ -26,6 +27,12 @@ function StudentTabRouter() {
   };
 
   switch (currentTab) {
+    case 'codelab':
+      return (
+        <div className="w-full h-[calc(100dvh-5.5rem)] min-w-0 max-w-full overflow-hidden rounded-2xl border border-primary/30 shadow-glow">
+          <CodeLabWorkspace />
+        </div>
+      );
     case 'flashcards':
       return <StudentFlashcardsView />;
     case 'notes':

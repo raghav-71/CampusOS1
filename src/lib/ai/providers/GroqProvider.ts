@@ -6,10 +6,8 @@
 import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
 
 const CANDIDATE_GROQ_MODELS = [
-  process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
-  'qwen/qwen3.6-27b',
-  'openai/gpt-oss-20b',
-  'llama-3.3-70b-versatile',
+  process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
 ];
 
 export class GroqProvider implements AIProvider {
