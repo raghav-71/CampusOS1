@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { CampusEngine } from '@/lib/ai/agent/campusEngine';
-import { UserProfile } from '@/types/campus';
+import { AIService } from '@/lib/ai/AIService';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -17,6 +16,7 @@ export async function POST(request: NextRequest) {
       sessionId,
       selectedEntity,
       selectedContext,
+      codeLabContext,
       history,
       stream = true,
     } = body;
@@ -25,35 +25,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid message string is required.' }, { status: 400 });
     }
 
-    const profile: UserProfile = userProfile || {
-      id: 'usr-001',
-      name: 'Arjun Sharma',
-      fullName: 'Arjun Sharma',
-      email: 'arjun.sharma@campusos.edu',
-      role: 'student',
-      department: 'BCA',
-      semester: 'Sem 5',
-      rollNumber: 'BCA2401',
-      initials: 'AS',
-      subjects: ['Operating Systems', 'DBMS', 'Computer Networks', 'Java Programming', 'DAA'],
-    };
-
-    const context = {
-      userId: profile.id || 'usr-001',
-      userName: profile.fullName || profile.name || 'Student',
-      userRole: profile.role || 'student',
-      department: profile.department || 'BCA',
-      semester: profile.semester ? Number(profile.semester.replace(/[^0-9]/g, '')) || 5 : 5,
-      currentPath: currentPath || '/student-dashboard',
-      currentTab: currentTab || 'overview',
+    const aiRequest = {
+      message,
+      userProfile,
+      currentPath,
+      currentTab,
       selectedEntity: selectedEntity || selectedContext,
+      codeLabContext,
+      history: Array.isArray(history) ? history : [],
+      stream,
     };
-
-    const chatHistory = Array.isArray(history) ? history : [];
 
     // If non-streaming requested
     if (stream === false) {
-      const response = await CampusEngine.process(message, context, chatHistory);
+      const response = await AIService.handleRequest(aiRequest);
       return NextResponse.json({ success: true, ...response });
     }
 
@@ -83,10 +68,8 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-          await CampusEngine.processStream(
-            message,
-            context,
-            chatHistory,
+          await AIService.handleStreamRequest(
+            aiRequest,
             (event) => {
               safeEnqueue(`data: ${JSON.stringify(event)}\n\n`);
             },
@@ -105,7 +88,6 @@ export async function POST(request: NextRequest) {
         } finally {
           safeClose();
         }
-
       },
     });
 

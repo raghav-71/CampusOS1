@@ -1,14 +1,16 @@
 /**
  * Campus OS Agent Engine
- * Core ReAct loop supporting General AI conversation, streaming, semantic tool calling, role security,
- * and Intelligent Routing (Groq speed-first, Gemini RAG, Nemotron reasoning).
+ * Core ReAct loop supporting ChatGPT-Grade General AI conversation, streaming,
+ * semantic tool calling, role security, and real-time Campus OS awareness.
  */
 
 import { SystemPromptBuilder } from '../prompts/system';
+import { ContextBuilder } from '../context/ContextBuilder';
 import { ProviderChain } from '../providers/ProviderChain';
 import { DeterministicEngine, AgentExecutionResponse, AgentStepExecution } from '../providers/DeterministicEngine';
 import { toolRegistry, AIExecutionContext } from '../tools/ToolRegistry';
-import { AIPermissionsManager } from '../security/permissions';
+import { PermissionManager } from '../security/PermissionManager';
+import { ActionRegistry, AIAction } from '../actions/ActionRegistry';
 import { LLMMessage, LLMStreamChunk, AIQueryIntent } from '../providers/types';
 import { documentPipeline } from '../rag/documentPipeline';
 
@@ -18,9 +20,9 @@ const DEFAULT_MAX_TOKENS = 2048;
 function getExecutionOptions(query: string, signal?: AbortSignal) {
   const intent = ProviderChain.classifyIntent(query);
   return {
-    temperature: intent === 'complex_reasoning' ? 0.2 : 0.3,
+    temperature: intent === 'complex_reasoning' ? 0.2 : 0.4,
     maxTokens: intent === 'complex_reasoning' ? 3072 : intent === 'rag_document' ? 3000 : DEFAULT_MAX_TOKENS,
-    enableThinking: false, // Keep thinking disabled for reliable, fast token streaming
+    enableThinking: false, // Keep thinking disabled for fast, uninterrupted token streaming
     intent,
     signal,
   };
@@ -31,7 +33,7 @@ export interface StreamEvent {
   content?: string;
   step?: string;
   toolName?: string;
-  action?: any;
+  action?: AIAction;
   modelUsed?: string;
   provider?: string;
   suggestedPrompts?: string[];
@@ -81,21 +83,13 @@ export class CampusEngine {
     const toolsUsed: string[] = [];
     let lastActionRequired: any = undefined;
 
-    const recordStep = (step: string, toolName?: string, status: 'RUNNING' | 'COMPLETED' | 'FAILED' = 'COMPLETED') => {
-      steps.push({ step, toolName, status, durationMs: 25 });
-      if (toolName && !toolsUsed.includes(toolName)) {
-        toolsUsed.push(toolName);
-      }
-    };
-
-    // 1. Role Security Check on raw query
-    const securityCheck = AIPermissionsManager.checkQueryPermission(query, context.userRole);
-    if (!securityCheck.allowed) {
+    // 1. Security Check on raw query
+    if (!PermissionManager.isQuerySafe(query)) {
       return {
-        answer: `🛡️ **Access Denied**\n\n${securityCheck.reason || 'You are not authorized to perform this operation under your current role.'}`,
+        answer: '🛡️ **Security Notice**: Your query contained potentially unsafe or unauthorized patterns.',
         category: 'ACTION',
         toolsUsed: [],
-        executionSteps: [{ step: 'Role security validation', status: 'FAILED', durationMs: 5 }],
+        executionSteps: [{ step: 'Security validation', status: 'FAILED', durationMs: 5 }],
         suggestedPrompts: ['What is my attendance?', 'When is my next exam?', 'Open my timetable'],
         modelUsed: 'campus-security-guard',
         provider: 'Campus OS Security',
@@ -103,22 +97,27 @@ export class CampusEngine {
       };
     }
 
-    // 2. Build system prompt & bounded conversation history
-    const systemPrompt = SystemPromptBuilder.getBaseSystemPrompt({
-      userName: context.userName,
-      userRole: context.userRole,
-      department: context.department,
-      semester: context.semester,
+    // 2. Build rich context & system prompt
+    const campusContext = await ContextBuilder.buildCampusAIContext({
       currentPath: context.currentPath,
       currentTab: context.currentTab,
       selectedEntity: context.selectedEntity,
+      userProfile: {
+        id: context.userId,
+        fullName: context.userName,
+        role: context.userRole,
+        department: (context.department || 'BCA') as any,
+        semester: `Sem ${context.semester}`,
+      },
     });
+
+    const systemPrompt = SystemPromptBuilder.buildPrompt(campusContext);
 
     let messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...chatHistory.slice(-4).map((m) => ({
+      ...chatHistory.slice(-8).map((m) => ({
         role: m.role,
-        content: (m.content || '').slice(-1200),
+        content: (m.content || '').slice(-1500),
       })),
       { role: 'user', content: query },
     ];
@@ -173,14 +172,15 @@ export class CampusEngine {
               parsedArgs = {};
             }
 
-            recordStep(`Accessing ${toolName.replace(/_/g, ' ')}`, toolName, 'COMPLETED');
+            steps.push({ step: `Accessing ${toolName.replace(/_/g, ' ')}`, toolName, status: 'COMPLETED', durationMs: 25 });
+            if (!toolsUsed.includes(toolName)) toolsUsed.push(toolName);
 
-            const isAllowed = AIPermissionsManager.canRoleAccessTool(context.userRole, toolName);
-            if (!isAllowed) {
+            const perm = PermissionManager.evaluate(toolName, context.userRole);
+            if (!perm.allowed) {
               messages.push({
                 role: 'tool',
                 tool_call_id: tc.id,
-                content: JSON.stringify({ error: `Permission denied: Role ${context.userRole} cannot execute ${toolName}` }),
+                content: JSON.stringify({ error: perm.reason || 'Permission denied.' }),
               });
               continue;
             }
@@ -204,7 +204,7 @@ export class CampusEngine {
         }
       }
 
-      // 4. Direct General / Reasoning / RAG Completion
+      // 4. Direct General / Tutoring / Reasoning / RAG Completion
       const completion = await ProviderChain.executeCompletion(messages, getExecutionOptions(query));
       return {
         answer: completion.text,
@@ -221,7 +221,13 @@ export class CampusEngine {
       console.warn('[CampusEngine] LLM provider error:', err?.message || err);
 
       const lowerQ = query.toLowerCase();
-      const isCampusSpecific = lowerQ.includes('attendance') || lowerQ.includes('timetable') || lowerQ.includes('schedule') || lowerQ.includes('marks') || lowerQ.includes('grades') || lowerQ.includes('notes');
+      const isCampusSpecific =
+        lowerQ.includes('attendance') ||
+        lowerQ.includes('timetable') ||
+        lowerQ.includes('schedule') ||
+        lowerQ.includes('marks') ||
+        lowerQ.includes('grades') ||
+        lowerQ.includes('notes');
 
       if (isCampusSpecific) {
         return await DeterministicEngine.process(query, context);
@@ -229,7 +235,7 @@ export class CampusEngine {
 
       const status = await ProviderChain.getStatus();
       return {
-        answer: `### ⚠️ Campus AI: Service Notice\n\nI was unable to complete this query through remote language models. Please check your provider configuration.\n\n**Provider Connectivity:**\n- **Groq Cloud (High Speed)**: ${status.providers.groq.configured ? (status.providers.groq.available ? 'Connected' : 'Configured but unreachable') : 'Not configured'}\n- **Google Gemini (Study/RAG)**: ${status.providers.gemini.configured ? (status.providers.gemini.available ? 'Connected' : 'Configured but unreachable') : 'Not configured'}\n- **NVIDIA Nemotron (Reasoning)**: ${status.providers.nvidia.configured ? (status.providers.nvidia.available ? 'Connected' : 'Configured but unreachable') : 'Not configured'}`,
+        answer: `### ⚠️ Campus AI: Service Notice\n\nI was unable to complete this query through remote language models. Please check your network or OpenRouter configuration.\n\n**Provider Status:**\n- **OpenRouter (Free Tier)**: ${status.providers.openrouter.configured ? (status.providers.openrouter.available ? 'Connected' : 'Configured') : 'API Key missing'}`,
         category: 'GENERAL',
         toolsUsed: [],
         executionSteps: [{ step: 'LLM Connection Check', status: 'FAILED', durationMs: 10 }],
@@ -251,12 +257,11 @@ export class CampusEngine {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    // 1. Role Security Check
-    const securityCheck = AIPermissionsManager.checkQueryPermission(query, context.userRole);
-    if (!securityCheck.allowed) {
+    // 1. Security Check
+    if (!PermissionManager.isQuerySafe(query)) {
       onEvent({
         type: 'token',
-        content: `🛡️ **Access Denied**\n\n${securityCheck.reason || 'You are not authorized to perform this operation.'}`,
+        content: '🛡️ **Security Notice**: Your query contained potentially unsafe or unauthorized patterns.',
       });
       onEvent({
         type: 'done',
@@ -268,22 +273,27 @@ export class CampusEngine {
       return;
     }
 
-    // 2. Build system prompt & bounded conversation history
-    const systemPrompt = SystemPromptBuilder.getBaseSystemPrompt({
-      userName: context.userName,
-      userRole: context.userRole,
-      department: context.department,
-      semester: context.semester,
+    // 2. Build rich context & system prompt
+    const campusContext = await ContextBuilder.buildCampusAIContext({
       currentPath: context.currentPath,
       currentTab: context.currentTab,
       selectedEntity: context.selectedEntity,
+      userProfile: {
+        id: context.userId,
+        fullName: context.userName,
+        role: context.userRole,
+        department: (context.department || 'BCA') as any,
+        semester: `Sem ${context.semester}`,
+      },
     });
+
+    const systemPrompt = SystemPromptBuilder.buildPrompt(campusContext);
 
     let messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...chatHistory.slice(-4).map((m) => ({
+      ...chatHistory.slice(-8).map((m) => ({
         role: m.role,
-        content: (m.content || '').slice(-1200),
+        content: (m.content || '').slice(-1500),
       })),
       { role: 'user', content: query },
     ];
@@ -302,7 +312,7 @@ export class CampusEngine {
     };
 
     try {
-      // Fast Path: Non-action queries (Normal, RAG, Complex Reasoning) stream directly via ProviderChain
+      // Fast Path: Non-action queries (General Q&A, Code, Concepts, Tutoring, RAG) stream directly
       if (intent !== 'campus_action') {
         const directResult = await ProviderChain.streamCompletion(
           messages,
@@ -364,12 +374,12 @@ export class CampusEngine {
           parsedArgs = {};
         }
 
-        const isAllowed = AIPermissionsManager.canRoleAccessTool(context.userRole, toolName);
-        if (!isAllowed) {
+        const perm = PermissionManager.evaluate(toolName, context.userRole);
+        if (!perm.allowed) {
           messages.push({
             role: 'tool',
             tool_call_id: tc.id,
-            content: JSON.stringify({ error: `Permission denied: Role ${context.userRole} cannot execute ${toolName}` }),
+            content: JSON.stringify({ error: perm.reason || 'Permission denied.' }),
           });
           continue;
         }
@@ -460,12 +470,11 @@ export class CampusEngine {
       return ['What is my attendance?', 'Which subject am I weakest in?', 'Search DBMS notes'];
     }
     if (role === 'teacher') {
-      return ['Show students below 75% attendance', 'Show my assigned classes', 'Start my next class'];
+      return ['Show students below 75% attendance', 'Show my assigned classes', 'Create 10 Java viva questions'];
     }
     if (role === 'admin') {
       return ['Show institutional metrics', 'Broadcast an announcement', 'Open analytics'];
     }
-    return ['What is my attendance?', 'When is my next exam?', 'What is my next class?'];
+    return ['What is my attendance?', 'When is my next exam?', 'Explain DBMS normalization'];
   }
 }
-

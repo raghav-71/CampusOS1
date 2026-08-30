@@ -457,9 +457,9 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     };
 
     try {
-      const historyPayload = messages.slice(-4).map((m) => ({
+      const historyPayload = messages.slice(-8).map((m) => ({
         role: m.role,
-        content: m.content.slice(-1200),
+        content: m.content.slice(-1500),
       }));
 
       const res = await fetch('/api/ai/chat', {
@@ -521,9 +521,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             setMessages((prev) =>
               prev.map((m) => (m.id === aiMsgId ? { ...m, action: event.action } : m))
             );
-            if (event.action.type === 'navigate' && event.action.route) {
-              toast.success(`Navigating to ${event.action.label || event.action.route}`);
-              router.push(event.action.route);
+            const targetRoute = event.action.route || (event.action.payload?.tab ? `/student-dashboard?tab=${event.action.payload.tab}` : null);
+            if (targetRoute) {
+              toast.success(`Navigating to ${event.action.label || targetRoute}`);
+              router.push(targetRoute);
             }
           } else if (event.type === 'done') {
             streamCompleted = true;
