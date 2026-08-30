@@ -103,12 +103,15 @@ export interface AIActionPayload {
     | 'generate_study_plan'
     | 'generate_paper'
     | 'show_alert'
-    | 'highlight_data';
+    | 'highlight_data'
+    | string;
   label?: string;
   route?: string;
   entityType?: 'assignment' | 'note' | 'exam' | 'subject' | 'announcement';
   entityId?: string;
   payload?: any;
+  requiresConfirmation?: boolean;
+  confirmationMessage?: string;
 }
 
 export interface AIQuizData {

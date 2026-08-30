@@ -120,8 +120,40 @@ const ChatMessageItem = memo(function ChatMessageItem({
           </div>
         )}
 
+        {/* Write Action Confirmation Request */}
+        {msg.action && msg.action.requiresConfirmation && (
+          <div className="mt-3.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+            <div className="flex items-center gap-2 text-amber-400 text-xs font-700">
+              <span>⚠️</span>
+              <span>Confirmation Required (Write Action)</span>
+            </div>
+            <p className="text-xs text-foreground/90">
+              {msg.action.confirmationMessage || `Are you sure you want to execute: "${msg.action.label}"?`}
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => {
+                  toast.success(`Action confirmed: ${msg.action?.label}`);
+                  if (msg.action?.route) onNavigate(msg.action.route);
+                }}
+                className="btn-primary text-xs py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 font-700 cursor-pointer"
+              >
+                ✓ Confirm & Execute
+              </button>
+              <button
+                onClick={() => {
+                  toast.error('Action cancelled');
+                }}
+                className="text-xs py-1.5 px-3 rounded-xl bg-secondary/40 hover:bg-secondary/60 text-muted-foreground font-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Direct Action Trigger Button */}
-        {msg.action?.route && (
+        {msg.action?.route && !msg.action?.requiresConfirmation && (
           <div className="mt-3.5 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
             <span className="text-[11px] text-muted-foreground font-600">Action:</span>
             <button
