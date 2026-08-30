@@ -15,6 +15,9 @@ import StudentTimetableFull from './StudentTimetableFull';
 import StudentExamsView from './StudentExamsView';
 import StudentEventsView from './StudentEventsView';
 import StudentProfileView from './StudentProfileView';
+import StudentAttendanceView from './StudentAttendanceView';
+import StudentAssignmentsView from './StudentAssignmentsView';
+import StudentMarksView from './StudentMarksView';
 import CodeLabWorkspace from '@/components/codelab/CodeLabWorkspace';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
@@ -26,8 +29,18 @@ function StudentTabRouter() {
     window.dispatchEvent(new CustomEvent('campusos:open-ai'));
   };
 
-  switch (currentTab) {
+  switch (currentTab.toLowerCase()) {
+    case 'attendance':
+      return <StudentAttendanceView />;
+    case 'assignments':
+    case 'assignment':
+      return <StudentAssignmentsView />;
+    case 'marks':
+    case 'transcripts':
+    case 'grades':
+      return <StudentMarksView />;
     case 'codelab':
+    case 'code_lab':
       return (
         <div className="w-full h-[calc(100dvh-5.5rem)] min-w-0 max-w-full overflow-hidden rounded-2xl border border-primary/30 shadow-glow">
           <CodeLabWorkspace />
@@ -38,16 +51,20 @@ function StudentTabRouter() {
     case 'notes':
       return <StudentNotesExplorer />;
     case 'subjects':
+    case 'academics':
       return <StudentSubjectsView />;
     case 'timetable':
+    case 'schedule':
       return <StudentTimetableFull />;
     case 'exams':
+    case 'exam':
       return <StudentExamsView />;
     case 'events':
       return <StudentEventsView />;
     case 'profile':
       return <StudentProfileView />;
     case 'announcements':
+    case 'notices':
       return (
         <div className="max-w-3xl mx-auto">
           <StudentAnnouncementsFeed />

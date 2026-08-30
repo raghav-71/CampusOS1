@@ -121,6 +121,28 @@ export class ActionRegistry {
       },
     ],
     [
+      'navigate_to_assignments',
+      {
+        type: 'navigate_to_assignments',
+        description: 'Navigate to assignments portal and homework submissions',
+        allowedRoles: ['student', 'teacher', 'admin'],
+        getRoute: (role: Role) => (role === 'teacher' ? '/teacher-dashboard?tab=assignments' : '/student-dashboard?tab=assignments'),
+        getLabel: () => 'Open Assignments Portal',
+        requiresConfirmation: false,
+      },
+    ],
+    [
+      'navigate_to_marks',
+      {
+        type: 'navigate_to_marks',
+        description: 'Navigate to academic marks cards, SGPA and grade transcripts',
+        allowedRoles: ['student', 'teacher', 'admin'],
+        getRoute: (role: Role) => (role === 'teacher' ? '/teacher-dashboard?tab=performance' : '/student-dashboard?tab=marks'),
+        getLabel: () => 'Open Academic Marks',
+        requiresConfirmation: false,
+      },
+    ],
+    [
       'navigate_to_papers',
       {
         type: 'navigate_to_papers',

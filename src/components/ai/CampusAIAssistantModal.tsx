@@ -295,8 +295,9 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     (route: string) => {
       toast.success(`Navigating to ${route}`);
       router.push(route);
+      onClose();
     },
-    [router]
+    [router, onClose]
   );
 
   // Role-specific Inspiration Prompts
@@ -330,17 +331,34 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     ];
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setAttachedFile({ name: file.name, content });
-      toast.success(`Attached document: ${file.name}`);
-    };
-    reader.readAsText(file);
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('File size exceeds 20MB limit.');
+      return;
+    }
+
+    const toastId = toast.loading(`Processing ${file.name}...`);
+    try {
+      const { DocumentParserService } = await import('@/services/documentParserService');
+      const parsed = await DocumentParserService.parseFile(file);
+      toast.dismiss(toastId);
+
+      if (parsed.success) {
+        setAttachedFile({
+          name: parsed.fileName,
+          content: parsed.extractedText,
+        });
+        toast.success(`Attached "${file.name}" (${(file.size / 1024).toFixed(1)} KB)`);
+      } else {
+        toast.error(parsed.error || 'Failed to read document.');
+      }
+    } catch (err: any) {
+      toast.dismiss(toastId);
+      toast.error(`Error reading document: ${err?.message || err}`);
+    }
   };
 
   const handleStopGeneration = useCallback(() => {
@@ -557,6 +575,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             if (targetRoute) {
               toast.success(`Navigating to ${event.action.label || targetRoute}`);
               router.push(targetRoute);
+              onClose();
             }
           } else if (event.type === 'done') {
             streamCompleted = true;
@@ -873,7 +892,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               ref={fileInputRef}
               onChange={handleFileUpload}
               className="hidden"
-              accept=".txt,.md,.pdf,.json,.csv,.py,.java,.js,.ts"
+              accept=".txt,.md,.pdf,.docx,.doc,.json,.csv,.py,.java,.cpp,.c,.js,.ts,.html,.css,.sql,.jpg,.jpeg,.png,.webp"
             />
             <button
               type="button"

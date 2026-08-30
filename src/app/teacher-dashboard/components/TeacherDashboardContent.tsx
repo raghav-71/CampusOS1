@@ -40,6 +40,7 @@ function TeacherTabRouter() {
         </div>
       );
     case 'classes':
+    case 'subjects':
       return <TeacherClassesView externalFilters={sharedFilters} />;
     case 'attendance':
       return <TeacherAttendanceRegister />;
@@ -48,16 +49,23 @@ function TeacherTabRouter() {
     case 'notes':
       return <TeacherNotesPublisher />;
     case 'papers':
+    case 'question_papers':
       return <TeacherQuestionPapersView />;
     case 'performance':
       return <TeacherStudentPerformanceView />;
     case 'timetable':
+    case 'schedule':
       return <TeacherTimetableFull />;
     case 'profile':
       return <TeacherProfileView />;
     case 'aigen':
     case 'ai':
       return <FacultyAIEngine />;
+    case 'announcements':
+    case 'notices':
+      return <TeacherSubmissionsFeed />;
+    case 'exams':
+      return <TeacherClassesView externalFilters={sharedFilters} />;
     case 'overview':
     default:
       return (

@@ -22,11 +22,16 @@ function AdminTabRouter() {
   switch (currentTab) {
     case 'students':
     case 'teachers':
+    case 'faculty':
+    case 'users':
       return <AdminUserTable />;
+    case 'departments':
     case 'subjects':
       return <AdminDepartmentsView />;
     case 'announcements':
+    case 'notices':
       return <AdminAnnouncementsView />;
+    case 'analytics':
     case 'reports':
       return <AdminReportsView />;
     case 'settings':

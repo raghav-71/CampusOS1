@@ -29,34 +29,63 @@ export class AIService {
   static detectNavigationAction(query: string, role: any): AIAction | null {
     const q = query.toLowerCase().trim();
 
-    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(timetable|schedule|class schedule)\b/i.test(q)) {
+    // 1. Timetable / Schedule / Today's classes
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(timetable|schedule|class schedule|today'?s\s+classes|today'?s\s+schedule)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_timetable', role);
     }
-    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(attendance|attendance rate|attendance report)\b/i.test(q)) {
+
+    // 2. Attendance / Attendance report
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(attendance|attendance rate|attendance report|attendance section|attendance portal)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_attendance', role);
     }
-    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(exams|exam schedule|exam dates|upcoming exams)\b/i.test(q)) {
+
+    // 3. Exams / Exam schedule
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(exams|exam schedule|exam dates|upcoming exams|exam portal)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_exams', role);
     }
-    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(subjects|curriculum|syllabus)\b/i.test(q)) {
+
+    // 4. Subjects / Curriculum / Academics
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(subjects|curriculum|syllabus|academics|courses)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_subjects', role);
     }
-    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(notes|study notes|lecture notes|resources)\b/i.test(q)) {
+
+    // 5. Notes / Documents / Library
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(notes|study notes|lecture notes|resources|docs|notes library)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_notes', role);
     }
-    if (/\b(open|show|view|go to|take me to|check)\s+(notices|announcements|broadcasts)\b/i.test(q)) {
+
+    // 6. Assignments / Homework
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(assignments|homework|tasks|assignment portal|submissions)\b/i.test(q)) {
+      return ActionRegistry.resolveAction('navigate_to_assignments', role);
+    }
+
+    // 7. Marks / Transcripts / Grades
+    if (/\b(open|show|view|go to|take me to|check)\s+(my\s+)?(marks|grades|scores|transcripts|cgpa|gpa|marks card|grade card|marks ledger)\b/i.test(q)) {
+      return ActionRegistry.resolveAction('navigate_to_marks', role);
+    }
+
+    // 8. Announcements / Notices
+    if (/\b(open|show|view|go to|take me to|check)\s+(notices|announcements|broadcasts|campus notices|bulletin)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_announcements', role);
     }
+
+    // 9. Code Lab / IDE
     if (/\b(open|go to|take me to|launch)\s+(code lab|compiler|ide|editor|programming)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_code_lab', role);
     }
-    if (/\b(open|show|view|go to)\s+(my profile|overview|dashboard|home)\b/i.test(q)) {
+
+    // 10. Profile / Overview / Dashboard
+    if (/\b(open|show|view|go to)\s+(my profile|overview|dashboard|home|my account)\b/i.test(q)) {
       return ActionRegistry.resolveAction('navigate_to_profile', role);
     }
-    if (/\b(open|show|view)\s+(question papers|exam papers|pyq archive)\b/i.test(q) && (role === 'teacher' || role === 'admin')) {
+
+    // 11. Question Papers
+    if (/\b(open|show|view|go to|take me to)\s+(question papers|exam papers|pyq archive|official papers)\b/i.test(q) && (role === 'teacher' || role === 'admin')) {
       return ActionRegistry.resolveAction('navigate_to_papers', role);
     }
-    if (/\b(open|show|view)\s+(analytics|institutional metrics|copilot analytics)\b/i.test(q) && (role === 'admin' || role === 'teacher')) {
+
+    // 12. Analytics / Institutional Reports
+    if (/\b(open|show|view|go to|take me to)\s+(analytics|institutional metrics|copilot analytics|reports)\b/i.test(q) && (role === 'admin' || role === 'teacher')) {
       return ActionRegistry.resolveAction('navigate_to_analytics', role);
     }
 
