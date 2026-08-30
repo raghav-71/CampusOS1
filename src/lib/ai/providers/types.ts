@@ -32,13 +32,17 @@ export interface LLMToolDefinition {
   };
 }
 
+export type AIQueryIntent = 'normal' | 'rag_document' | 'complex_reasoning' | 'campus_action';
+
 export interface LLMCompletionOptions {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  enableThinking?: boolean;
   tools?: LLMToolDefinition[];
   toolChoice?: 'auto' | 'none' | 'required';
   signal?: AbortSignal;
+  intent?: AIQueryIntent;
 }
 
 export interface LLMCompletionResult {
@@ -76,3 +80,4 @@ export interface AIProvider {
     onChunk?: (chunk: LLMStreamChunk) => void
   ): Promise<LLMCompletionResult>;
 }
+

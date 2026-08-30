@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { CampusEngine } from '@/lib/ai/agent/campusEngine';
-import { CampusAgent } from '@/lib/ai/agent/campusAgent';
 import { UserProfile } from '@/types/campus';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,26 +61,51 @@ export async function POST(request: NextRequest) {
     const encoder = new TextEncoder();
     const customReadable = new ReadableStream({
       async start(controller) {
+        let isClosed = false;
+
+        const safeEnqueue = (data: string) => {
+          if (isClosed || request.signal.aborted) return;
+          try {
+            controller.enqueue(encoder.encode(data));
+          } catch {
+            isClosed = true;
+          }
+        };
+
+        const safeClose = () => {
+          if (isClosed) return;
+          isClosed = true;
+          try {
+            controller.close();
+          } catch {
+            // Already closed
+          }
+        };
+
         try {
           await CampusEngine.processStream(
             message,
             context,
             chatHistory,
             (event) => {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+              safeEnqueue(`data: ${JSON.stringify(event)}\n\n`);
             },
             request.signal
           );
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
+          safeEnqueue('data: [DONE]\n\n');
         } catch (err: any) {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: 'error', content: err?.message || 'Streaming error' })}\n\n`
-            )
+          console.error('[AI Chat Stream Error]', {
+            name: err?.name,
+            message: err?.message,
+          });
+          safeEnqueue(
+            `data: ${JSON.stringify({ type: 'error', content: 'Sorry, the response was interrupted. Please try again.' })}\n\n`
           );
-          controller.close();
+          safeEnqueue('data: [DONE]\n\n');
+        } finally {
+          safeClose();
         }
+
       },
     });
 

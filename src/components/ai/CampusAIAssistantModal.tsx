@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense, memo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useProfile } from '@/hooks/useProfile';
@@ -42,7 +42,125 @@ interface MessageWithMetadata extends AIChatMessage {
   provider?: string;
   durationMs?: number;
   attachedFileName?: string;
+  isError?: boolean;
+  canRetry?: boolean;
 }
+
+const MAX_RESPONSE_LENGTH = 60000;
+const REQUEST_TIMEOUT_MS = 45000;
+
+// Memoized individual message item to prevent historical messages from re-rendering during streaming
+const ChatMessageItem = memo(function ChatMessageItem({
+  msg,
+  debugMode,
+  onNavigate,
+  onRetry,
+}: {
+  msg: MessageWithMetadata;
+  debugMode: boolean;
+  onNavigate: (route: string) => void;
+  onRetry?: (text: string) => void;
+}) {
+  return (
+    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
+      <div
+        className={`max-w-[94%] p-4 sm:p-5 rounded-2xl ${
+          msg.role === 'user'
+            ? 'bg-gradient-to-br from-primary to-blue-600 text-white rounded-tr-none shadow-glow font-500'
+            : 'glass-card border border-border/80 text-foreground rounded-tl-none shadow-glass'
+        }`}
+      >
+        {/* Attached document tag */}
+        {msg.attachedFileName && (
+          <div className="mb-2 px-2.5 py-1 rounded-lg bg-black/30 text-[11px] font-mono flex items-center gap-1.5 text-accent border border-accent/20">
+            <span>📄</span>
+            <span>Attached: {msg.attachedFileName}</span>
+          </div>
+        )}
+
+        {/* Multi-step tool execution tracker in message */}
+        {msg.executionSteps && msg.executionSteps.length > 0 && (
+          <div className="mb-3 p-2.5 rounded-xl bg-muted/40 border border-primary/20 text-[11px] space-y-1.5">
+            <div className="flex items-center justify-between text-muted-foreground font-700 uppercase tracking-wider text-[10px]">
+              <span>⚡ Academic Superpower Execution</span>
+              <span className="text-primary font-mono">{msg.executionSteps.length} Step(s)</span>
+            </div>
+            {msg.executionSteps.map((step, sIdx) => (
+              <div key={sIdx} className="flex items-center gap-2 text-foreground/90 font-500">
+                <span className="text-accent font-bold">●</span>
+                <span className="flex-1">{step.step}</span>
+                {step.toolName && (
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                    {step.toolName}
+                  </span>
+                )}
+                <span className="text-emerald-400 font-700">✓</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Rich Markdown Response */}
+        {msg.role === 'assistant' ? (
+          <MarkdownRenderer content={msg.content} />
+        ) : (
+          <div className="whitespace-pre-wrap">{msg.content}</div>
+        )}
+
+        {/* Retry Button if Failed */}
+        {msg.canRetry && onRetry && (
+          <div className="mt-3 pt-2 border-t border-border/40 flex items-center gap-2">
+            <button
+              onClick={() => onRetry(msg.content)}
+              className="text-xs px-3 py-1.5 rounded-xl bg-accent/15 hover:bg-accent/25 text-accent border border-accent/30 font-700 transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span>🔄</span>
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
+
+        {/* Direct Action Trigger Button */}
+        {msg.action?.route && (
+          <div className="mt-3.5 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
+            <span className="text-[11px] text-muted-foreground font-600">Action:</span>
+            <button
+              onClick={() => {
+                if (msg.action?.route) onNavigate(msg.action.route);
+              }}
+              className="btn-primary text-xs py-1.5 px-4 rounded-xl shadow-glow cursor-pointer font-800"
+            >
+              🚀 {msg.action.label || 'Open View'} →
+            </button>
+          </div>
+        )}
+
+        {/* Debug Inspector */}
+        {debugMode && msg.role === 'assistant' && (
+          <div className="mt-3 pt-2 border-t border-dashed border-border/60 text-[10px] font-mono text-muted-foreground space-y-0.5">
+            <div>
+              Model: <span className="text-foreground">{msg.modelUsed || 'default'}</span>
+            </div>
+            <div>
+              Provider: <span className="text-foreground">{msg.provider || 'Campus OS'}</span>
+            </div>
+            {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+              <div>
+                Tools: <span className="text-accent">{msg.toolsUsed.join(', ')}</span>
+              </div>
+            )}
+            {msg.durationMs && (
+              <div>
+                Latency: <span className="text-foreground">{msg.durationMs}ms</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <span className="text-[10px] text-muted-foreground mt-1 px-1 font-mono">{msg.timestamp}</span>
+    </div>
+  );
+});
 
 function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModalProps) {
   const router = useRouter();
@@ -53,6 +171,8 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
   const userRole: Role = profile?.role || 'student';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [aiStatus, setAiStatus] = useState<AIStatusData>({
     status: 'online',
@@ -79,8 +199,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [showHardwareInfo, setShowHardwareInfo] = useState(false);
 
+  // References for streaming lifecycle and non-blocking batching
   const abortControllerRef = useRef<AbortController | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const accumulatedContentRef = useRef<string>('');
+  const activeAiMsgIdRef = useRef<string | null>(null);
+  const isLoadingRef = useRef<boolean>(false);
+  const lastUserQueryRef = useRef<string>('');
 
   // Fetch real AI provider health status on mount
   useEffect(() => {
@@ -104,11 +230,42 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       .catch(() => {});
   }, []);
 
+  // Cleanup on unmount or close
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading, activeToolStatus]);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
-  if (!isOpen) return null;
+  // Non-blocking, layout-safe auto-scroll
+  const scrollToBottom = useCallback((smooth = false) => {
+    if (scrollContainerRef.current) {
+      if (smooth) {
+        scrollContainerRef.current.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      } else {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+    }
+  }, []);
+
+  const handleNavigate = useCallback(
+    (route: string) => {
+      toast.success(`Navigating to ${route}`);
+      router.push(route);
+    },
+    [router]
+  );
 
   // Role-specific Inspiration Prompts
   const getQuickActions = () => {
@@ -154,16 +311,44 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     reader.readAsText(file);
   };
 
-  const handleStopGeneration = () => {
+  const handleStopGeneration = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      setIsLoading(false);
-      setActiveToolStatus(null);
-      toast.info('Generation stopped by user.');
+      abortControllerRef.current = null;
     }
-  };
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    // Flush any remaining content in buffer
+    const aiId = activeAiMsgIdRef.current;
+    const finalBuffer = accumulatedContentRef.current;
+    if (aiId && finalBuffer) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiId
+            ? {
+                ...m,
+                content: finalBuffer + (finalBuffer.endsWith('\n\n') ? '' : '\n\n') + '⏹ *[Generation stopped by user]*',
+              }
+            : m
+        )
+      );
+    }
+
+    isLoadingRef.current = false;
+    setIsLoading(false);
+    setActiveToolStatus(null);
+    toast.info('Generation stopped.');
+  }, []);
 
   const handleNewConversation = () => {
+    handleStopGeneration();
     setMessages([
       {
         id: `msg-reset-${Date.now()}`,
@@ -176,10 +361,19 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     toast.success('Conversation history reset.');
   };
 
-  const sendMessage = async (textToSend?: string, toolHint?: string) => {
-    const query = textToSend || inputText;
-    if ((!query.trim() && !attachedFile) || isLoading) return;
+  const handleRetry = useCallback((failedQuery?: string) => {
+    const queryToRetry = failedQuery || lastUserQueryRef.current;
+    if (queryToRetry) {
+      sendMessage(queryToRetry);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  const sendMessage = async (textToSend?: string, toolHint?: string) => {
+    const query = (textToSend || inputText).trim();
+    if ((!query && !attachedFile) || isLoadingRef.current) return;
+
+    lastUserQueryRef.current = query;
     const finalQuery = attachedFile
       ? `${query}\n\n[Attached Document: ${attachedFile.name}]\n\`\`\`\n${attachedFile.content.slice(0, 4000)}\n\`\`\``
       : query;
@@ -192,20 +386,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       attachedFileName: attachedFile?.name,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInputText('');
-    setAttachedFile(null);
-    setIsLoading(true);
-    setActiveToolStatus(toolHint || 'Thinking & reasoning...');
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    const startTime = Date.now();
     const aiMsgId = `ai-${Date.now()}`;
+    activeAiMsgIdRef.current = aiMsgId;
+    accumulatedContentRef.current = '';
+    isLoadingRef.current = true;
 
-    // Insert assistant message placeholder for streaming
     setMessages((prev) => [
       ...prev,
+      userMsg,
       {
         id: aiMsgId,
         role: 'assistant',
@@ -214,10 +402,64 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       },
     ]);
 
+    setInputText('');
+    setAttachedFile(null);
+    setIsLoading(true);
+    setActiveToolStatus(toolHint || 'AI is typing...');
+
+    // Smooth scroll on sending new message
+    setTimeout(() => scrollToBottom(true), 50);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const startTime = Date.now();
+
+    // Set client-side timeout to avoid indefinite hanging
+    timeoutIdRef.current = setTimeout(() => {
+      if (isLoadingRef.current) {
+        controller.abort();
+        toast.error('AI response timed out. Please try again.');
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId
+              ? {
+                  ...m,
+                  content:
+                    accumulatedContentRef.current.trim() ||
+                    '⚠️ **Notice**: AI response timed out. Please click **Retry** below to generate again.',
+                  isError: true,
+                  canRetry: true,
+                }
+              : m
+          )
+        );
+        isLoadingRef.current = false;
+        setIsLoading(false);
+        setActiveToolStatus(null);
+      }
+    }, REQUEST_TIMEOUT_MS);
+
+    // Schedule batched state update via requestAnimationFrame
+    let isBatchUpdateScheduled = false;
+    const scheduleBatchedUpdate = () => {
+      if (isBatchUpdateScheduled) return;
+      isBatchUpdateScheduled = true;
+
+      rafIdRef.current = requestAnimationFrame(() => {
+        isBatchUpdateScheduled = false;
+        const currentContent = accumulatedContentRef.current;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiMsgId ? { ...m, content: currentContent } : m))
+        );
+        // Instant scroll during token streaming avoids layout thrashing
+        scrollToBottom(false);
+      });
+    };
+
     try {
-      const historyPayload = messages.slice(-6).map((m) => ({
+      const historyPayload = messages.slice(-4).map((m) => ({
         role: m.role,
-        content: m.content,
+        content: m.content.slice(-1200),
       }));
 
       const res = await fetch('/api/ai/chat', {
@@ -242,63 +484,117 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
       if (res.headers.get('content-type')?.includes('text/event-stream') && res.body) {
         const reader = res.body.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder('utf-8');
         let buffer = '';
+        let streamCompleted = false;
+
+        const processSseLine = (line: string) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) return;
+          if (trimmed === 'data: [DONE]') {
+            streamCompleted = true;
+            return;
+          }
+          if (!trimmed.startsWith('data:')) return;
+
+          const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5).trim();
+          if (!jsonStr) return;
+
+          let event: any;
+          try {
+            event = JSON.parse(jsonStr);
+          } catch {
+            return; // Ignore partial lines safely
+          }
+
+          if (event.type === 'token' && typeof event.content === 'string') {
+            if (accumulatedContentRef.current.length < MAX_RESPONSE_LENGTH) {
+              accumulatedContentRef.current += event.content;
+              scheduleBatchedUpdate();
+            } else if (!accumulatedContentRef.current.includes('[Response truncated]')) {
+              accumulatedContentRef.current += '\n\n⚠️ *[Response truncated due to maximum length safety]*';
+              scheduleBatchedUpdate();
+            }
+          } else if (event.type === 'step') {
+            setActiveToolStatus(event.step || 'Executing tool...');
+          } else if (event.type === 'action' && event.action) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === aiMsgId ? { ...m, action: event.action } : m))
+            );
+            if (event.action.type === 'navigate' && event.action.route) {
+              toast.success(`Navigating to ${event.action.label || event.action.route}`);
+              router.push(event.action.route);
+            }
+          } else if (event.type === 'done') {
+            streamCompleted = true;
+            const durationMs = Date.now() - startTime;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiMsgId
+                  ? {
+                      ...m,
+                      content: accumulatedContentRef.current,
+                      modelUsed: event.modelUsed,
+                      provider: event.provider,
+                      durationMs,
+                    }
+                  : m
+              )
+            );
+            setActiveToolStatus('Complete');
+          } else if (event.type === 'error') {
+            const errMsg = event.content || 'Sorry, the response was interrupted. Please try again.';
+            accumulatedContentRef.current += `\n\n⚠️ *${errMsg}*`;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiMsgId
+                  ? {
+                      ...m,
+                      content: accumulatedContentRef.current,
+                      isError: true,
+                      canRetry: true,
+                    }
+                  : m
+              )
+            );
+            toast.error(errMsg);
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? '';
 
           for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith(':')) continue;
-            if (trimmed === 'data: [DONE]') continue;
-            if (trimmed.startsWith('data: ')) {
-              try {
-                const event = JSON.parse(trimmed.slice(6));
-                if (event.type === 'token' && event.content) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === aiMsgId ? { ...m, content: m.content + event.content } : m
-                    )
-                  );
-                } else if (event.type === 'step') {
-                  setActiveToolStatus(event.step || 'Executing tool...');
-                } else if (event.type === 'action' && event.action) {
-                  setMessages((prev) =>
-                    prev.map((m) => (m.id === aiMsgId ? { ...m, action: event.action } : m))
-                  );
-                  if (event.action.type === 'navigate' && event.action.route) {
-                    toast.success(`Navigating to ${event.action.label || event.action.route}`);
-                    router.push(event.action.route);
-                  }
-                } else if (event.type === 'done') {
-                  const durationMs = Date.now() - startTime;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === aiMsgId
-                        ? {
-                            ...m,
-                            modelUsed: event.modelUsed,
-                            provider: event.provider,
-                            durationMs,
-                          }
-                        : m
-                    )
-                  );
-                }
-              } catch {
-                // Ignore parse errors on partial JSON chunks
-              }
-            }
+            processSseLine(line);
           }
+        }
+
+        if (buffer.trim()) {
+          processSseLine(buffer);
+        }
+
+        // Cancel any pending animation frames and flush final text
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+
+        const finalContent = accumulatedContentRef.current;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiMsgId ? { ...m, content: finalContent } : m))
+        );
+
+        if (!streamCompleted && !finalContent.trim()) {
+          throw new Error('Sorry, the response was interrupted. Please try again.');
         }
       } else {
         const data = await res.json();
+        const durationMs = Date.now() - startTime;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiMsgId
@@ -308,7 +604,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                   action: data.action,
                   modelUsed: data.modelUsed,
                   provider: data.provider,
-                  durationMs: Date.now() - startTime,
+                  durationMs,
                 }
               : m
           )
@@ -316,20 +612,34 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
-      toast.error('AI Error: ' + err.message);
+      const errMsg = err.message || 'Sorry, the response was interrupted. Please try again.';
+      toast.error(errMsg);
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === aiMsgId
-            ? {
-                ...m,
-                content: `⚠️ **Notice**: ${err.message}`,
-              }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id !== aiMsgId) return m;
+          const prevContent = m.content.trim() || accumulatedContentRef.current.trim();
+          return {
+            ...m,
+            content: prevContent
+              ? `${prevContent}\n\n⚠️ *Sorry, the response was interrupted. Please try again.*`
+              : '⚠️ **Notice**: Sorry, the response was interrupted. Please click **Retry** below.',
+            isError: true,
+            canRetry: true,
+          };
+        })
       );
     } finally {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+        timeoutIdRef.current = null;
+      }
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      isLoadingRef.current = false;
       setIsLoading(false);
-      setActiveToolStatus(null);
+      window.setTimeout(() => setActiveToolStatus(null), 1200);
       abortControllerRef.current = null;
     }
   };
@@ -341,6 +651,8 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       sendMessage(lastUserMsg.content);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -376,7 +688,8 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                 </button>
               </div>
               <p className="text-[11px] text-muted-foreground font-500">
-                Model: <span className="text-foreground font-mono">{aiStatus.model}</span> · Tab: <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
+                Model: <span className="text-foreground font-mono">{aiStatus.model}</span> · Tab:{' '}
+                <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
               </p>
             </div>
           </div>
@@ -427,14 +740,25 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-              <div>System RAM: <span className="text-foreground font-600">{aiStatus.hardware.totalRamGb} GB</span> ({aiStatus.hardware.freeRamGb} GB free)</div>
-              <div>CPU: <span className="text-foreground font-600">{aiStatus.hardware.cpuCores} Cores</span></div>
+              <div>
+                System RAM: <span className="text-foreground font-600">{aiStatus.hardware.totalRamGb} GB</span> (
+                {aiStatus.hardware.freeRamGb} GB free)
+              </div>
+              <div>
+                CPU: <span className="text-foreground font-600">{aiStatus.hardware.cpuCores} Cores</span>
+              </div>
               <div className="col-span-2">
-                Recommended Local Ollama Model: <code className="text-accent font-mono px-1 bg-black/40 rounded">{aiStatus.hardware.recommendedLocalModel}</code>
+                Recommended Local Ollama Model:{' '}
+                <code className="text-accent font-mono px-1 bg-black/40 rounded">
+                  {aiStatus.hardware.recommendedLocalModel}
+                </code>
               </div>
             </div>
             <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
-              Run locally: <code className="text-emerald-400 font-mono">ollama run {aiStatus.hardware.recommendedLocalModel}</code>
+              Run locally:{' '}
+              <code className="text-emerald-400 font-mono">
+                ollama run {aiStatus.hardware.recommendedLocalModel}
+              </code>
             </div>
           </div>
         )}
@@ -445,7 +769,8 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             <button
               key={i}
               onClick={() => sendMessage(qa.query)}
-              className="btn-press whitespace-nowrap px-3 py-1.5 rounded-xl glass-card border border-primary/30 text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all cursor-pointer font-600 text-[11px] shadow-sm flex-shrink-0"
+              disabled={isLoading}
+              className="btn-press whitespace-nowrap px-3 py-1.5 rounded-xl glass-card border border-primary/30 text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all cursor-pointer font-600 text-[11px] shadow-sm flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {qa.label}
             </button>
@@ -453,85 +778,18 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         </div>
 
         {/* Message Stream */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 p-4 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed"
+        >
           {messages.map((msg) => (
-            <div
+            <ChatMessageItem
               key={msg.id}
-              className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}
-            >
-              <div
-                className={`max-w-[94%] p-4 sm:p-5 rounded-2xl ${
-                  msg.role === 'user'
-                    ? 'bg-gradient-to-br from-primary to-blue-600 text-white rounded-tr-none shadow-glow font-500'
-                    : 'glass-card border border-border/80 text-foreground rounded-tl-none shadow-glass'
-                }`}
-              >
-                {/* Attached document tag */}
-                {msg.attachedFileName && (
-                  <div className="mb-2 px-2.5 py-1 rounded-lg bg-black/30 text-[11px] font-mono flex items-center gap-1.5 text-accent border border-accent/20">
-                    <span>📄</span>
-                    <span>Attached: {msg.attachedFileName}</span>
-                  </div>
-                )}
-
-                {/* Multi-step tool execution tracker in message */}
-                {msg.executionSteps && msg.executionSteps.length > 0 && (
-                  <div className="mb-3 p-2.5 rounded-xl bg-muted/40 border border-primary/20 text-[11px] space-y-1.5">
-                    <div className="flex items-center justify-between text-muted-foreground font-700 uppercase tracking-wider text-[10px]">
-                      <span>⚡ Academic Superpower Execution</span>
-                      <span className="text-primary font-mono">{msg.executionSteps.length} Step(s)</span>
-                    </div>
-                    {msg.executionSteps.map((step, sIdx) => (
-                      <div key={sIdx} className="flex items-center gap-2 text-foreground/90 font-500">
-                        <span className="text-accent font-bold">●</span>
-                        <span className="flex-1">{step.step}</span>
-                        {step.toolName && (
-                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                            {step.toolName}
-                          </span>
-                        )}
-                        <span className="text-emerald-400 font-700">✓</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Rich Markdown Response */}
-                {msg.role === 'assistant' ? (
-                  <MarkdownRenderer content={msg.content} />
-                ) : (
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
-                )}
-
-                {/* Direct Action Trigger Button */}
-                {msg.action?.route && (
-                  <div className="mt-3.5 pt-3 border-t border-border/40 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-muted-foreground font-600">Action:</span>
-                    <button
-                      onClick={() => {
-                        if (msg.action?.route) router.push(msg.action.route);
-                      }}
-                      className="btn-primary text-xs py-1.5 px-4 rounded-xl shadow-glow cursor-pointer font-800"
-                    >
-                      🚀 {msg.action.label || 'Open View'} →
-                    </button>
-                  </div>
-                )}
-
-                {/* Debug Inspector */}
-                {debugMode && msg.role === 'assistant' && (
-                  <div className="mt-3 pt-2 border-t border-dashed border-border/60 text-[10px] font-mono text-muted-foreground space-y-0.5">
-                    <div>Model: <span className="text-foreground">{msg.modelUsed || 'default'}</span></div>
-                    <div>Provider: <span className="text-foreground">{msg.provider || 'Campus OS'}</span></div>
-                    {msg.toolsUsed && msg.toolsUsed.length > 0 && (
-                      <div>Tools: <span className="text-accent">{msg.toolsUsed.join(', ')}</span></div>
-                    )}
-                    {msg.durationMs && <div>Latency: <span className="text-foreground">{msg.durationMs}ms</span></div>}
-                  </div>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground mt-1 px-1 font-mono">{msg.timestamp}</span>
-            </div>
+              msg={msg}
+              debugMode={debugMode}
+              onNavigate={handleNavigate}
+              onRetry={handleRetry}
+            />
           ))}
 
           {/* Active Tool / Thinking Indicator */}
@@ -539,10 +797,12 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             <div className="max-w-[85%] animate-fade-in space-y-2">
               <AIThinkingIndicator statusText={activeToolStatus || 'Reasoning & formulating answer...'} />
               <button
+                type="button"
                 onClick={handleStopGeneration}
-                className="text-[10px] px-2.5 py-1 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer font-600"
+                className="text-[10px] px-2.5 py-1 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer font-600 flex items-center gap-1.5"
               >
-                ⏹ Stop Generation
+                <span>⏹</span>
+                <span>Stop Generation</span>
               </button>
             </div>
           )}
@@ -605,9 +865,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               <button
                 type="button"
                 onClick={handleStopGeneration}
-                className="px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-700 hover:bg-red-500/30 transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-700 hover:bg-red-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
               >
-                Stop
+                <span>⏹</span>
+                <span>Stop</span>
               </button>
             ) : (
               <MagneticButton
@@ -635,3 +896,4 @@ export default function CampusAIAssistantModal(props: CampusAIAssistantModalProp
     </Suspense>
   );
 }
+

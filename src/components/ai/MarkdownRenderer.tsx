@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  isStreaming?: boolean;
 }
 
-export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
-  if (!content) return null;
-
+function MarkdownRendererComponent({ content, className = '', isStreaming = false }: MarkdownRendererProps) {
   // Pre-process content into blocks (code blocks, tables, headings, paragraphs, lists)
-  const blocks = parseMarkdownBlocks(content);
+  const blocks = useMemo(() => parseMarkdownBlocks(content || ''), [content]);
+
+  if (!content) return null;
 
   return (
     <div className={`markdown-body space-y-3 text-xs sm:text-sm leading-relaxed text-foreground ${className}`}>
@@ -21,6 +22,8 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
     </div>
   );
 }
+
+export default React.memo(MarkdownRendererComponent);
 
 interface BlockData {
   type: 'code' | 'table' | 'heading' | 'blockquote' | 'list' | 'paragraph';
@@ -34,11 +37,13 @@ interface BlockData {
 }
 
 function parseMarkdownBlocks(markdown: string): BlockData[] {
+  if (!markdown) return [];
   const blocks: BlockData[] = [];
   const lines = markdown.split('\n');
   let i = 0;
 
   while (i < lines.length) {
+    const startI = i;
     const line = lines[i];
 
     // 1. Fenced Code Blocks (```lang ... ```)
@@ -50,7 +55,9 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
         codeLines.push(lines[i]);
         i++;
       }
-      i++; // Skip closing ```
+      if (i < lines.length && lines[i].trim().startsWith('```')) {
+        i++; // Skip closing ```
+      }
       blocks.push({
         type: 'code',
         language,
@@ -60,7 +67,12 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
     }
 
     // 2. Markdown Tables (| header | header |)
-    if (line.includes('|') && lines[i + 1] && lines[i + 1].includes('|') && lines[i + 1].includes('-')) {
+    if (
+      line.includes('|') &&
+      i + 1 < lines.length &&
+      lines[i + 1].includes('|') &&
+      lines[i + 1].includes('-')
+    ) {
       const headers = line
         .split('|')
         .map((h) => h.trim())
@@ -85,14 +97,14 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
       continue;
     }
 
-    // 3. Headings (#, ##, ###)
+    // 3. Headings (#, ##, ###) - handles both full headings and partial streaming headings
     if (line.startsWith('#')) {
-      const match = line.match(/^(#{1,6})\s+(.*)$/);
+      const match = line.match(/^(#{1,6})(?:\s+(.*))?$/);
       if (match) {
         blocks.push({
           type: 'heading',
           level: match[1].length,
-          text: match[2],
+          text: match[2] ? match[2].trim() : '',
         });
         i++;
         continue;
@@ -113,7 +125,7 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
       continue;
     }
 
-    // 5. Lists (unordered: - or *, ordered: 1. 2.)
+    // 5. Lists (unordered: - or * or •, ordered: 1. 2.)
     if (line.trim().match(/^[-*•]\s+/) || line.trim().match(/^\d+\.\s+/)) {
       const ordered = Boolean(line.trim().match(/^\d+\.\s+/));
       const items: string[] = [];
@@ -141,18 +153,19 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
       continue;
     }
 
-    // 6. Regular Paragraphs
+    // 6. Blank Lines
     if (line.trim().length === 0) {
       i++;
       continue;
     }
 
+    // 7. Regular Paragraphs
     const paragraphLines: string[] = [];
     while (
       i < lines.length &&
       lines[i].trim().length > 0 &&
       !lines[i].trim().startsWith('```') &&
-      !lines[i].startsWith('#') &&
+      !lines[i].match(/^(#{1,6})\s+/) &&
       !lines[i].startsWith('>') &&
       !lines[i].trim().match(/^[-*•]\s+/) &&
       !lines[i].trim().match(/^\d+\.\s+/)
@@ -161,10 +174,22 @@ function parseMarkdownBlocks(markdown: string): BlockData[] {
       i++;
     }
 
-    blocks.push({
-      type: 'paragraph',
-      text: paragraphLines.join('\n'),
-    });
+    if (paragraphLines.length > 0) {
+      blocks.push({
+        type: 'paragraph',
+        text: paragraphLines.join('\n'),
+      });
+      continue;
+    }
+
+    // Safety Invariant: Ensure loop progress under any unexpected line structure
+    if (i === startI) {
+      blocks.push({
+        type: 'paragraph',
+        text: line,
+      });
+      i++;
+    }
   }
 
   return blocks;
@@ -285,12 +310,18 @@ function renderInline(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
   let keyIdx = 0;
 
-  // Match markdown tokens
+  // Match markdown tokens safely
   const tokenRegex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
   let match: RegExpExecArray | null;
   let lastIndex = 0;
 
   while ((match = tokenRegex.exec(text)) !== null) {
+    // Protect against zero-length match loop
+    if (match.index === lastIndex && match[0].length === 0) {
+      tokenRegex.lastIndex++;
+      break;
+    }
+
     // Add text before match
     if (match.index > lastIndex) {
       parts.push(
@@ -353,10 +384,10 @@ function renderInline(text: string): React.ReactNode {
     );
   }
 
-  return <>{parts}</>;
+  return parts.length > 0 ? <>{parts}</> : text;
 }
 
-function CodeBlock({ code, language }: { code: string; language: string }) {
+const CodeBlock = React.memo(function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -394,4 +425,5 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
       </pre>
     </div>
   );
-}
+});
+

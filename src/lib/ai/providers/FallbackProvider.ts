@@ -1,20 +1,70 @@
 import { AIChatMessage, AIToolDefinition, AIContextData } from '../aiTypes';
-import { AIProvider, AIProviderResponse, ProviderStatusInfo } from '../provider/types';
+import { AIProviderResponse, ProviderStatusInfo } from '../provider/types';
+import {
+  AIProvider as IUnifiedAIProvider,
+  LLMMessage,
+  LLMCompletionOptions,
+  LLMCompletionResult,
+  LLMStreamChunk,
+} from './types';
 import { CampusAgent } from '../agent/campusAgent';
 import { UserProfile } from '@/types/campus';
+import { DeterministicEngine } from './DeterministicEngine';
 
-export class FallbackProvider implements AIProvider {
-  name = 'fallback';
+export class FallbackProvider implements IUnifiedAIProvider {
+  name = 'Campus OS Fallback Engine';
 
   isConfigured(): boolean {
     return true; // Always available offline
   }
 
+  async isAvailable(): Promise<boolean> {
+    return true;
+  }
+
+  async getAvailableModels(): Promise<string[]> {
+    return ['deterministic-campus-engine'];
+  }
+
+  async chatCompletion(
+    messages: LLMMessage[],
+    _options?: LLMCompletionOptions
+  ): Promise<LLMCompletionResult> {
+    const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const res = await DeterministicEngine.process(latestUserMsg, {
+      userId: 'offline-user',
+      userRole: 'student',
+      userName: 'Campus Member',
+      department: 'BCA',
+      semester: 5,
+      currentPath: '/student-dashboard',
+      currentTab: 'overview',
+    });
+
+    return {
+      text: res.answer,
+      modelUsed: res.modelUsed,
+      provider: this.name,
+      durationMs: res.durationMs,
+    };
+  }
+
+  async chatCompletionStream(
+    messages: LLMMessage[],
+    options?: LLMCompletionOptions,
+    onChunk?: (chunk: LLMStreamChunk) => void
+  ): Promise<LLMCompletionResult> {
+    const res = await this.chatCompletion(messages, options);
+    onChunk?.({ text: res.text, modelUsed: res.modelUsed, provider: this.name, done: true });
+    return res;
+  }
+
+  // Legacy provider methods for backwards compatibility
   async generateResponse(
     messages: AIChatMessage[],
-    tools: AIToolDefinition[],
+    _tools: AIToolDefinition[],
     context: AIContextData,
-    systemPrompt: string
+    _systemPrompt: string
   ): Promise<AIProviderResponse> {
     const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
     const userProfile: UserProfile = {
@@ -51,12 +101,12 @@ export class FallbackProvider implements AIProvider {
   }
 
   async generateStructured<T>(
-    prompt: string,
-    systemPrompt: string,
-    schemaHint?: string
+    _prompt: string,
+    _systemPrompt: string,
+    _schemaHint?: string
   ): Promise<T> {
     throw new Error(
-      'Structured AI generation is unavailable in offline fallback mode. Please configure OPENROUTER_API_KEY.'
+      'Structured AI generation is unavailable in offline fallback mode. Please configure an active AI provider key.'
     );
   }
 
@@ -71,3 +121,6 @@ export class FallbackProvider implements AIProvider {
     };
   }
 }
+
+export const fallbackProvider = new FallbackProvider();
+

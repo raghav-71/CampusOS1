@@ -1,14 +1,20 @@
 /**
  * Remote Free AI Provider: Groq
- * High-speed inference using free-tier models with streaming and tool calling.
+ * High-speed inference using free-tier models with streaming, tool calling,
+ * active timeouts, and zero-leak thinking filter.
  */
 
 import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
+import { StreamingThinkFilter } from './StreamingThinkFilter';
 
 const CANDIDATE_GROQ_MODELS = [
   process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
+  'llama3-70b-8192',
+  'llama3-8b-8192',
+  'gemma2-9b-it',
+  'mixtral-8x7b-32768',
 ];
+
 
 export class GroqProvider implements AIProvider {
   name = 'Groq Cloud (Free Tier)';
@@ -33,7 +39,7 @@ export class GroqProvider implements AIProvider {
     if (!this.isConfigured()) return false;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const res = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
@@ -49,7 +55,7 @@ export class GroqProvider implements AIProvider {
     if (!this.isConfigured()) return CANDIDATE_GROQ_MODELS;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
       const res = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
@@ -58,15 +64,25 @@ export class GroqProvider implements AIProvider {
       if (!res.ok) return CANDIDATE_GROQ_MODELS;
       const data = await res.json();
       if (Array.isArray(data.data)) {
-        const available = data.data.map((m: any) => m.id);
-        const filtered = CANDIDATE_GROQ_MODELS.filter((m) => available.includes(m));
-        return filtered.length > 0 ? filtered : CANDIDATE_GROQ_MODELS;
+        const available = data.data.map((m: any) => m.id as string);
+        const activeChatModels = available.filter(
+          (id: string) =>
+            !id.includes('whisper') &&
+            !id.includes('guard') &&
+            !id.includes('vision') &&
+            !id.includes('audio') &&
+            !id.includes('embedding') &&
+            !id.includes('tts') &&
+            !id.includes('moderation')
+        );
+        return activeChatModels.length > 0 ? activeChatModels : CANDIDATE_GROQ_MODELS;
       }
       return CANDIDATE_GROQ_MODELS;
     } catch {
       return CANDIDATE_GROQ_MODELS;
     }
   }
+
 
   async chatCompletion(
     messages: LLMMessage[],
@@ -79,10 +95,12 @@ export class GroqProvider implements AIProvider {
     const startTime = Date.now();
     const key = this.getCleanKey();
 
+    const available = await this.getAvailableModels();
     const requestedModel = options?.model || process.env.GROQ_MODEL;
     const modelChain = requestedModel
-      ? [requestedModel, ...CANDIDATE_GROQ_MODELS.filter((m) => m !== requestedModel)]
-      : CANDIDATE_GROQ_MODELS;
+      ? [requestedModel, ...available.filter((m) => m !== requestedModel)]
+      : available;
+
 
     const groqTools = options?.tools && options.tools.length > 0
       ? options.tools.map((t) => ({
@@ -109,7 +127,7 @@ export class GroqProvider implements AIProvider {
 
     for (const model of modelChain) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 18000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       try {
         const bodyPayload: Record<string, any> = {
@@ -137,7 +155,7 @@ export class GroqProvider implements AIProvider {
 
         if (!res.ok) {
           const errText = await res.text();
-          lastError = new Error(`Groq model ${model} returned ${res.status}: ${errText}`);
+          lastError = new Error(`Groq model ${model} returned ${res.status}: ${errText.slice(0, 200)}`);
           continue;
         }
 
@@ -161,10 +179,7 @@ export class GroqProvider implements AIProvider {
           }));
         }
 
-        let cleanedText = message.content || '';
-        if (cleanedText.includes('</think>')) {
-          cleanedText = cleanedText.split('</think>')[1]?.trim() || cleanedText;
-        }
+        const cleanedText = StreamingThinkFilter.cleanStaticText(message.content || '');
 
         return {
           text: cleanedText,
@@ -198,7 +213,12 @@ export class GroqProvider implements AIProvider {
 
     const startTime = Date.now();
     const key = this.getCleanKey();
-    const model = options?.model || process.env.GROQ_MODEL || CANDIDATE_GROQ_MODELS[0];
+    const available = await this.getAvailableModels();
+    const requestedModel = options?.model || process.env.GROQ_MODEL;
+    const modelChain = requestedModel
+      ? [requestedModel, ...available.filter((m) => m !== requestedModel)]
+      : available;
+
 
     const groqTools = options?.tools && options.tools.length > 0
       ? options.tools.map((t) => ({
@@ -221,100 +241,162 @@ export class GroqProvider implements AIProvider {
       return msg;
     });
 
-    const bodyPayload: Record<string, any> = {
-      model,
-      messages: formattedMessages,
-      temperature: options?.temperature ?? 0.3,
-      max_tokens: options?.maxTokens ?? 2048,
-      stream: true,
-    };
+    let lastError: any = null;
 
-    if (groqTools && groqTools.length > 0) {
-      bodyPayload.tools = groqTools;
-      bodyPayload.tool_choice = options?.toolChoice || 'auto';
-    }
+    for (const model of modelChain) {
+      const controller = new AbortController();
+      let activityTimeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify(bodyPayload),
-      signal: options?.signal,
-    });
+      // Connect combined abort signal if provided
+      const abortHandler = () => controller.abort();
+      if (options?.signal) {
+        options.signal.addEventListener('abort', abortHandler, { once: true });
+      }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Groq streaming returned ${res.status}: ${errText}`);
-    }
+      try {
+        const bodyPayload: Record<string, any> = {
+          model,
+          messages: formattedMessages,
+          temperature: options?.temperature ?? 0.3,
+          max_tokens: options?.maxTokens ?? 2048,
+          stream: true,
+        };
 
-    if (!res.body) {
-      throw new Error('Groq response body is empty.');
-    }
+        if (groqTools && groqTools.length > 0) {
+          bodyPayload.tools = groqTools;
+          bodyPayload.tool_choice = options?.toolChoice || 'auto';
+        }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulatedText = '';
-    let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify(bodyPayload),
+          signal: controller.signal,
+        });
 
-    let buffer = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        if (!res.ok) {
+          const errText = await res.text();
+          lastError = new Error(`Groq model ${model} streaming error ${res.status}: ${errText.slice(0, 200)}`);
+          clearTimeout(activityTimeoutId);
+          continue;
+        }
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+        if (!res.body) {
+          lastError = new Error('Groq response body is empty.');
+          clearTimeout(activityTimeoutId);
+          continue;
+        }
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
-        if (trimmed === 'data: [DONE]') continue;
-        if (trimmed.startsWith('data: ')) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        const thinkFilter = new StreamingThinkFilter();
+        let fullAccumulatedText = '';
+        let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+        let buffer = '';
+
+        const processLine = (line: string) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) return;
+          if (trimmed === 'data: [DONE]') return;
+          if (!trimmed.startsWith('data:')) return;
+
+          const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5).trim();
+          if (!jsonStr) return;
+
+          let data: any;
           try {
-            const data = JSON.parse(trimmed.slice(6));
-            const delta = data.choices?.[0]?.delta;
-            if (!delta) continue;
-
-            if (delta.content) {
-              accumulatedText += delta.content;
-              onChunk?.({ text: delta.content, modelUsed: model, provider: this.name });
-            }
-
-            if (Array.isArray(delta.tool_calls)) {
-              for (const tc of delta.tool_calls) {
-                const idx = tc.index ?? 0;
-                if (!toolCallsMap[idx]) {
-                  toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
-                }
-                if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
-                if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
-              }
-            }
+            data = JSON.parse(jsonStr);
           } catch {
-            // Ignore parse errors on partial lines
+            return;
           }
+
+          const delta = data.choices?.[0]?.delta;
+          if (!delta) return;
+
+          // Reset idle activity timeout on each received valid chunk
+          clearTimeout(activityTimeoutId);
+          activityTimeoutId = setTimeout(() => controller.abort(), 15000);
+
+          if (typeof delta.content === 'string' && delta.content.length > 0) {
+            const visibleChunk = thinkFilter.process(delta.content);
+            if (visibleChunk) {
+              fullAccumulatedText += visibleChunk;
+              onChunk?.({ text: visibleChunk, modelUsed: model, provider: this.name });
+            }
+          }
+
+          if (Array.isArray(delta.tool_calls)) {
+            for (const tc of delta.tool_calls) {
+              const idx = tc.index ?? 0;
+              if (!toolCallsMap[idx]) {
+                toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
+              }
+              if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
+              if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
+            }
+          }
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            processLine(line);
+          }
+        }
+
+        if (buffer.trim()) {
+          processLine(buffer);
+        }
+
+        // Flush any remaining buffered tokens
+        const finalChunk = thinkFilter.flush();
+        if (finalChunk) {
+          fullAccumulatedText += finalChunk;
+          onChunk?.({ text: finalChunk, modelUsed: model, provider: this.name });
+        }
+
+        clearTimeout(activityTimeoutId);
+
+        const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
+          ? Object.values(toolCallsMap).map((tc) => ({
+              id: tc.id,
+              type: 'function',
+              function: { name: tc.name, arguments: tc.arguments },
+            }))
+          : undefined;
+
+        onChunk?.({ done: true, modelUsed: model, provider: this.name });
+
+        return {
+          text: fullAccumulatedText,
+          toolCalls,
+          modelUsed: model,
+          provider: this.name,
+          durationMs: Date.now() - startTime,
+        };
+      } catch (err: any) {
+        clearTimeout(activityTimeoutId);
+        if (options?.signal?.aborted) throw err;
+        lastError = err;
+      } finally {
+        if (options?.signal) {
+          options.signal.removeEventListener('abort', abortHandler);
         }
       }
     }
 
-    const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
-      ? Object.values(toolCallsMap).map((tc) => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.arguments },
-        }))
-      : undefined;
-
-    return {
-      text: accumulatedText,
-      toolCalls,
-      modelUsed: model,
-      provider: this.name,
-      durationMs: Date.now() - startTime,
-    };
+    throw lastError || new Error('All candidate Groq models failed to stream.');
   }
 }
 
 export const groqProvider = new GroqProvider();
+

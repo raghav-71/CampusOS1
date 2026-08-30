@@ -38,6 +38,9 @@ jest-test-results.json
 .env*.local
 .env.production
 .env.development
+API.txt
+*.key
+*.pem
 
 # Scratch test files
 scratch/

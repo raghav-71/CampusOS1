@@ -4,6 +4,7 @@
  */
 
 import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMToolCall, LLMStreamChunk } from './types';
+import { StreamingThinkFilter } from './StreamingThinkFilter';
 
 const CANDIDATE_OPENROUTER_MODELS = [
   process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
@@ -37,7 +38,7 @@ export class OpenRouterProvider implements AIProvider {
     if (!this.isConfigured()) return false;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const res = await fetch('https://openrouter.ai/api/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
@@ -113,7 +114,7 @@ export class OpenRouterProvider implements AIProvider {
 
         if (!res.ok) {
           const errText = await res.text();
-          lastError = new Error(`OpenRouter model ${model} returned ${res.status}: ${errText}`);
+          lastError = new Error(`OpenRouter model ${model} returned ${res.status}: ${errText.slice(0, 200)}`);
           continue;
         }
 
@@ -137,10 +138,7 @@ export class OpenRouterProvider implements AIProvider {
           }));
         }
 
-        let cleanedText = message.content || '';
-        if (cleanedText.includes('</think>')) {
-          cleanedText = cleanedText.split('</think>')[1]?.trim() || cleanedText;
-        }
+        const cleanedText = StreamingThinkFilter.cleanStaticText(message.content || '');
 
         return {
           text: cleanedText,
@@ -174,7 +172,10 @@ export class OpenRouterProvider implements AIProvider {
 
     const startTime = Date.now();
     const key = this.getCleanKey();
-    const model = options?.model || process.env.OPENROUTER_MODEL || CANDIDATE_OPENROUTER_MODELS[0];
+    const requestedModel = options?.model || process.env.OPENROUTER_MODEL;
+    const modelChain = requestedModel
+      ? [requestedModel, ...CANDIDATE_OPENROUTER_MODELS.filter((m) => m !== requestedModel)]
+      : CANDIDATE_OPENROUTER_MODELS;
 
     const formattedMessages = messages.map((m) => {
       const msg: Record<string, any> = {
@@ -186,102 +187,161 @@ export class OpenRouterProvider implements AIProvider {
       return msg;
     });
 
-    const bodyPayload: Record<string, any> = {
-      model,
-      messages: formattedMessages,
-      temperature: options?.temperature ?? 0.3,
-      max_tokens: options?.maxTokens ?? 2048,
-      stream: true,
-    };
+    let lastError: any = null;
 
-    if (options?.tools && options.tools.length > 0) {
-      bodyPayload.tools = options.tools;
-      bodyPayload.tool_choice = options.toolChoice || 'auto';
-    }
+    for (const model of modelChain) {
+      const controller = new AbortController();
+      let activityTimeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
-        'HTTP-Referer': 'https://campusos.edu',
-        'X-Title': 'CampusOS AI Assistant',
-      },
-      body: JSON.stringify(bodyPayload),
-      signal: options?.signal,
-    });
+      const abortHandler = () => controller.abort();
+      if (options?.signal) {
+        options.signal.addEventListener('abort', abortHandler, { once: true });
+      }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenRouter streaming returned ${res.status}: ${errText}`);
-    }
+      try {
+        const bodyPayload: Record<string, any> = {
+          model,
+          messages: formattedMessages,
+          temperature: options?.temperature ?? 0.3,
+          max_tokens: options?.maxTokens ?? 2048,
+          stream: true,
+        };
 
-    if (!res.body) {
-      throw new Error('OpenRouter response body is empty.');
-    }
+        if (options?.tools && options.tools.length > 0) {
+          bodyPayload.tools = options.tools;
+          bodyPayload.tool_choice = options.toolChoice || 'auto';
+        }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulatedText = '';
-    let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`,
+            'HTTP-Referer': 'https://campusos.edu',
+            'X-Title': 'CampusOS AI Assistant',
+          },
+          body: JSON.stringify(bodyPayload),
+          signal: controller.signal,
+        });
 
-    let buffer = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        if (!res.ok) {
+          const errText = await res.text();
+          lastError = new Error(`OpenRouter model ${model} streaming error ${res.status}: ${errText.slice(0, 200)}`);
+          clearTimeout(activityTimeoutId);
+          continue;
+        }
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+        if (!res.body) {
+          lastError = new Error('OpenRouter response body is empty.');
+          clearTimeout(activityTimeoutId);
+          continue;
+        }
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
-        if (trimmed === 'data: [DONE]') continue;
-        if (trimmed.startsWith('data: ')) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        const thinkFilter = new StreamingThinkFilter();
+        let fullAccumulatedText = '';
+        let toolCallsMap: Record<number, { id: string; name: string; arguments: string }> = {};
+        let buffer = '';
+
+        const processLine = (line: string) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith(':')) return;
+          if (trimmed === 'data: [DONE]') return;
+          if (!trimmed.startsWith('data:')) return;
+
+          const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5).trim();
+          if (!jsonStr) return;
+
+          let data: any;
           try {
-            const data = JSON.parse(trimmed.slice(6));
-            const delta = data.choices?.[0]?.delta;
-            if (!delta) continue;
-
-            if (delta.content) {
-              accumulatedText += delta.content;
-              onChunk?.({ text: delta.content, modelUsed: model, provider: this.name });
-            }
-
-            if (Array.isArray(delta.tool_calls)) {
-              for (const tc of delta.tool_calls) {
-                const idx = tc.index ?? 0;
-                if (!toolCallsMap[idx]) {
-                  toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
-                }
-                if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
-                if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
-              }
-            }
+            data = JSON.parse(jsonStr);
           } catch {
-            // Ignore parse errors on partial chunks
+            return;
           }
+
+          const delta = data.choices?.[0]?.delta;
+          if (!delta) return;
+
+          clearTimeout(activityTimeoutId);
+          activityTimeoutId = setTimeout(() => controller.abort(), 15000);
+
+          if (typeof delta.content === 'string' && delta.content.length > 0) {
+            const visible = thinkFilter.process(delta.content);
+            if (visible) {
+              fullAccumulatedText += visible;
+              onChunk?.({ text: visible, modelUsed: model, provider: this.name });
+            }
+          }
+
+          if (Array.isArray(delta.tool_calls)) {
+            for (const tc of delta.tool_calls) {
+              const idx = tc.index ?? 0;
+              if (!toolCallsMap[idx]) {
+                toolCallsMap[idx] = { id: tc.id || `call_${Date.now()}_${idx}`, name: '', arguments: '' };
+              }
+              if (tc.function?.name) toolCallsMap[idx].name += tc.function.name;
+              if (tc.function?.arguments) toolCallsMap[idx].arguments += tc.function.arguments;
+            }
+          }
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            processLine(line);
+          }
+        }
+
+        if (buffer.trim()) {
+          processLine(buffer);
+        }
+
+        const flushed = thinkFilter.flush();
+        if (flushed) {
+          fullAccumulatedText += flushed;
+          onChunk?.({ text: flushed, modelUsed: model, provider: this.name });
+        }
+
+        clearTimeout(activityTimeoutId);
+
+        const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
+          ? Object.values(toolCallsMap).map((tc) => ({
+              id: tc.id,
+              type: 'function',
+              function: { name: tc.name, arguments: tc.arguments },
+            }))
+          : undefined;
+
+        onChunk?.({ done: true, modelUsed: model, provider: this.name });
+
+        return {
+          text: fullAccumulatedText,
+          toolCalls,
+          modelUsed: model,
+          provider: this.name,
+          durationMs: Date.now() - startTime,
+        };
+      } catch (err: any) {
+        clearTimeout(activityTimeoutId);
+        if (options?.signal?.aborted) throw err;
+        lastError = err;
+      } finally {
+        if (options?.signal) {
+          options.signal.removeEventListener('abort', abortHandler);
         }
       }
     }
 
-    const toolCalls: LLMToolCall[] | undefined = Object.keys(toolCallsMap).length > 0
-      ? Object.values(toolCallsMap).map((tc) => ({
-          id: tc.id,
-          type: 'function',
-          function: { name: tc.name, arguments: tc.arguments },
-        }))
-      : undefined;
-
-    return {
-      text: accumulatedText,
-      toolCalls,
-      modelUsed: model,
-      provider: this.name,
-      durationMs: Date.now() - startTime,
-    };
+    throw lastError || new Error('All candidate OpenRouter models failed to stream.');
   }
 }
 
 export const openRouterProvider = new OpenRouterProvider();
+
