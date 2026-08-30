@@ -8,6 +8,7 @@ import { useProfile } from '@/hooks/useProfile';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
+import DocumentViewerModal from '@/components/documents/DocumentViewerModal';
 
 export default function StudentNotesExplorer() {
   const { profile } = useProfile();
@@ -54,8 +55,50 @@ export default function StudentNotesExplorer() {
     }
   };
 
-  const handleDownload = (note: NoteDocument) => {
-    toast.success(`Downloading "${note.title}.pdf" (${note.fileSize || '3.4 MB'})`);
+  const handleDownload = async (note: NoteDocument) => {
+    try {
+      const fileName = note.fileName || `${note.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${note.fileType || 'pdf'}`;
+      let downloadUrl = note.fileData || note.fileUrl;
+
+      if (!downloadUrl) {
+        const textContent =
+          note.extractedText ||
+          `CampusOS Verified Study Material\nTitle: ${note.title}\nSubject: ${note.subject}\nInstructor: ${note.teacher}\nSemester: ${note.semester}\n\n${note.description || 'Full chapter syllabus notes and revision guide.'}`;
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+        downloadUrl = URL.createObjectURL(blob);
+      }
+
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      toast.success(`Downloaded: "${fileName}" (${note.fileSize || note.size || '3.4 MB'})`);
+    } catch {
+      toast.error('Failed to download document');
+    }
+  };
+
+  const handleAskAIAboutNote = (note: NoteDocument, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedNote(null);
+    window.dispatchEvent(
+      new CustomEvent('campusos:open-ai', {
+        detail: {
+          query: `Summarize the key points, core concepts, and potential exam questions from the lecture note: "${note.title}" (${note.subject}).`,
+          selectedDocument: {
+            id: note.id,
+            title: note.title,
+            subject: note.subject,
+            semester: note.semester,
+            extractedText: note.extractedText || note.description,
+          },
+        },
+      })
+    );
+    toast.info(`Campus AI is analyzing "${note.title}"...`);
   };
 
   return (
@@ -64,15 +107,17 @@ export default function StudentNotesExplorer() {
         {/* Header & Filter Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-700 text-foreground">Lecture Notes & Documents Library</h2>
+            <h2 className="text-xl font-800 text-foreground tracking-tight flex items-center gap-2">
+              <span>📚</span> Lecture Notes & Academic Documents Library
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Verified syllabus chapters, laboratory manuals, and cheat sheets
+              Verified syllabus chapters, laboratory manuals, and faculty uploads for Semester {profile?.semesterNumber || 5}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
-            <div className="flex items-center gap-2 glass-card rounded-xl px-3 py-2 w-56 sm:w-64">
+            <div className="flex items-center gap-2 glass-card rounded-xl px-3 py-2 w-56 sm:w-64 border border-border/70">
               <svg
                 width="14"
                 height="14"
@@ -98,13 +143,14 @@ export default function StudentNotesExplorer() {
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
+              className="bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer"
             >
-              <option value="all">All Subjects</option>
+              <option value="all">All Enrolled Subjects</option>
               <option value="Operating Systems">Operating Systems</option>
-              <option value="Database">Database Management (DBMS)</option>
+              <option value="Database Management Systems">Database Management (DBMS)</option>
               <option value="Computer Networks">Computer Networks</option>
               <option value="Java">Java Programming</option>
+              <option value="Design & Analysis of Algorithms">Algorithms (DAA)</option>
             </select>
           </div>
         </div>
@@ -117,42 +163,51 @@ export default function StudentNotesExplorer() {
               <div
                 key={note.id}
                 onClick={() => handleOpenReader(note)}
-                className="glass-card rounded-2xl p-5 border border-border/80 hover:border-primary/40 transition-all cursor-pointer flex flex-col justify-between group shadow-sm hover:shadow-glow"
+                className="glass-card rounded-3xl p-5 border border-border/80 hover:border-primary/40 transition-all cursor-pointer flex flex-col justify-between group shadow-sm hover:shadow-glow"
               >
                 <div>
                   {/* Top metadata */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="badge-cyan text-[11px] px-2 py-0.5 rounded-lg font-600">
+                    <span className="badge-cyan text-[11px] px-2.5 py-0.5 rounded-lg font-700">
                       {note.subject}
                     </span>
-                    <button
-                      onClick={(e) => toggleBookmark(note.id, e)}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        isBookmarked
-                          ? 'text-warning bg-warning/10'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      title={isBookmarked ? 'Bookmarked' : 'Save bookmark'}
-                    >
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill={isBookmarked ? 'currentColor' : 'none'}
-                        stroke="currentColor"
-                        strokeWidth="2"
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => handleAskAIAboutNote(note, e)}
+                        className="p-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                        title="Ask Campus AI about this note"
                       >
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                      </svg>
-                    </button>
+                        <span className="text-xs">✨ AI</span>
+                      </button>
+                      <button
+                        onClick={(e) => toggleBookmark(note.id, e)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          isBookmarked
+                            ? 'text-warning bg-warning/10'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                        title={isBookmarked ? 'Bookmarked' : 'Save bookmark'}
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill={isBookmarked ? 'currentColor' : 'none'}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-700 text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                  <h3 className="text-base font-800 text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
                     {note.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Uploaded by <span className="text-foreground font-500">{note.teacher}</span>{' '}
-                    &nbsp;·&nbsp; {note.pages} pages
+                  <p className="text-xs text-muted-foreground mb-3 font-500">
+                    Uploaded by <span className="text-foreground font-700">{note.teacher}</span>{' '}
+                    &nbsp;·&nbsp; {note.pages} pages &nbsp;·&nbsp; {note.fileSize || note.size || '3.5 MB'}
                   </p>
 
                   {/* Tags */}
@@ -160,7 +215,7 @@ export default function StudentNotesExplorer() {
                     {note.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/40 font-500"
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/40 font-600"
                       >
                         #{tag}
                       </span>
@@ -168,16 +223,16 @@ export default function StudentNotesExplorer() {
                   </div>
                 </div>
 
-                {/* Bottom stats & action */}
+                {/* Bottom stats & actions */}
                 <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs text-muted-foreground">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-warning font-600">
-                      ★ {note.rating}
+                    <span className="flex items-center gap-1 text-warning font-700">
+                      ★ {note.rating || 5.0}
                     </span>
                     <span>👁 {note.views || 412}</span>
                   </div>
-                  <span className="text-primary font-600 group-hover:underline flex items-center gap-1">
-                    Read Document →
+                  <span className="text-primary font-700 group-hover:underline flex items-center gap-1">
+                    Read & Study →
                   </span>
                 </div>
               </div>
@@ -186,93 +241,14 @@ export default function StudentNotesExplorer() {
         </div>
       </div>
 
-      {/* Interactive Document Reader Modal */}
-      {selectedNote && (
-        <Modal
-          isOpen={Boolean(selectedNote)}
-          onClose={() => setSelectedNote(null)}
-          maxWidth="2xl"
-          title={
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📄</span>
-              <div>
-                <h3 className="text-base font-700 text-foreground">{selectedNote.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {selectedNote.subject} · By {selectedNote.teacher}
-                </p>
-              </div>
-            </div>
-          }
-          footer={
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={readerPage <= 1}
-                  onClick={() => setReaderPage((p) => Math.max(1, p - 1))}
-                >
-                  ← Prev Page
-                </Button>
-                <span className="text-xs text-muted-foreground font-mono-data">
-                  Page {readerPage} of {selectedNote.pages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={readerPage >= selectedNote.pages}
-                  onClick={() => setReaderPage((p) => Math.min(selectedNote.pages, p + 1))}
-                >
-                  Next Page →
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" onClick={() => handleDownload(selectedNote)}>
-                  Download PDF
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => setSelectedNote(null)}>
-                  Close
-                </Button>
-              </div>
-            </div>
-          }
-        >
-          {/* Mock PDF Viewer Canvas */}
-          <div className="rounded-xl border border-border/80 bg-black/40 p-6 min-h-[380px] flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border/50 text-xs text-muted-foreground">
-                <span className="font-600 text-foreground">
-                  SECTION {readerPage}: Core Concepts & Theorems
-                </span>
-                <span>CampusOS Academic Publishing</span>
-              </div>
-
-              <div className="space-y-3 text-xs sm:text-sm text-foreground/90 leading-relaxed font-mono-data bg-card/60 p-4 rounded-xl border border-border/40">
-                <p className="font-700 text-primary uppercase text-[11px] tracking-wider">
-                  Chapter {readerPage} Summary — {selectedNote.title}
-                </p>
-                <p>
-                  1. Comprehensive overview of theoretical foundations and practical applications in
-                  modern computing architectures.
-                </p>
-                <p>
-                  2. Algorithm performance benchmarks, time complexities, memory overhead bounds,
-                  and distributed fault tolerances.
-                </p>
-                <p>
-                  3. Key Examination Problems and Step-by-step Mathematical Derivations for Mid-term
-                  Evaluation.
-                </p>
-              </div>
-            </div>
-
-            <div className="text-center text-xs text-muted-foreground pt-4 border-t border-border/40">
-              Verified by Faculty of Computer Applications · CampusOS Digital Repository
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Universal Document Viewer & AI Study Modal */}
+      <DocumentViewerModal
+        isOpen={Boolean(selectedNote)}
+        onClose={() => setSelectedNote(null)}
+        document={selectedNote}
+        onAskAI={(prompt, doc) => handleAskAIAboutNote(doc as NoteDocument || selectedNote!)}
+        onDownload={(doc) => handleDownload(doc as NoteDocument || selectedNote!)}
+      />
     </>
   );
 }

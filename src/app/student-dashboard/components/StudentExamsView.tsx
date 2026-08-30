@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { mockExams } from '@/repositories/mockData';
+import { campusRepository } from '@/repositories/campusRepository';
 import { useProfile } from '@/hooks/useProfile';
 import { ExamCategory, ExamType, PROGRAM_SEMESTERS, getSemesterInfo } from '@/lib/academicModel';
 import { getSubjectColor } from '@/lib/academicColors';
+import { QuestionPaper } from '@/types/campus';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AnimatedCard from '@/components/motion/AnimatedCard';
+import DocumentViewerModal from '@/components/documents/DocumentViewerModal';
 
 export default function StudentExamsView() {
   const { profile } = useProfile();
@@ -17,6 +20,68 @@ export default function StudentExamsView() {
   const [selectedCategory, setSelectedCategory] = useState<ExamCategory | 'ALL'>('ALL');
   const [selectedType, setSelectedType] = useState<ExamType | 'ALL'>('ALL');
   const [hallTicketOpen, setHallTicketOpen] = useState(false);
+  const [questionPapers, setQuestionPapers] = useState<QuestionPaper[]>([]);
+  const [selectedPaper, setSelectedPaper] = useState<QuestionPaper | null>(null);
+
+  useEffect(() => {
+    async function loadPapers() {
+      try {
+        const papers = await campusRepository.getQuestionPapers(
+          undefined,
+          undefined,
+          selectedSemester,
+          profile || undefined
+        );
+        setQuestionPapers(papers);
+      } catch {}
+    }
+    loadPapers();
+  }, [selectedSemester, profile]);
+
+  const handleDownloadPaper = (paper: QuestionPaper) => {
+    try {
+      const fileName = paper.fileName || `${paper.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      let downloadUrl = paper.fileData || paper.fileUrl;
+
+      if (!downloadUrl) {
+        const textContent =
+          paper.extractedText ||
+          `CampusOS University Examination Paper\nTitle: ${paper.title}\nSubject: ${paper.subject}\nYear: ${paper.year} · Semester ${paper.semesterNumber}\n\nMaximum Marks: ${paper.maxMarks || 100}\n\n${paper.description || 'Official end-term university question paper.'}`;
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+        downloadUrl = URL.createObjectURL(blob);
+      }
+
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      toast.success(`Downloaded: "${fileName}" (${paper.fileSize || '1.8 MB'})`);
+    } catch {
+      toast.error('Failed to download question paper');
+    }
+  };
+
+  const handleAskAIAboutPaper = (paper: QuestionPaper) => {
+    setSelectedPaper(null);
+    window.dispatchEvent(
+      new CustomEvent('campusos:open-ai', {
+        detail: {
+          query: `Analyze this question paper for ${paper.subject} (${paper.year}): "${paper.title}". Provide sample step-by-step solutions and key recurring patterns.`,
+          selectedDocument: {
+            id: paper.id,
+            title: paper.title,
+            subject: paper.subject,
+            semester: `Semester ${paper.semesterNumber}`,
+            extractedText: paper.extractedText || paper.description,
+          },
+        },
+      })
+    );
+    toast.info(`Campus AI is analyzing "${paper.title}"...`);
+  };
 
   const studentName = profile?.fullName ?? 'Arjun Sharma';
   const rollNumber = profile?.rollNumber ?? '2024-BCA-042';
@@ -325,9 +390,84 @@ export default function StudentExamsView() {
                 </div>
               </div>
             )}
+
+            {/* Question Papers Section */}
+            {questionPapers.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-border/60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">📑</span>
+                    <h3 className="text-base font-800 text-foreground">
+                      Previous Years & Model Question Papers
+                    </h3>
+                    <Badge variant="cyan">{questionPapers.length} Available</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Semester {selectedSemester} Archives</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {questionPapers.map((paper) => (
+                    <AnimatedCard
+                      key={paper.id}
+                      className="p-5 border border-border/80 bg-card/60 transition-all flex flex-col justify-between shadow-sm hover:shadow-glow group cursor-pointer"
+                      onClick={() => setSelectedPaper(paper)}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="badge-cyan text-[11px] px-2.5 py-0.5 rounded-lg font-700">
+                            {paper.subject}
+                          </span>
+                          <span className="text-[11px] font-mono-data text-muted-foreground font-700">
+                            {paper.year}
+                          </span>
+                        </div>
+
+                        <h4 className="text-base font-800 text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                          {paper.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {paper.examType || 'End Semester'} · Max Marks: {paper.maxMarks || 100}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskAIAboutPaper(paper);
+                          }}
+                          className="text-xs text-primary font-700 hover:underline flex items-center gap-1"
+                        >
+                          ✨ Solve with AI
+                        </button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadPaper(paper);
+                          }}
+                        >
+                          Download 📥
+                        </Button>
+                      </div>
+                    </AnimatedCard>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Universal Document Viewer & AI Study Modal for Question Papers */}
+      <DocumentViewerModal
+        isOpen={Boolean(selectedPaper)}
+        onClose={() => setSelectedPaper(null)}
+        document={selectedPaper}
+        onAskAI={(prompt, doc) => handleAskAIAboutPaper(doc as QuestionPaper || selectedPaper!)}
+        onDownload={(doc) => handleDownloadPaper(doc as QuestionPaper || selectedPaper!)}
+      />
 
       {/* Hall Ticket Admit Card Modal */}
       {hallTicketOpen && (

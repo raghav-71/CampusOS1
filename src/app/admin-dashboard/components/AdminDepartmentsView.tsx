@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { mockSubjects } from '@/repositories/mockData';
 import { Subject } from '@/types/campus';
+import { campusRepository } from '@/repositories/campusRepository';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -12,6 +13,20 @@ export default function AdminDepartmentsView() {
   const [subjects, setSubjects] = useState<Subject[]>(mockSubjects);
   const [selectedSemester, setSelectedSemester] = useState<number | 'all'>('all');
   const [addSubjectModalOpen, setAddSubjectModalOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadSubjects() {
+      try {
+        const list = await campusRepository.getSubjects();
+        if (list && list.length > 0) {
+          setSubjects(list);
+        }
+      } catch (err) {
+        console.error('Failed to load subjects:', err);
+      }
+    }
+    loadSubjects();
+  }, []);
 
   // New Subject Form
   const [newSubName, setNewSubName] = useState('');

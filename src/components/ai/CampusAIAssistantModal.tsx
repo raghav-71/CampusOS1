@@ -277,6 +277,31 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     };
   }, []);
 
+  // Listen for campusos:open-ai events (e.g. from notes reader, exams view, or shortcuts)
+  useEffect(() => {
+    const handleOpenAIEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const { query, initialMessage, selectedDocument } = customEvent.detail || {};
+
+      if (selectedDocument) {
+        setAttachedFile({
+          name: selectedDocument.title || 'Selected Document',
+          content: selectedDocument.extractedText || selectedDocument.description || '',
+        });
+      }
+
+      const q = query || initialMessage;
+      if (q) {
+        setTimeout(() => {
+          sendMessage(q);
+        }, 200);
+      }
+    };
+
+    window.addEventListener('campusos:open-ai', handleOpenAIEvent);
+    return () => window.removeEventListener('campusos:open-ai', handleOpenAIEvent);
+  }, []);
+
   // Non-blocking, layout-safe auto-scroll
   const scrollToBottom = useCallback((smooth = false) => {
     if (scrollContainerRef.current) {

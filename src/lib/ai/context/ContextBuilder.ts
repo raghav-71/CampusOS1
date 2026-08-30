@@ -17,6 +17,7 @@ import {
   seedAnnouncements,
   seedStudentAttendanceSummary,
 } from '@/data/seed';
+import { AuthorizationService } from '@/services/authorizationService';
 import { CodeAIContext } from '@/types/codelab';
 
 export interface CampusAIContextOptions {
@@ -24,6 +25,7 @@ export interface CampusAIContextOptions {
   currentPath?: string;
   currentTab?: string;
   selectedEntity?: any;
+  selectedDocument?: any;
   codeLabContext?: CodeAIContext;
   history?: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string }>;
 }
@@ -34,6 +36,7 @@ export interface CompactCampusContext {
   pageSummary: string;
   academicSummary?: string;
   facultySummary?: string;
+  documentSummary?: string;
   codeLabSummary?: string;
   rawContext: Record<string, any>;
 }
@@ -75,7 +78,33 @@ export class ContextBuilder {
       }
     }
 
-    // 3. Academic Summary (for students)
+    // 3. Document Summary (when a document is opened or asked about)
+    let documentSummary: string | undefined = undefined;
+    const docEntity = options.selectedDocument || options.selectedEntity;
+    if (docEntity && (docEntity.extractedText || docEntity.title)) {
+      const auth = AuthorizationService.canUserAccessDocument(profile, {
+        targetSemester: docEntity.targetSemester || docEntity.semesterNumber,
+        semesterNumber: docEntity.semesterNumber || docEntity.targetSemester,
+        subjectCode: docEntity.subjectCode || docEntity.subject,
+        subjectId: docEntity.subjectId,
+        subject: docEntity.subject,
+        uploadedById: docEntity.uploadedById || docEntity.teacherId,
+        visibility: docEntity.visibility,
+      });
+
+      if (auth.allowed) {
+        documentSummary = [
+          `### 📄 Active Document Content: "${docEntity.title}" (${docEntity.subject || 'Academic Document'})`,
+          `- Author / Instructor: ${docEntity.teacher || docEntity.uploadedBy || 'Faculty Member'}`,
+          `- Target Cohort: ${docEntity.semester || `Semester ${docEntity.semesterNumber || studentSem}`}`,
+          `- Authentic Extracted Document Text:\n"""\n${(docEntity.extractedText || docEntity.description || '').slice(0, 6000)}\n"""`,
+        ].join('\n');
+      } else {
+        documentSummary = `[RESTRICTED DOCUMENT ACCESS]: The active user is unauthorized to access document "${docEntity.title}" belonging to another semester.`;
+      }
+    }
+
+    // 4. Academic Summary (for students)
     let academicSummary: string | undefined = undefined;
     if (role === 'student') {
       const userAttendance = seedStudentAttendanceSummary[profile.id] || [
@@ -89,8 +118,8 @@ export class ContextBuilder {
       const semSubjects = seedSubjects.filter((s) => s.semesterNumber === studentSem);
       const semExams = seedExams.filter((e) => e.semesterNumber === studentSem);
       const semTimetable = seedTimetable.filter((t) => t.semesterNumber === studentSem);
-      const semAssignments = seedAssignments.filter((a) => a.semesterNumber === studentSem);
-      const semNotes = seedNotes.filter((n) => n.semesterNumber === studentSem);
+      const semAssignments = await campusRepository.getAssignments(undefined, profile);
+      const semNotes = await campusRepository.getNotes(undefined, undefined, studentSem, profile);
 
       const totalAtt = Math.round(
         userAttendance.reduce((acc, curr) => acc + curr.attendancePercentage, 0) / (userAttendance.length || 1) * 10
@@ -106,29 +135,39 @@ export class ContextBuilder {
         `- Next Scheduled Classes:`,
         ...semTimetable.slice(0, 3).map((t) => `  * ${t.dayOfWeek} ${t.time}: ${t.subject} with ${t.teacher} (${t.room})`),
         `- Pending Assignments:`,
-        ...semAssignments.slice(0, 2).map((a) => `  * ${a.title} (Due: ${a.dueDate}, Max Score: ${a.maxScore})`),
+        ...semAssignments.slice(0, 3).map((a) => `  * ${a.title} (Due: ${a.dueDate}, Max Score: ${a.maxScore})`),
         `- Available Notes in Library:`,
-        ...semNotes.slice(0, 3).map((n) => `  * ${n.title} (${n.size}) by ${n.teacher}`),
+        ...semNotes.slice(0, 5).map((n) => `  * ${n.title} (${n.size || n.fileSize}) by ${n.teacher}`),
       ].join('\n');
     }
 
-    // 4. Faculty Summary (for teachers)
+    // 5. Faculty Summary (for teachers)
     let facultySummary: string | undefined = undefined;
     if (role === 'teacher') {
-      const assigned = seedSubjects.filter((s) => s.instructorId === profile.id || s.instructor === userName);
+      const teaching = AuthorizationService.getFacultyTeachingAssignments(profile.id || profile.email);
+      const authorizedSemesters = AuthorizationService.getFacultyAuthorizedSemesters(profile.id || profile.email);
       facultySummary = [
-        '### 🎓 Faculty Teaching Scope (Authentic CampusOS Data):',
-        `- Assigned Courses: ${assigned.map((a) => `${a.name} (${a.code} - ${a.semester})`).join(', ') || 'Operating Systems (CS501 - Sem 5 Sec A)'}`,
+        '### 🎓 Faculty Teaching Scope (Strictly Authorized Teaching Assignments):',
+        `- Active Teaching Assignments: ${
+          teaching.length > 0
+            ? teaching.map((t) => `${t.subjectName} (${t.subjectCode} - Semester ${t.semesterNumber} Sec ${t.section})`).join(', ')
+            : 'Operating Systems (CS501 - Semester 5 Sec A)'
+        }`,
+        `- Authorized Semesters: ${
+          authorizedSemesters.length > 0
+            ? authorizedSemesters.map((s) => `Semester ${s}`).join(', ')
+            : 'Semester 5'
+        }`,
         '- Class Attendance Averages: OS Sec A (89.2%), DBMS Sec B (85.7%)',
         '- Students Flagged at Attendance Risk (<75%):',
         '  * Rohit Verma (BCA2403) - 68.5% in Operating Systems [Notice Dispatched]',
         '  * Vikram Mehta (BCA2442) - 68.5% in Operating Systems [Notice Dispatched]',
         '  * Divya Rao (BCA2419) - 71.0% in DBMS [Borderline Warning]',
-        '- Published Question Papers: Operating Systems Mid-Term 2026, DBMS End-Term 2025',
+        '- Security Notice: You are strictly authorized to view, manage, and publish content ONLY for your assigned subjects and semesters above.',
       ].join('\n');
     }
 
-    // 5. Admin Summary (for admins)
+    // 6. Admin Summary (for admins)
     if (role === 'admin') {
       academicSummary = [
         '### 🏛️ Institutional Overview (Authentic CampusOS Data):',
@@ -140,7 +179,7 @@ export class ContextBuilder {
       ].join('\n');
     }
 
-    // 6. Code Lab Summary (when Code Lab context is provided or active)
+    // 7. Code Lab Summary (when Code Lab context is provided or active)
     let codeLabSummary: string | undefined = undefined;
     if (options.codeLabContext || path.includes('code-lab')) {
       const ctx = options.codeLabContext;
@@ -166,6 +205,7 @@ export class ContextBuilder {
       pageSummary,
       academicSummary,
       facultySummary,
+      documentSummary,
       codeLabSummary,
       rawContext: {
         userId: profile.id,
@@ -188,8 +228,20 @@ export class ContextBuilder {
       ctx.pageSummary,
       ctx.academicSummary,
       ctx.facultySummary,
+      ctx.documentSummary,
       ctx.codeLabSummary,
     ].filter(Boolean);
+
+    const securityPolicy =
+      ctx.role === 'student'
+        ? `[STRICT ACCESS CONTROL POLICY]: The active user is a student in Semester ${ctx.userSummary.match(/Semester (\d+)/)?.[1] || 5}. Under NO circumstances should you provide, search, or summarize exams, notes, or internal files from other semesters. If asked about materials from other semesters, clearly state that your access is restricted to their enrolled semester.`
+        : ctx.role === 'teacher'
+        ? `[STRICT ACCESS CONTROL POLICY]: The active user is a faculty member. Access is restricted to their explicitly assigned subjects and semesters.`
+        : '';
+
+    if (securityPolicy) {
+      parts.push(securityPolicy);
+    }
 
     return parts.join('\n\n');
   }

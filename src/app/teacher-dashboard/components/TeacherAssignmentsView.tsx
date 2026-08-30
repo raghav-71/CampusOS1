@@ -1,25 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { mockAssignments, mockSubmissions } from '@/repositories/mockData';
-import { Assignment, Submission } from '@/types/campus';
+import { Assignment, Submission, TeacherSubjectAssignment } from '@/types/campus';
+import { campusRepository } from '@/repositories/campusRepository';
+import { useProfile } from '@/hooks/useProfile';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
 export default function TeacherAssignmentsView() {
+  const { profile } = useProfile();
   const [assignments, setAssignments] = useState<Assignment[]>(mockAssignments);
   const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
+  const [teacherSubjects, setTeacherSubjects] = useState<TeacherSubjectAssignment[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [evalSubm, setEvalSubm] = useState<Submission | null>(null);
 
   // Form State for new assignment
   const [newTitle, setNewTitle] = useState('');
-  const [newSubject, setNewSubject] = useState('Operating Systems');
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
   const [newMaxMarks, setNewMaxMarks] = useState('20');
   const [newDesc, setNewDesc] = useState('');
+
+  useEffect(() => {
+    async function loadSubjects() {
+      const email = profile?.email || 'dr.priya.nair@campusos.edu';
+      const subjs = await campusRepository.getTeacherSubjects(email);
+      setTeacherSubjects(subjs);
+      if (subjs.length > 0 && !selectedSubjectId) {
+        setSelectedSubjectId(subjs[0].subjectId);
+      }
+    }
+    loadSubjects();
+  }, [profile?.email, selectedSubjectId]);
 
   // Form State for grading
   const [scoreInput, setScoreInput] = useState('');
@@ -32,14 +48,22 @@ export default function TeacherAssignmentsView() {
       return;
     }
 
+    const assignedSub =
+      teacherSubjects.find((s) => s.subjectId === selectedSubjectId) ||
+      teacherSubjects[0] || {
+        subjectName: 'Operating Systems',
+        semesterNumber: 5,
+        semester: 'Semester 5',
+      };
+
     const created: Assignment = {
       id: `asg-${Date.now()}`,
       title: newTitle,
-      subject: newSubject,
+      subject: assignedSub.subjectName,
       department: 'BCA',
-      semester: 'Sem 5',
-      semesterNumber: 5,
-      teacher: 'Dr. Priya Nair',
+      semester: assignedSub.semester || `Semester ${assignedSub.semesterNumber}`,
+      semesterNumber: (assignedSub.semesterNumber || 5) as any,
+      teacher: profile?.fullName || 'Dr. Priya Nair',
       dueDate: newDueDate,
       totalSubmissions: 0,
       gradedSubmissions: 0,
@@ -268,13 +292,15 @@ export default function TeacherAssignmentsView() {
                   Subject
                 </label>
                 <select
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
+                  value={selectedSubjectId}
+                  onChange={(e) => setSelectedSubjectId(e.target.value)}
                   className="input-field"
                 >
-                  <option value="Operating Systems">Operating Systems (CS501)</option>
-                  <option value="OS Lab Practical">OS Lab Practical (CS501L)</option>
-                  <option value="System Architecture">System Architecture (MCA302)</option>
+                  {teacherSubjects.map((sub) => (
+                    <option key={sub.subjectId} value={sub.subjectId}>
+                      Semester {sub.semesterNumber} — {sub.subjectName} ({sub.subjectCode})
+                    </option>
+                  ))}
                 </select>
               </div>
 

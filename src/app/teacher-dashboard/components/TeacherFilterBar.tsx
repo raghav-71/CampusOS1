@@ -3,6 +3,8 @@
 import React from 'react';
 import { TeacherFilterState } from '@/types/campus';
 import AnimatedCard from '@/components/motion/AnimatedCard';
+import { useProfile } from '@/hooks/useProfile';
+import { AuthorizationService } from '@/services/authorizationService';
 
 interface TeacherFilterBarProps {
   filters: TeacherFilterState;
@@ -15,6 +17,11 @@ export default function TeacherFilterBar({
   onChange,
   totalFilteredStudents = 154,
 }: TeacherFilterBarProps) {
+  const { profile } = useProfile();
+  const email = profile?.email || 'dr.priya.nair@campusos.edu';
+  const authorizedSemesters = AuthorizationService.getFacultyAuthorizedSemesters(email);
+  const teachingAssignments = AuthorizationService.getFacultyTeachingAssignments(email);
+
   const handleFilterChange = (key: keyof TeacherFilterState, value: string) => {
     onChange({
       ...filters,
@@ -72,7 +79,7 @@ export default function TeacherFilterBar({
             onChange={(e) => handleFilterChange('gradeYear', e.target.value)}
             className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
-            <option value="all">All Years (1st, 2nd, 3rd)</option>
+            <option value="all">All Assigned Years</option>
             <option value="1">1st Year (Sem 1 & 2)</option>
             <option value="2">2nd Year (Sem 3 & 4)</option>
             <option value="3">3rd Year (Sem 5 & 6)</option>
@@ -82,27 +89,26 @@ export default function TeacherFilterBar({
         {/* Semester */}
         <div>
           <label className="block text-[10px] font-700 uppercase tracking-wider text-muted-foreground mb-1">
-            BCA Semester
+            Assigned Semesters
           </label>
           <select
             value={filters.semester}
             onChange={(e) => handleFilterChange('semester', e.target.value)}
             className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
-            <option value="all">All Semesters</option>
-            <option value="1">Semester 1</option>
-            <option value="2">Semester 2</option>
-            <option value="3">Semester 3</option>
-            <option value="4">Semester 4</option>
-            <option value="5">Semester 5 (Active)</option>
-            <option value="6">Semester 6</option>
+            <option value="all">All Assigned Semesters</option>
+            {(authorizedSemesters.length > 0 ? authorizedSemesters : [1, 2, 3, 4, 5, 6]).map((sem) => (
+              <option key={sem} value={String(sem)}>
+                Semester {sem}
+              </option>
+            ))}
           </select>
         </div>
 
         {/* Course Subject */}
         <div>
           <label className="block text-[10px] font-700 uppercase tracking-wider text-muted-foreground mb-1">
-            Course Subject
+            Assigned Subjects
           </label>
           <select
             value={filters.subject}
@@ -110,12 +116,17 @@ export default function TeacherFilterBar({
             className="input-field py-1.5 text-xs font-700 cursor-pointer hover:border-accent transition-all btn-press"
           >
             <option value="all">All Assigned Subjects</option>
-            <option value="Operating Systems">Operating Systems (CS501)</option>
-            <option value="OS Lab Practical">OS Lab Practical (CS501L)</option>
-            <option value="Data Structures">Data Structures (CS301)</option>
-            <option value="Database Management Systems">DBMS (CS502)</option>
-            <option value="Computer Networks">Computer Networks (CS503)</option>
-            <option value="Java Programming">Java Programming (CS504)</option>
+            {(teachingAssignments.length > 0
+              ? teachingAssignments
+              : [
+                  { subjectName: 'Operating Systems', subjectCode: 'CS501' },
+                  { subjectName: 'Database Management Systems', subjectCode: 'CS502' },
+                ]
+            ).map((t, idx) => (
+              <option key={idx} value={t.subjectName}>
+                {t.subjectName} ({t.subjectCode})
+              </option>
+            ))}
           </select>
         </div>
 

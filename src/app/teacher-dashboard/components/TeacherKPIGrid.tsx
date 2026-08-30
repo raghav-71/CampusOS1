@@ -18,90 +18,70 @@ export default function TeacherKPIGrid({ filters }: TeacherKPIGridProps) {
       filters.subject === 'all' &&
       filters.section === 'all');
 
-  const enrolledCount = isSem3 ? 58 : isAll ? 154 : 64;
-  const attendanceRate = isSem3 ? 89.2 : isAll ? 91.8 : 93.3;
-  const gradingCount = isSem3 ? 6 : isAll ? 12 : 8;
   const lectureCount = isSem3 ? 1 : isAll ? 3 : 2;
+  const notesCount = isSem3 ? 18 : isAll ? 42 : 24;
+  const papersCount = isSem3 ? 2 : isAll ? 6 : 4;
 
-  const teacherKPIs: KPICardData[] = [
+  const teacherKPIs: (KPICardData & { icon: string; badgeText: string })[] = [
     {
       id: 'tkpi-classes',
       title: "Today's Lectures",
       value: lectureCount,
-      unit: 'batches',
+      unit: 'Scheduled Sessions',
       change: isSem3 ? 'Data Structures (Hall B-102)' : 'Next: Operating Systems at 10:30 AM',
       trend: 'neutral',
-      detail: isSem3 ? 'Hall B-102 · BCA Sem 3' : 'Room A-204 · BCA Sem 5',
+      detail: isSem3 ? 'BCA Semester 3 · Section A (54 Enrolled)' : 'BCA Semester 5 · Room A-204 (58 Enrolled)',
       color: 'text-accent',
       bgColor: 'bg-accent/10',
-      borderColor: 'border-accent/30',
+      borderColor: 'border-accent/40',
       hero: true,
-    },
-    {
-      id: 'tkpi-students',
-      title: 'Enrolled in Scope',
-      value: enrolledCount,
-      unit: isAll ? 'across assigned BCA courses' : 'in selected filter',
-      change: 'Active Fall 2026',
-      trend: 'positive',
-      detail: `Avg. Attendance: ${attendanceRate}%`,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-      borderColor: 'border-success/30',
-    },
-    {
-      id: 'tkpi-grading',
-      title: 'Pending Grading',
-      value: gradingCount,
-      unit: 'submissions',
-      change: 'Internal 1 Reports',
-      trend: 'warning',
-      detail: isSem3 ? 'DSA Lab Reports (BCA Sem 3)' : 'VM Lab Reports (BCA Sem 5)',
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
-      borderColor: 'border-warning/30',
+      icon: '📅',
+      badgeText: 'Active Timetable',
     },
     {
       id: 'tkpi-notes',
-      title: 'Notes Published',
-      value: isSem3 ? 18 : 42,
-      unit: 'chapters',
-      change: '+3 new this week',
+      title: 'Notes & Study Materials',
+      value: notesCount,
+      unit: 'Published Chapters',
+      change: '+4 Chapters Uploaded This Term',
       trend: 'positive',
-      detail: '1.8k total student downloads',
+      detail: isSem3 ? '1.2k student reads & downloads' : '2.8k total verified student downloads',
       color: 'text-primary',
       bgColor: 'bg-primary/10',
-      borderColor: 'border-primary/30',
+      borderColor: 'border-primary/40',
+      icon: '📚',
+      badgeText: 'Course Library',
     },
     {
       id: 'tkpi-papers',
-      title: 'Question Papers',
-      value: 4,
-      unit: 'archived',
-      change: 'Ready for Internal 1',
+      title: 'Question Papers & Exams',
+      value: papersCount,
+      unit: 'Official Archives',
+      change: '1st & 2nd Internal Assessment Ready',
       trend: 'positive',
-      detail: 'Dean Approved & Published',
-      color: 'text-accent',
-      bgColor: 'bg-accent/10',
-      borderColor: 'border-accent/30',
+      detail: 'Dean Approved · University Model Papers',
+      color: 'text-cyan-400',
+      bgColor: 'bg-cyan-500/10',
+      borderColor: 'border-cyan-500/40',
+      icon: '📑',
+      badgeText: 'Exam Registry',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-      {teacherKPIs.map((kpi, idx) => (
-        <TeacherKPICard key={kpi.id} kpi={kpi} isHero={idx === 0} />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+      {teacherKPIs.map((kpi) => (
+        <TeacherKPICard key={kpi.id} kpi={kpi} />
       ))}
     </div>
   );
 }
 
 interface TeacherKPICardProps {
-  kpi: KPICardData;
-  isHero?: boolean;
+  kpi: KPICardData & { icon: string; badgeText: string };
 }
 
-function TeacherKPICard({ kpi, isHero }: TeacherKPICardProps) {
+function TeacherKPICard({ kpi }: TeacherKPICardProps) {
   const trendColors = {
     positive: 'text-success',
     warning: 'text-warning',
@@ -111,32 +91,42 @@ function TeacherKPICard({ kpi, isHero }: TeacherKPICardProps) {
 
   return (
     <AnimatedCard
-      className={`p-4.5 border ${kpi.borderColor} relative overflow-hidden flex flex-col justify-between ${
-        isHero ? 'col-span-2 md:col-span-1 xl:col-span-1' : ''
-      }`}
+      className={`p-5 sm:p-6 border ${kpi.borderColor} bg-card/60 relative overflow-hidden rounded-3xl flex flex-col justify-between shadow-glass hover:shadow-glow transition-all`}
     >
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-700 tracking-wider text-muted-foreground uppercase">
-            {kpi.title}
-          </p>
-          <span
-            className={`w-2 h-2 rounded-full ${kpi.trend === 'warning' ? 'bg-warning animate-pulse' : 'bg-transparent'}`}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{kpi.icon}</span>
+            <p className="text-xs font-800 tracking-wider text-muted-foreground uppercase">
+              {kpi.title}
+            </p>
+          </div>
+          <span className="badge-cyan text-[10px] px-2.5 py-0.5 rounded-full font-700">
+            {kpi.badgeText}
+          </span>
         </div>
 
-        <div className="flex items-baseline gap-1.5 mb-1">
-          <span className="text-2xl font-800 text-foreground">
+        <div className="flex items-baseline gap-2 my-2">
+          <span className="text-3xl sm:text-4xl font-800 text-foreground font-mono-data">
             <AnimatedNumber value={kpi.value} />
           </span>
-          {kpi.unit && <span className="text-xs text-muted-foreground">{kpi.unit}</span>}
+          {kpi.unit && (
+            <span className="text-xs font-600 text-muted-foreground">
+              {kpi.unit}
+            </span>
+          )}
         </div>
 
-        <p className={`text-xs font-600 ${trendColors[kpi.trend]}`}>{kpi.change}</p>
+        <p className={`text-xs font-700 mt-1 leading-snug ${trendColors[kpi.trend]}`}>
+          {kpi.change}
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground/90 mt-3 pt-2.5 border-t border-border/40 truncate font-500">
-        {kpi.detail}
-      </p>
+
+      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
+        <span className="font-500 text-foreground/80 leading-tight">
+          {kpi.detail}
+        </span>
+      </div>
     </AnimatedCard>
   );
 }

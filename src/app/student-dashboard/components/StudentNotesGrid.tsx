@@ -29,10 +29,10 @@ export default function StudentNotesGrid() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    campusRepository.getNotes(undefined, undefined, profile?.semesterNumber || 5).then((data) => {
+    campusRepository.getNotes(undefined, undefined, profile?.semesterNumber || 5, profile || undefined).then((data) => {
       setNotesList(data);
     });
-  }, [profile?.semesterNumber]);
+  }, [profile]);
 
   const filtered = notesList.filter((note) => {
     const matchesFilter = activeFilter === 'All Subjects' || note.subject.toLowerCase().includes(activeFilter.toLowerCase());

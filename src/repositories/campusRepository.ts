@@ -38,7 +38,10 @@ import {
   seedAnnouncements,
   seedQuestionPapers,
   seedAttendanceLogs,
+  seedSharedDocuments,
+  SharedDocumentRecord,
 } from '@/data/seed';
+import { AuthorizationService } from '@/services/authorizationService';
 
 import {
   mockUsers,
@@ -104,13 +107,22 @@ export interface ICampusRepository {
   ): Promise<StudentPerformanceRecord[]>;
 
   // Question Papers (Upload PDF)
-  getQuestionPapers(teacherId?: string, subjectId?: string): Promise<QuestionPaperDocument[]>;
+  getQuestionPapers(
+    teacherId?: string,
+    subjectId?: string,
+    semesterNumber?: number,
+    userProfile?: any
+  ): Promise<QuestionPaperDocument[]>;
   uploadQuestionPaper(
     paper: Omit<QuestionPaperDocument, 'id' | 'uploadedAt' | 'status'>
   ): Promise<QuestionPaperDocument>;
   deleteQuestionPaper(paperId: string): Promise<boolean>;
 
-  // Notes
+  // Notes & Shared Documents
+  getSharedDocuments(
+    semesterNumber?: number,
+    userProfile?: Partial<UserProfile>
+  ): Promise<SharedDocumentRecord[]>;
   getNotes(subject?: string, query?: string): Promise<NoteDocument[]>;
   saveNote(note: NoteDocument): Promise<NoteDocument>;
   uploadNote(
@@ -165,6 +177,7 @@ export class MockCampusRepository implements ICampusRepository {
   private teacherSchedule: TimetableSlot[] = [...mockTeacherSchedule];
   private teacherAssignments: TeacherSubjectAssignment[] = [...mockTeacherSubjectAssignments];
   private notes: NoteDocument[] = [...seedNotes];
+  private sharedDocuments: SharedDocumentRecord[] = [...seedSharedDocuments];
   private announcements: Announcement[] = [...seedAnnouncements];
   private assignments: Assignment[] = [...seedAssignments];
   private submissions: Submission[] = [...seedSubmissions];
@@ -187,6 +200,46 @@ export class MockCampusRepository implements ICampusRepository {
             this.notes = [...toAdd, ...this.notes];
           }
         }
+
+        const savedShared = localStorage.getItem('campusos_shared_documents');
+        if (savedShared) {
+          const parsed = JSON.parse(savedShared);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.sharedDocuments.map((d) => d.id));
+            const toAdd = parsed.filter((d: SharedDocumentRecord) => !existingIds.has(d.id));
+            this.sharedDocuments = [...toAdd, ...this.sharedDocuments];
+          }
+        }
+
+        const savedAsg = localStorage.getItem('campusos_assignments');
+        if (savedAsg) {
+          const parsed = JSON.parse(savedAsg);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.assignments.map((a) => a.id));
+            const toAdd = parsed.filter((a: Assignment) => !existingIds.has(a.id));
+            this.assignments = [...toAdd, ...this.assignments];
+          }
+        }
+
+        const savedAnn = localStorage.getItem('campusos_announcements');
+        if (savedAnn) {
+          const parsed = JSON.parse(savedAnn);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.announcements.map((a) => a.id));
+            const toAdd = parsed.filter((a: Announcement) => !existingIds.has(a.id));
+            this.announcements = [...toAdd, ...this.announcements];
+          }
+        }
+
+        const savedQp = localStorage.getItem('campusos_question_papers');
+        if (savedQp) {
+          const parsed = JSON.parse(savedQp);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.questionPapers.map((q) => q.id));
+            const toAdd = parsed.filter((q: QuestionPaperDocument) => !existingIds.has(q.id));
+            this.questionPapers = [...toAdd, ...this.questionPapers];
+          }
+        }
       } catch {}
     }
   }
@@ -195,6 +248,31 @@ export class MockCampusRepository implements ICampusRepository {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('campusos_published_notes', JSON.stringify(this.notes));
+        localStorage.setItem('campusos_shared_documents', JSON.stringify(this.sharedDocuments));
+      } catch {}
+    }
+  }
+
+  private persistAssignmentsToStorage() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('campusos_assignments', JSON.stringify(this.assignments));
+      } catch {}
+    }
+  }
+
+  private persistAnnouncementsToStorage() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('campusos_announcements', JSON.stringify(this.announcements));
+      } catch {}
+    }
+  }
+
+  private persistQuestionPapersToStorage() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('campusos_question_papers', JSON.stringify(this.questionPapers));
       } catch {}
     }
   }
@@ -391,33 +469,24 @@ export class MockCampusRepository implements ICampusRepository {
       return this.teacherAssignments.filter((a) => a.teacherId === 'usr-003');
     }
 
-    const assigned = this.teacherAssignments.filter(
-      (a) =>
-        a.teacherId === user.id ||
-        a.teacherName.toLowerCase().includes(user.fullName.toLowerCase()) ||
-        user.fullName.toLowerCase().includes(a.teacherName.toLowerCase())
-    );
-
-    if (assigned.length > 0) return assigned;
-
-    // Fallback based on user.subjects
-    if (user.subjects && user.subjects.length > 0) {
-      return user.subjects.map((subName, i) => ({
-        teacherId: user.id,
-        teacherName: user.fullName,
-        subjectId: `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-        subjectName: subName,
-        subjectCode: `CS${500 + i}`,
-        semester: 'Semester 5',
-        semesterNumber: 5,
-        year: 3,
-        section: 'A',
+    const teaching = AuthorizationService.getFacultyTeachingAssignments(teacherIdOrEmail);
+    if (teaching.length > 0) {
+      return teaching.map((t) => ({
+        teacherId: t.facultyId,
+        teacherName: t.facultyName,
+        subjectId: t.subjectId,
+        subjectName: t.subjectName,
+        subjectCode: t.subjectCode,
+        semester: `Semester ${t.semesterNumber}`,
+        semesterNumber: t.semesterNumber,
+        year: t.year,
+        section: t.section,
         credits: 4,
         type: 'THEORY',
-        room: 'Room A-204',
-        enrolledStudents: 64,
-        avgAttendancePct: 92.0,
-        syllabusCoveredPct: 75,
+        room: `Room ${t.semesterNumber}0${t.year}`,
+        enrolledStudents: 60,
+        avgAttendancePct: 90.0,
+        syllabusCoveredPct: 80,
       }));
     }
 
@@ -501,13 +570,24 @@ export class MockCampusRepository implements ICampusRepository {
     return [...mockStudentPerformanceMatrix];
   }
 
-  async getQuestionPapers(teacherId?: string, subjectId?: string): Promise<QuestionPaperDocument[]> {
+  async getQuestionPapers(
+    teacherId?: string,
+    subjectId?: string,
+    semesterNumber?: number,
+    userProfile?: any
+  ): Promise<QuestionPaperDocument[]> {
     let list = [...this.questionPapers];
     if (teacherId) {
       list = list.filter((q) => q.teacherId === teacherId);
     }
     if (subjectId) {
       list = list.filter((q) => q.subjectId === subjectId);
+    }
+    if (semesterNumber) {
+      list = list.filter((q) => q.semesterNumber === semesterNumber);
+    }
+    if (userProfile && userProfile.role === 'student' && userProfile.semesterNumber) {
+      list = list.filter((q) => q.semesterNumber === userProfile.semesterNumber);
     }
     return list;
   }
@@ -526,12 +606,14 @@ export class MockCampusRepository implements ICampusRepository {
       status: 'Published',
     };
     this.questionPapers.unshift(newDoc);
+    this.persistQuestionPapersToStorage();
     return newDoc;
   }
 
   async deleteQuestionPaper(paperId: string): Promise<boolean> {
     const len = this.questionPapers.length;
     this.questionPapers = this.questionPapers.filter((q) => q.id !== paperId);
+    this.persistQuestionPapersToStorage();
     return this.questionPapers.length < len;
   }
 
@@ -547,11 +629,103 @@ export class MockCampusRepository implements ICampusRepository {
     return records;
   }
 
-  async getNotes(subject?: string, query?: string, semesterNumber?: number): Promise<NoteDocument[]> {
-    let list = [...this.notes];
+  async getSharedDocuments(
+    semesterNumber?: number,
+    userProfile?: Partial<UserProfile>
+  ): Promise<SharedDocumentRecord[]> {
+    let list = [...this.sharedDocuments];
     if (semesterNumber) {
-      list = list.filter((n) => !n.semesterNumber || n.semesterNumber === semesterNumber);
+      list = list.filter((d) => d.targetSemester === semesterNumber);
     }
+    if (userProfile && userProfile.role === 'student' && userProfile.semesterNumber) {
+      list = list.filter((d) => d.targetSemester === userProfile.semesterNumber);
+    }
+    return list;
+  }
+
+  async getDocumentById(
+    id: string,
+    userProfile?: Partial<UserProfile>
+  ): Promise<SharedDocumentRecord | NoteDocument | null> {
+    const sharedDoc = this.sharedDocuments.find((d) => d.id === id);
+    const noteDoc = this.notes.find((n) => n.id === id);
+    const qpDoc = this.questionPapers.find((q) => q.id === id);
+    const doc = sharedDoc || noteDoc || (qpDoc as any);
+
+    if (!doc) {
+      return null;
+    }
+
+    if (userProfile) {
+      const docAny = doc as any;
+      const auth = AuthorizationService.canUserAccessDocument(userProfile, {
+        targetSemester: docAny.targetSemester || docAny.semesterNumber,
+        semesterNumber: docAny.semesterNumber || docAny.targetSemester,
+        subjectCode: docAny.subjectCode || docAny.subject,
+        subjectId: docAny.subjectId,
+        subject: docAny.subject,
+        uploadedById: docAny.uploadedById || docAny.teacherId,
+        visibility: docAny.visibility,
+      });
+
+      if (!auth.allowed) {
+        const error = new Error(auth.reason || '403 Forbidden: Access Denied to this document.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    return doc;
+  }
+
+  async downloadDocument(
+    id: string,
+    userProfile: Partial<UserProfile>
+  ): Promise<{ fileName: string; contentType: string; content: string; fileData?: string; previewUrl?: string }> {
+    const doc = await this.getDocumentById(id, userProfile);
+    if (!doc) {
+      const error = new Error('Document not found.');
+      (error as any).status = 404;
+      throw error;
+    }
+
+    const docAny = doc as any;
+    const content = docAny.extractedText || `CampusOS Study Material: ${doc.title}\nSubject: ${doc.subject}\nSemester: ${doc.semester}`;
+    const fileName = docAny.fileName || `${doc.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.${docAny.fileType || 'pdf'}`;
+    const fileData = docAny.fileData || docAny.fileUrl;
+
+    return {
+      fileName,
+      contentType: fileName.endsWith('.pdf') ? 'application/pdf' : 'text/plain',
+      content,
+      fileData,
+      previewUrl: docAny.fileUrl || fileData,
+    };
+  }
+
+  async getNotes(
+    subject?: string,
+    query?: string,
+    semesterNumber?: number,
+    userProfile?: Partial<UserProfile>
+  ): Promise<NoteDocument[]> {
+    let effectiveSem = semesterNumber;
+    if (userProfile && userProfile.role === 'student' && userProfile.semesterNumber) {
+      effectiveSem = userProfile.semesterNumber;
+    }
+
+    let list = [...this.notes];
+
+    // Filter by student semester
+    if (effectiveSem) {
+      list = list.filter((n) => !n.semesterNumber || n.semesterNumber === effectiveSem);
+    }
+
+    // Filter drafts: students only see published notes
+    if (userProfile?.role === 'student') {
+      list = list.filter((n) => n.status !== 'draft');
+    }
+
     if (subject && subject !== 'all') {
       list = list.filter(
         (n) =>
@@ -583,11 +757,30 @@ export class MockCampusRepository implements ICampusRepository {
   }
 
   async uploadNote(
-    note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>
+    note: Omit<NoteDocument, 'id' | 'uploadedAt' | 'downloads' | 'isNew'>,
+    facultyProfile?: Partial<UserProfile>
   ): Promise<NoteDocument> {
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+        subjectCode: note.subjectCode || note.subjectId,
+        subjectId: note.subjectId,
+        subject: note.subject,
+        semesterNumber: note.semesterNumber,
+      });
+      if (!validation.allowed) {
+        const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const noteId = `note-${Date.now()}`;
     const newNote: NoteDocument = {
       ...note,
-      id: `note-${Date.now()}`,
+      id: noteId,
+      targetSemester: note.semesterNumber,
+      status: note.status || 'published',
+      category: note.category || 'notes',
       uploadedAt: 'Just now',
       downloads: 0,
       isNew: true,
@@ -595,6 +788,32 @@ export class MockCampusRepository implements ICampusRepository {
       views: 1,
     };
     this.notes.unshift(newNote);
+
+    // Also sync to sharedDocuments
+    const sharedRecord: SharedDocumentRecord = {
+      id: noteId,
+      title: newNote.title,
+      fileName: newNote.fileName || `${newNote.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`,
+      fileType: (newNote.fileType as any) || 'pdf',
+      fileSize: newNote.fileSize || newNote.size || '3.5 MB',
+      sizeBytes: 3670016,
+      category: (newNote.category as any) || 'notes',
+      subject: newNote.subject,
+      subjectCode: newNote.subjectCode || newNote.subjectId || 'CS501',
+      semester: newNote.semester,
+      targetSemester: newNote.semesterNumber,
+      uploadedBy: newNote.teacher,
+      uploadedById: newNote.teacherId || 'usr-003',
+      uploadedAt: new Date().toISOString().split('T')[0],
+      status: (newNote.status as any) || 'published',
+      visibility: 'students',
+      fileData: newNote.fileData,
+      extractedText: newNote.extractedText || newNote.description || `Lecture notes on ${newNote.title} for ${newNote.subject}.`,
+      downloads: 0,
+      views: 1,
+    };
+    this.sharedDocuments.unshift(sharedRecord);
+
     this.persistNotesToStorage();
     return newNote;
   }
@@ -602,11 +821,12 @@ export class MockCampusRepository implements ICampusRepository {
   async deleteNote(noteId: string): Promise<boolean> {
     const prev = this.notes.length;
     this.notes = this.notes.filter((n) => n.id !== noteId);
+    this.sharedDocuments = this.sharedDocuments.filter((d) => d.id !== noteId);
     this.persistNotesToStorage();
     return this.notes.length < prev;
   }
 
-  async getAnnouncements(role?: Role, userId?: string): Promise<Announcement[]> {
+  async getAnnouncements(role?: Role, userId?: string, semesterNumber?: number): Promise<Announcement[]> {
     let list = [...this.announcements];
     if (role) {
       list = list.filter((a) => !a.targetRole || a.targetRole === 'all' || a.targetRole === role);
@@ -614,11 +834,15 @@ export class MockCampusRepository implements ICampusRepository {
     if (userId) {
       list = list.filter((a) => !a.recipientUserId || a.recipientUserId === userId);
     }
+    if (semesterNumber) {
+      list = list.filter((a) => !a.targetSemester || a.targetSemester === semesterNumber || a.semesterNumber === semesterNumber);
+    }
     return list;
   }
 
   async createAnnouncement(announcement: Announcement): Promise<Announcement> {
     this.announcements.unshift(announcement);
+    this.persistAnnouncementsToStorage();
     return announcement;
   }
 
@@ -626,6 +850,7 @@ export class MockCampusRepository implements ICampusRepository {
     const item = this.announcements.find((a) => a.id === notificationId);
     if (item) {
       item.read = true;
+      this.persistAnnouncementsToStorage();
       return true;
     }
     return false;
@@ -637,17 +862,22 @@ export class MockCampusRepository implements ICampusRepository {
         a.read = true;
       }
     });
+    this.persistAnnouncementsToStorage();
     return true;
   }
 
-  async getAssignments(teacherName?: string): Promise<Assignment[]> {
+  async getAssignments(teacherName?: string, userProfile?: Partial<UserProfile>): Promise<Assignment[]> {
     let list = [...this.assignments];
     if (teacherName) list = list.filter((a) => a.teacher.includes(teacherName));
+    if (userProfile && userProfile.role === 'student' && userProfile.semesterNumber) {
+      list = list.filter((a) => a.semesterNumber === userProfile.semesterNumber);
+    }
     return list;
   }
 
   async createAssignment(assignment: Assignment): Promise<Assignment> {
     this.assignments.unshift(assignment);
+    this.persistAssignmentsToStorage();
     return assignment;
   }
 

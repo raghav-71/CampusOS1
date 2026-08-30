@@ -18,6 +18,8 @@ export interface StoredFileMetadata {
   uploadedAt: string;
   previewUrl?: string;
   downloadUrl?: string;
+  dataUrl?: string;
+  extractedText?: string;
 }
 
 export interface FileValidationOptions {
@@ -109,6 +111,31 @@ export function classifyFileType(ext: string): StoredFileMetadata['fileType'] {
 export class MockFileStorageService implements IFileStorageService {
   private fileRegistry = new Map<string, StoredFileMetadata>();
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('campusos_file_registry');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item: StoredFileMetadata) => {
+              if (item.fileId) this.fileRegistry.set(item.fileId, item);
+            });
+          }
+        }
+      } catch {}
+    }
+  }
+
+  private persist() {
+    if (typeof window !== 'undefined') {
+      try {
+        const items = Array.from(this.fileRegistry.values());
+        localStorage.setItem('campusos_file_registry', JSON.stringify(items));
+      } catch {}
+    }
+  }
+
   validateFile(file: File, options?: FileValidationOptions): { valid: boolean; error?: string } {
     if (!file) {
       return { valid: false, error: 'No file was provided.' };
@@ -162,28 +189,35 @@ export class MockFileStorageService implements IFileStorageService {
 
     // Simulate async progress
     if (onProgress) {
-      onProgress(15);
+      onProgress(20);
+      await new Promise((r) => setTimeout(r, 60));
+      onProgress(60);
       await new Promise((r) => setTimeout(r, 80));
-      onProgress(50);
-      await new Promise((r) => setTimeout(r, 120));
-      onProgress(85);
-      await new Promise((r) => setTimeout(r, 90));
       onProgress(100);
-    } else {
-      await new Promise((r) => setTimeout(r, 200));
     }
 
     const fileId = `file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const sanitized = sanitizeFileName(file.name);
     const ext = sanitized.split('.').pop()?.toLowerCase() || '';
 
-    // Create object URL for client preview & download simulation
+    let dataUrl: string | undefined = undefined;
     let previewUrl: string | undefined = undefined;
+
     if (typeof window !== 'undefined') {
       try {
         previewUrl = URL.createObjectURL(file);
-      } catch {
-        previewUrl = undefined;
+      } catch {}
+
+      // Convert small/medium files to data URL for persistent browser downloads
+      if (file.size < 12 * 1024 * 1024) {
+        try {
+          dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+        } catch {}
       }
     }
 
@@ -201,24 +235,26 @@ export class MockFileStorageService implements IFileStorageService {
         day: 'numeric',
         year: 'numeric',
       }),
-      previewUrl,
-      downloadUrl: previewUrl,
+      previewUrl: dataUrl || previewUrl,
+      downloadUrl: dataUrl || previewUrl,
+      dataUrl,
     };
 
     this.fileRegistry.set(fileId, metadata);
+    this.persist();
     return metadata;
   }
 
   async deleteFile(fileId: string): Promise<boolean> {
     const meta = this.fileRegistry.get(fileId);
-    if (meta?.previewUrl && typeof window !== 'undefined') {
+    if (meta?.previewUrl && typeof window !== 'undefined' && meta.previewUrl.startsWith('blob:')) {
       try {
         URL.revokeObjectURL(meta.previewUrl);
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
-    return this.fileRegistry.delete(fileId);
+    const res = this.fileRegistry.delete(fileId);
+    this.persist();
+    return res;
   }
 
   getFileMetadata(fileId: string): StoredFileMetadata | null {

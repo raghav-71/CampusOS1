@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AnimatedCard from '@/components/motion/AnimatedCard';
+import { campusRepository } from '@/repositories/campusRepository';
+import { useProfile } from '@/hooks/useProfile';
+import { Announcement } from '@/types/campus';
 
-const announcements = [
+const defaultAnnouncements: Announcement[] = [
   {
     id: 'ann-001',
     title: 'DBMS Exam Rescheduled',
@@ -13,6 +16,7 @@ const announcements = [
     time: '2 hours ago',
     author: 'Office of COE (BCA)',
     read: false,
+    semesterNumber: 5,
   },
   {
     id: 'ann-002',
@@ -43,6 +47,7 @@ const announcements = [
     time: 'Yesterday',
     author: 'Dr. Priya Nair',
     read: true,
+    semesterNumber: 5,
   },
 ];
 
@@ -58,9 +63,28 @@ const categoryConfig: Record<string, string> = {
   General: 'badge-muted',
   Academic: 'badge-cyan',
   Emergency: 'badge-danger',
+  Class: 'badge-cyan',
 };
 
 export default function StudentAnnouncementsFeed() {
+  const { profile } = useProfile();
+  const [announcementsList, setAnnouncementsList] = useState<Announcement[]>(defaultAnnouncements);
+
+  useEffect(() => {
+    async function loadAnnouncements() {
+      try {
+        const repoAnns = await campusRepository.getAnnouncements(
+          profile?.role || 'student',
+          profile?.id,
+          profile?.semesterNumber || 5
+        );
+        if (repoAnns && repoAnns.length > 0) {
+          setAnnouncementsList(repoAnns);
+        }
+      } catch {}
+    }
+    loadAnnouncements();
+  }, [profile]);
   return (
     <AnimatedCard className="p-6 border-border/80 h-full shadow-glass">
       <div className="flex items-center justify-between mb-5">
@@ -76,8 +100,8 @@ export default function StudentAnnouncementsFeed() {
       </div>
 
       <div className="space-y-3">
-        {announcements.map((ann) => {
-          const priority = priorityConfig[ann.priority as keyof typeof priorityConfig];
+        {announcementsList.map((ann) => {
+          const priority = priorityConfig[ann.priority as keyof typeof priorityConfig] || priorityConfig.low;
           return (
             <div
               key={ann.id}

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { UserProfile, Role } from '@/types/campus';
+import { campusRepository } from '@/repositories/campusRepository';
 import { mockUsers } from '@/repositories/mockData';
 
 const statusConfig = {
@@ -33,6 +34,20 @@ export default function AdminUserTable() {
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(7);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const users = await campusRepository.getUsers();
+        if (users && users.length > 0) {
+          setUsersList(users);
+        }
+      } catch (err) {
+        console.error('Failed to load users from repository:', err);
+      }
+    }
+    loadUsers();
+  }, []);
 
   const filtered = usersList.filter((u) => {
     const matchRole = filterRole === 'all' || u.role === filterRole;
@@ -80,9 +95,10 @@ export default function AdminUserTable() {
     setConfirmDelete(id);
   };
 
-  const confirmDeleteAction = () => {
+  const confirmDeleteAction = async () => {
     if (confirmDelete) {
       const targetUser = usersList.find((u) => u.id === confirmDelete);
+      await campusRepository.deleteUser(confirmDelete);
       setUsersList((prev) => prev.filter((u) => u.id !== confirmDelete));
       setSelectedRows((prev) => prev.filter((r) => r !== confirmDelete));
       toast.success(`${targetUser?.fullName || 'User'} removed from platform`);
@@ -90,15 +106,25 @@ export default function AdminUserTable() {
     }
   };
 
-  const handleBulkDeactivate = () => {
+  const handleBulkDeactivate = async () => {
     setUsersList((prev) =>
-      prev.map((u) => (selectedRows.includes(u.id) ? { ...u, status: 'inactive' } : u))
+      prev.map((u) => {
+        if (selectedRows.includes(u.id)) {
+          const updated = { ...u, status: 'inactive' as const };
+          campusRepository.saveUser(updated);
+          return updated;
+        }
+        return u;
+      })
     );
     toast.success(`${selectedRows.length} user(s) set to inactive`);
     setSelectedRows([]);
   };
 
-  const handleBulkRemove = () => {
+  const handleBulkRemove = async () => {
+    for (const id of selectedRows) {
+      await campusRepository.deleteUser(id);
+    }
     setUsersList((prev) => prev.filter((u) => !selectedRows.includes(u.id)));
     toast.success(`${selectedRows.length} user(s) removed`);
     setSelectedRows([]);

@@ -111,6 +111,10 @@ export interface Assignment {
   maxScore: number;
   description?: string;
   status: 'active' | 'grading' | 'closed';
+  fileUrl?: string;
+  fileName?: string;
+  fileData?: string;
+  extractedText?: string;
 }
 
 export interface Submission {
@@ -136,8 +140,10 @@ export interface NoteDocument {
   title: string;
   subject: string;
   subjectId?: string;
+  subjectCode?: string;
   semester: string;
   semesterNumber: BcaSemester;
+  targetSemester?: BcaSemester;
   department: 'BCA';
   teacher: string;
   teacherId?: string;
@@ -147,10 +153,16 @@ export interface NoteDocument {
   pages: number;
   size: string;
   fileSize?: string;
+  fileName?: string;
+  fileType?: string;
+  fileUrl?: string;
+  fileData?: string;
+  extractedText?: string;
+  category?: 'notes' | 'study-material' | 'syllabus' | 'question-paper';
+  status?: 'published' | 'draft' | 'archived';
   isNew: boolean;
   rating?: number;
   views?: number;
-  fileUrl?: string;
   description?: string;
 }
 
@@ -178,9 +190,14 @@ export interface Announcement {
   read: boolean;
   recipientUserId?: string;
   targetRole?: Role | 'all';
-  targetDepartment?: 'BCA' | 'all';
   targetSemester?: BcaSemester;
+  semesterNumber?: BcaSemester;
+  targetDepartment?: 'BCA' | 'all';
   targetSection?: string;
+  subject?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileData?: string;
   relatedEntity?: 'class' | 'assignment' | 'exam' | 'note' | 'marks';
   relatedEntityId?: string;
 }
@@ -292,11 +309,17 @@ export interface QuestionPaperDocument {
   fileName: string;
   fileSize: string;
   fileUrl?: string;
+  fileData?: string;
+  extractedText?: string;
+  description?: string;
   uploadedAt: string;
   status: 'Published' | 'Draft' | 'Approved by Dean';
   totalMarks: number;
+  maxMarks?: number;
   duration: string;
 }
+
+export type QuestionPaper = QuestionPaperDocument;
 
 export interface TeacherSubjectAssignment {
   teacherId: string;

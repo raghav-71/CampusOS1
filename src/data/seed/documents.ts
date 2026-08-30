@@ -18,6 +18,8 @@ export interface SharedDocumentRecord {
   status: 'published' | 'draft' | 'archived';
   visibility: 'students' | 'faculty' | 'public';
   extractedText: string;
+  fileData?: string;
+  fileUrl?: string;
   downloads: number;
   views: number;
 }
@@ -149,6 +151,33 @@ Instructor: Prof. Rajesh Kumar
 - ER Modeling: Entities, Attributes, Relationships, Cardinalities.
 - SQL DDL, DML, DCL, TCL Commands.
 - Joins: INNER JOIN, LEFT OUTER JOIN, RIGHT OUTER JOIN, FULL OUTER JOIN.
+`,
+  },
+  {
+    id: 'doc-101',
+    title: 'Problem Solving & C Programming Fundamentals',
+    fileName: 'C_Programming_Sem1.pdf',
+    fileType: 'pdf',
+    fileSize: '2.4 MB',
+    sizeBytes: 2516582,
+    category: 'notes',
+    subject: 'Problem Solving & C Programming',
+    subjectCode: 'CS101',
+    semester: 'Semester 1',
+    targetSemester: 1,
+    uploadedBy: 'Dr. Priya Nair',
+    uploadedById: 'usr-faculty-001',
+    uploadedAt: '2026-08-10',
+    status: 'published',
+    visibility: 'students',
+    downloads: 110,
+    views: 220,
+    extractedText: `
+Problem Solving and C Programming - Unit 1 & 2
+Instructor: Dr. Priya Nair | BCA Semester 1
+- Algorithms & Flowcharts
+- Control structures: if-else, switch-case, for, while, do-while
+- Pointers, Arrays, and Memory Allocation
 `,
   },
 ];

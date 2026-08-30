@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { campusRepository } from '@/repositories/campusRepository';
+import { useProfile } from '@/hooks/useProfile';
+import { TeacherSubjectAssignment } from '@/types/campus';
 import Button from '@/components/ui/Button';
 
 interface StudentAttendanceItem {
@@ -66,10 +68,35 @@ const initialStudents: StudentAttendanceItem[] = [
 ];
 
 export default function TeacherAttendanceRegister() {
+  const { profile } = useProfile();
   const [students, setStudents] = useState<StudentAttendanceItem[]>(initialStudents);
-  const [selectedBatch, setSelectedBatch] = useState('BCA-Sem5-OS');
+  const [assignedSubjects, setAssignedSubjects] = useState<TeacherSubjectAssignment[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [sessionDate, setSessionDate] = useState('2026-08-25');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadAssigned() {
+      const email = profile?.email || 'dr.priya.nair@campusos.edu';
+      const subjs = await campusRepository.getTeacherSubjects(email);
+      setAssignedSubjects(subjs);
+      if (subjs.length > 0 && !selectedSubjectId) {
+        setSelectedSubjectId(subjs[0].subjectId);
+      }
+    }
+    loadAssigned();
+  }, [profile?.email, selectedSubjectId]);
+
+  const activeSubject =
+    assignedSubjects.find((s) => s.subjectId === selectedSubjectId) ||
+    assignedSubjects[0] || {
+      subjectId: 'sub-os',
+      subjectName: 'Operating Systems',
+      subjectCode: 'CS501',
+      semesterNumber: 5,
+      section: 'A',
+      room: 'Room A-204',
+    };
 
   const presentCount = students.filter((s) => s.status === 'present').length;
   const lateCount = students.filter((s) => s.status === 'late').length;
@@ -93,17 +120,17 @@ export default function TeacherAttendanceRegister() {
         studentId: s.id,
         studentName: s.name,
         rollNumber: s.rollNumber,
-        subject: 'Operating Systems',
-        subjectCode: 'CS501',
+        subject: activeSubject.subjectName,
+        subjectCode: activeSubject.subjectCode,
         date: sessionDate,
         status: s.status,
-        semesterNumber: 5 as const,
-        section: 'A',
+        semesterNumber: (activeSubject.semesterNumber || 5) as any,
+        section: activeSubject.section || 'A',
       }));
 
       await campusRepository.recordAttendance(records);
       toast.success(
-        `Attendance saved for ${selectedBatch} on ${sessionDate}! Turnout: ${turnoutPct}% (${presentCount} Present, ${absentCount} Absent)`
+        `Attendance saved for ${activeSubject.subjectName} (Sem ${activeSubject.semesterNumber}) on ${sessionDate}! Turnout: ${turnoutPct}% (${presentCount} Present, ${absentCount} Absent)`
       );
     } catch (err: any) {
       toast.error('Failed to save attendance: ' + err.message);
@@ -121,19 +148,21 @@ export default function TeacherAttendanceRegister() {
             Live Lecture Attendance Register
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Mark, evaluate, and sync daily student lecture attendance for BCA cohorts
+            Mark, evaluate, and sync daily student lecture attendance for authorized BCA cohorts
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <select
-            value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
+            value={selectedSubjectId}
+            onChange={(e) => setSelectedSubjectId(e.target.value)}
             className="bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer"
           >
-            <option value="BCA-Sem5-OS">BCA Sem 5 — Operating Systems (Room A-204)</option>
-            <option value="BCA-Sem5-OSLab">BCA Sem 5 — OS Lab Batch 1 (Systems Lab 1)</option>
-            <option value="BCA-Sem3-DSA">BCA Sem 3 — Data Structures (Hall B-102)</option>
+            {assignedSubjects.map((sub) => (
+              <option key={sub.subjectId} value={sub.subjectId}>
+                Semester {sub.semesterNumber} — {sub.subjectName} ({sub.subjectCode} · Sec {sub.section})
+              </option>
+            ))}
           </select>
 
           <input

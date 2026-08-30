@@ -5,7 +5,10 @@ import { Announcement } from '@/types/campus';
 
 export async function GET(request: NextRequest) {
   try {
-    const announcements = await campusRepository.getAnnouncements();
+    const { searchParams } = new URL(request.url);
+    const role = (searchParams.get('role') as any) || undefined;
+    const userId = searchParams.get('userId') || undefined;
+    const announcements = await campusRepository.getAnnouncements(role, userId);
     return NextResponse.json({ announcements, total: announcements.length });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

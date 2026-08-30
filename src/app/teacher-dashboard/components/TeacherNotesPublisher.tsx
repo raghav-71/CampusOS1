@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { NoteDocument, TeacherSubjectAssignment } from '@/types/campus';
+import { NoteDocument, TeacherSubjectAssignment, BcaSemester } from '@/types/campus';
 import { campusRepository } from '@/repositories/campusRepository';
 import { fileStorageService } from '@/services/fileStorageService';
+import { DocumentParserService } from '@/services/documentParserService';
+import { AuthorizationService } from '@/services/authorizationService';
 import { useProfile } from '@/hooks/useProfile';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
@@ -13,14 +15,19 @@ import Badge from '@/components/ui/Badge';
 export default function TeacherNotesPublisher() {
   const { profile } = useProfile();
   const [notes, setNotes] = useState<NoteDocument[]>([]);
-  const [teacherSubjects, setTeacherSubjects] = useState<TeacherSubjectAssignment[]>([]);
+  const [authorizedSemesters, setAuthorizedSemesters] = useState<BcaSemester[]>([]);
+  const [selectedSemester, setSelectedSemester] = useState<number>(5);
+  const [availableSubjects, setAvailableSubjects] = useState<TeacherSubjectAssignment[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [contentType, setContentType] = useState<'notes' | 'study-material' | 'syllabus'>('notes');
+  const [publishStatus, setPublishStatus] = useState<'published' | 'draft'>('published');
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // Form states
   const [title, setTitle] = useState('');
-  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [pagesInput, setPagesInput] = useState('24');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -29,31 +36,51 @@ export default function TeacherNotesPublisher() {
 
   const loadData = useCallback(async () => {
     const teacherEmail = profile?.email || 'dr.priya.nair@campusos.edu';
-    const [allNotes, subjs] = await Promise.all([
-      campusRepository.getNotes(),
-      campusRepository.getTeacherSubjects(teacherEmail),
-    ]);
+    const sems = AuthorizationService.getFacultyAuthorizedSemesters(teacherEmail);
+    const initialSem = sems.length > 0 ? sems[0] : 5;
+    setAuthorizedSemesters(sems.length > 0 ? sems : [1, 5, 6]);
+
+    const activeSem = sems.includes(selectedSemester as any) ? selectedSemester : initialSem;
+    setSelectedSemester(activeSem);
+
+    const subjs = await campusRepository.getTeacherSubjects(teacherEmail);
+    const filteredSubjs = subjs.filter((s) => s.semesterNumber === activeSem);
+    setAvailableSubjects(filteredSubjs.length > 0 ? filteredSubjs : subjs);
+
+    if (filteredSubjs.length > 0) {
+      setSelectedSubjectId(filteredSubjs[0].subjectId);
+    }
+
+    const allNotes = await campusRepository.getNotes();
     const teacherName = profile?.fullName || 'Dr. Priya Nair';
     const scopedNotes = allNotes.filter(
       (n) => n.teacher.includes(teacherName) || teacherName.includes(n.teacher)
     );
-    setNotes(scopedNotes.length > 0 ? scopedNotes : allNotes.slice(0, 4));
-    setTeacherSubjects(subjs);
-    if (subjs.length > 0 && !selectedSubjectId) {
-      setSelectedSubjectId(subjs[0].subjectId);
-    }
-  }, [profile?.email, profile?.fullName, selectedSubjectId]);
+    setNotes(scopedNotes.length > 0 ? scopedNotes : allNotes.slice(0, 5));
+  }, [profile?.email, profile?.fullName, selectedSemester]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // When semester changes in form, update available subjects
+  const handleSemesterChange = async (sem: number) => {
+    setSelectedSemester(sem);
+    const teacherEmail = profile?.email || 'dr.priya.nair@campusos.edu';
+    const subjs = await campusRepository.getTeacherSubjects(teacherEmail);
+    const filteredSubjs = subjs.filter((s) => s.semesterNumber === sem);
+    setAvailableSubjects(filteredSubjs.length > 0 ? filteredSubjs : subjs);
+    if (filteredSubjs.length > 0) {
+      setSelectedSubjectId(filteredSubjs[0].subjectId);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const validation = fileStorageService.validateFile(file, {
-      allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+      allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv'],
       maxSizeBytes: 25 * 1024 * 1024,
     });
 
@@ -75,55 +102,81 @@ export default function TeacherNotesPublisher() {
       return;
     }
     if (!selectedFile) {
-      toast.error('Please choose a document file (PDF, PPT, DOCX)');
+      toast.error('Please choose a document file (PDF, DOCX, TXT)');
       return;
     }
 
     const assignedSub =
-      teacherSubjects.find((s) => s.subjectId === selectedSubjectId) || teacherSubjects[0];
+      availableSubjects.find((s) => s.subjectId === selectedSubjectId) || availableSubjects[0];
     if (!assignedSub) {
-      toast.error('Please select an assigned subject');
+      toast.error('Please select an assigned subject for the target semester');
       return;
     }
 
     setIsUploading(true);
     try {
+      // 1. Asynchronously extract text from file
+      let extractedText = '';
+      try {
+        const parsed = await DocumentParserService.parseFile(selectedFile);
+        if (parsed.success) {
+          extractedText = parsed.extractedText;
+        }
+      } catch {}
+
+      // 2. Upload file to browser storage
       const storedFile = await fileStorageService.uploadFile(
         selectedFile,
         'notes',
-        { allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'] },
+        { allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv'] },
         (pct) => setUploadProgress(pct)
       );
 
-      const created = await campusRepository.uploadNote({
-        title,
-        subject: assignedSub.subjectName,
-        subjectId: assignedSub.subjectId,
-        semester: assignedSub.semester,
-        semesterNumber: assignedSub.semesterNumber,
-        department: 'BCA',
-        teacher: profile?.fullName || 'Dr. Priya Nair',
-        teacherId: profile?.id || 'usr-003',
-        tags: tagsInput
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
-        pages: parseInt(pagesInput, 10) || 20,
-        size: storedFile.fileSize,
-        fileSize: storedFile.fileSize,
-        fileUrl: storedFile.previewUrl,
-        rating: 5.0,
-        views: 1,
-      });
+      // 3. Persist document metadata and file data to shared repository
+      const created = await campusRepository.uploadNote(
+        {
+          title,
+          description: description || `Published lecture material for ${assignedSub.subjectName} (Semester ${assignedSub.semesterNumber}).`,
+          subject: assignedSub.subjectName,
+          subjectId: assignedSub.subjectId,
+          subjectCode: assignedSub.subjectCode,
+          semester: `Semester ${assignedSub.semesterNumber}`,
+          semesterNumber: assignedSub.semesterNumber,
+          targetSemester: assignedSub.semesterNumber,
+          department: 'BCA',
+          teacher: profile?.fullName || 'Dr. Priya Nair',
+          teacherId: profile?.id || 'usr-003',
+          tags: tagsInput
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean),
+          pages: parseInt(pagesInput, 10) || 20,
+          size: storedFile.fileSize,
+          fileSize: storedFile.fileSize,
+          fileName: storedFile.fileName,
+          fileType: storedFile.fileType,
+          fileUrl: storedFile.previewUrl,
+          fileData: storedFile.dataUrl || storedFile.previewUrl,
+          extractedText: extractedText || `Topic Summary for ${title}\nSubject: ${assignedSub.subjectName}\nInstructor: ${profile?.fullName || 'Dr. Priya Nair'}`,
+          category: contentType,
+          status: publishStatus,
+          rating: 5.0,
+          views: 1,
+        },
+        profile || undefined
+      );
 
       setNotes((prev) => [created, ...prev]);
-      toast.success(`Published document: "${title}" for ${assignedSub.subjectName}!`);
+      toast.success(
+        `Successfully published "${title}" for BCA Semester ${assignedSub.semesterNumber} (${assignedSub.subjectName})!`
+      );
       setUploadModalOpen(false);
       setTitle('');
+      setDescription('');
       setSelectedFile(null);
       setTagsInput('');
     } catch (err: any) {
-      toast.error('Failed to upload notes: ' + err.message);
+      toast.error('Failed to upload document: ' + err.message);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -131,8 +184,9 @@ export default function TeacherNotesPublisher() {
   };
 
   const handleDelete = async (id: string, noteTitle: string) => {
+    await campusRepository.deleteNote(id);
     setNotes((prev) => prev.filter((n) => n.id !== id));
-    toast.success(`Removed note: "${noteTitle}"`);
+    toast.success(`Removed document: "${noteTitle}" from repository`);
   };
 
   return (
@@ -298,6 +352,69 @@ export default function TeacherNotesPublisher() {
               </div>
             )}
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
+                  Content Type
+                </label>
+                <select
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value as any)}
+                  className="input-field cursor-pointer"
+                >
+                  <option value="notes">Lecture Notes</option>
+                  <option value="study-material">Study Material / Cheatsheet</option>
+                  <option value="syllabus">Syllabus & Lab Manual</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
+                  Target Semester
+                </label>
+                <select
+                  value={selectedSemester}
+                  onChange={(e) => handleSemesterChange(Number(e.target.value))}
+                  className="input-field cursor-pointer font-700 text-primary"
+                >
+                  {authorizedSemesters.map((sem) => (
+                    <option key={sem} value={sem}>
+                      Semester {sem} (Assigned)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
+                  Assigned Subject
+                </label>
+                <select
+                  value={selectedSubjectId}
+                  onChange={(e) => setSelectedSubjectId(e.target.value)}
+                  className="input-field cursor-pointer"
+                >
+                  {availableSubjects.map((s) => (
+                    <option key={s.subjectId} value={s.subjectId}>
+                      {s.subjectName} ({s.subjectCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Target Audience Banner */}
+            <div className="p-3 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span>🎯</span>
+                <span className="font-600 text-foreground">
+                  Target Audience: <strong className="text-primary">BCA Semester {selectedSemester}</strong> (
+                  {availableSubjects.find((s) => s.subjectId === selectedSubjectId)?.subjectName || 'Course'} Cohort)
+                </span>
+              </div>
+              <Badge variant="cyan">Semester Isolated</Badge>
+            </div>
+
             <div>
               <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
                 Document Title
@@ -312,21 +429,31 @@ export default function TeacherNotesPublisher() {
               />
             </div>
 
+            <div>
+              <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
+                Description / Overview
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                placeholder="Brief summary of concepts covered in this document for student revision..."
+                className="input-field resize-none text-xs"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-700 uppercase tracking-wider text-muted-foreground mb-1">
-                  Subject (Your Assigned Courses)
+                  Publishing Status
                 </label>
                 <select
-                  value={selectedSubjectId}
-                  onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="input-field cursor-pointer"
+                  value={publishStatus}
+                  onChange={(e) => setPublishStatus(e.target.value as any)}
+                  className="input-field cursor-pointer font-600"
                 >
-                  {teacherSubjects.map((s) => (
-                    <option key={s.subjectId} value={s.subjectId}>
-                      {s.subjectName} ({s.semester})
-                    </option>
-                  ))}
+                  <option value="published">Published (Visible to Students)</option>
+                  <option value="draft">Draft (Faculty Only)</option>
                 </select>
               </div>
 

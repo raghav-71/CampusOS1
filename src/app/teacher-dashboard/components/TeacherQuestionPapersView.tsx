@@ -10,6 +10,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import AnimatedCard from '@/components/motion/AnimatedCard';
+import DocumentViewerModal from '@/components/documents/DocumentViewerModal';
 
 export default function TeacherQuestionPapersView() {
   const { profile } = useProfile();
@@ -473,72 +474,12 @@ export default function TeacherQuestionPapersView() {
       )}
 
       {/* Question Paper Preview Modal */}
-      {previewPaper && (
-        <Modal
-          isOpen={Boolean(previewPaper)}
-          onClose={() => setPreviewPaper(null)}
-          maxWidth="xl"
-          title={previewPaper.title}
-          description={`${previewPaper.subjectCode} · Duration: ${previewPaper.duration} · Max Marks: ${previewPaper.totalMarks}`}
-          footer={
-            <div className="flex justify-between items-center w-full">
-              <span className="text-xs text-muted-foreground font-mono-data">
-                Uploaded: {previewPaper.uploadedAt}
-              </span>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setPreviewPaper(null)}>
-                  Close
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    handleDownload(previewPaper);
-                    setPreviewPaper(null);
-                  }}
-                >
-                  Download PDF
-                </Button>
-              </div>
-            </div>
-          }
-        >
-          <div className="p-6 rounded-3xl border border-border bg-card/90 space-y-4 font-mono-data text-xs leading-relaxed">
-            <div className="text-center border-b border-border pb-3">
-              <h4 className="font-800 text-sm text-foreground uppercase tracking-wide">
-                UNIVERSITY DEPARTMENT OF COMPUTER APPLICATIONS (BCA)
-              </h4>
-              <p className="text-muted-foreground mt-0.5">
-                {previewPaper.examType} Assessment — {previewPaper.subject} ({previewPaper.subjectCode})
-              </p>
-              <p className="text-[10px] text-accent font-700 mt-1">
-                Verified Cryptographic Faculty Signature: {previewPaper.teacherName}
-              </p>
-            </div>
-
-            <div>
-              <p className="font-700 text-primary mb-1">
-                PART A (Answer all compulsory questions — 10 x 2 = 20 Marks)
-              </p>
-              <p>1. Define Virtual Memory and explain the function of the Translation Lookaside Buffer (TLB).</p>
-              <p>2. Differentiate preemptive vs non-preemptive CPU scheduling with algorithmic trade-offs.</p>
-              <p>3. State Coffman&apos;s four necessary and sufficient conditions for system deadlock.</p>
-            </div>
-
-            <div className="pt-2 border-t border-border/40">
-              <p className="font-700 text-accent mb-1">
-                PART B (Answer any 4 major sections — 4 x 20 = 80 Marks)
-              </p>
-              <p>
-                4. Given a set of 5 processes and 3 resource instances, demonstrate Banker&apos;s Safety Algorithm and determine safe execution sequences.
-              </p>
-              <p>
-                5. Formulate Page Replacement benchmarks for FIFO, LRU, and Optimal algorithms under given reference strings.
-              </p>
-            </div>
-          </div>
-        </Modal>
-      )}
+      <DocumentViewerModal
+        isOpen={Boolean(previewPaper)}
+        onClose={() => setPreviewPaper(null)}
+        document={previewPaper}
+        onDownload={(doc) => handleDownload(doc as QuestionPaperDocument || previewPaper!)}
+      />
     </>
   );
 }

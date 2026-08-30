@@ -1,6 +1,7 @@
 import { campusRepository } from '@/repositories/campusRepository';
 import { mockExams, mockEvents, mockUsers } from '@/repositories/mockData';
-import { Role } from '@/types/campus';
+import { Role, UserProfile } from '@/types/campus';
+import { AuthorizationService } from '@/services/authorizationService';
 
 export interface UnifiedSearchResult {
   category:
@@ -21,17 +22,23 @@ export interface UnifiedSearchResult {
 
 export class AISearchEngine {
   /**
-   * Searches across all campus data structures respecting role authorization.
+   * Searches across all campus data structures respecting role authorization and semester boundaries.
    */
-  static async searchAll(query: string, role: Role): Promise<UnifiedSearchResult[]> {
+  static async searchAll(
+    query: string,
+    role: Role,
+    userProfile?: Partial<UserProfile>
+  ): Promise<UnifiedSearchResult[]> {
     if (!query || !query.trim()) return [];
     const q = query.toLowerCase().trim();
 
+    const studentSem = userProfile?.semesterNumber || (role === 'student' ? 5 : undefined);
+
     const [subjects, notes, timetable, announcements, assignments] = await Promise.all([
-      campusRepository.getSubjects(),
-      campusRepository.getNotes(),
-      campusRepository.getStudentTimetable(),
-      campusRepository.getAnnouncements(role),
+      campusRepository.getSubjects(studentSem),
+      campusRepository.getNotes(undefined, undefined, studentSem, userProfile),
+      campusRepository.getStudentTimetable(undefined, studentSem ? `Semester ${studentSem}` : undefined),
+      campusRepository.getAnnouncements(role, userProfile?.id),
       campusRepository.getAssignments(),
     ]);
 
