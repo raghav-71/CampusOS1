@@ -1,111 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
-
-const notes = [
-  {
-    id: 'note-001',
-    title: 'Memory Management — Virtual Memory & Paging',
-    subject: 'Operating Systems',
-    semester: 'Sem 5',
-    teacher: 'Dr. Priya Nair',
-    tags: ['OS', 'Memory', 'Paging'],
-    uploadedAt: 'Aug 21, 2026',
-    downloads: 142,
-    pages: 24,
-    size: '3.2 MB',
-    isNew: true,
-  },
-  {
-    id: 'note-002',
-    title: 'SQL Advanced Queries & Stored Procedures',
-    subject: 'DBMS',
-    semester: 'Sem 5',
-    teacher: 'Prof. Rajan Mehta',
-    tags: ['SQL', 'Procedures', 'DBMS'],
-    uploadedAt: 'Aug 20, 2026',
-    downloads: 98,
-    pages: 18,
-    size: '2.1 MB',
-    isNew: true,
-  },
-  {
-    id: 'note-003',
-    title: 'TCP/IP Stack Deep Dive',
-    subject: 'Computer Networks',
-    semester: 'Sem 5',
-    teacher: 'Dr. Kavitha Rao',
-    tags: ['TCP', 'Networking', 'Protocols'],
-    uploadedAt: 'Aug 19, 2026',
-    downloads: 211,
-    pages: 32,
-    size: '4.8 MB',
-    isNew: false,
-  },
-  {
-    id: 'note-004',
-    title: 'Graph Algorithms — Dijkstra & Bellman-Ford',
-    subject: 'DAA',
-    semester: 'Sem 5',
-    teacher: 'Dr. Suresh Pillai',
-    tags: ['Graphs', 'Algorithms', 'DAA'],
-    uploadedAt: 'Aug 18, 2026',
-    downloads: 176,
-    pages: 28,
-    size: '3.9 MB',
-    isNew: false,
-  },
-  {
-    id: 'note-005',
-    title: 'Java Collections Framework Complete Guide',
-    subject: 'Java Programming',
-    semester: 'Sem 5',
-    teacher: 'Prof. Anil Kumar',
-    tags: ['Java', 'Collections', 'OOP'],
-    uploadedAt: 'Aug 17, 2026',
-    downloads: 324,
-    pages: 40,
-    size: '5.6 MB',
-    isNew: false,
-  },
-  {
-    id: 'note-006',
-    title: 'Process Scheduling Algorithms — Round Robin, FCFS',
-    subject: 'Operating Systems',
-    semester: 'Sem 5',
-    teacher: 'Dr. Priya Nair',
-    tags: ['OS', 'Scheduling', 'CPU'],
-    uploadedAt: 'Aug 15, 2026',
-    downloads: 189,
-    pages: 22,
-    size: '2.8 MB',
-    isNew: false,
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { campusRepository } from '@/repositories/campusRepository';
+import { NoteDocument } from '@/types/campus';
+import { useProfile } from '@/hooks/useProfile';
 
 const subjectColors: Record<string, string> = {
   'Operating Systems': 'badge-violet',
-  DBMS: 'badge-cyan',
+  'Database Management Systems': 'badge-cyan',
   'Computer Networks': 'badge-success',
-  'Java Programming': 'badge-warning',
-  DAA: 'badge-muted',
+  'Java Enterprise Programming': 'badge-warning',
+  'Design & Analysis of Algorithms': 'badge-muted',
 };
 
 const filters = [
   'All Subjects',
   'Operating Systems',
-  'DBMS',
+  'Database Management Systems',
   'Computer Networks',
-  'Java Programming',
-  'DAA',
+  'Java Enterprise Programming',
+  'Design & Analysis of Algorithms',
 ];
 
 export default function StudentNotesGrid() {
+  const { profile } = useProfile();
+  const [notesList, setNotesList] = useState<NoteDocument[]>([]);
   const [activeFilter, setActiveFilter] = useState('All Subjects');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filtered = notes.filter((note) => {
-    const matchesFilter = activeFilter === 'All Subjects' || note.subject === activeFilter;
+  useEffect(() => {
+    campusRepository.getNotes(undefined, undefined, profile?.semesterNumber || 5).then((data) => {
+      setNotesList(data);
+    });
+  }, [profile?.semesterNumber]);
+
+  const filtered = notesList.filter((note) => {
+    const matchesFilter = activeFilter === 'All Subjects' || note.subject.toLowerCase().includes(activeFilter.toLowerCase());
     const matchesSearch =
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.subject.toLowerCase().includes(searchQuery.toLowerCase());

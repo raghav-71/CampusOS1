@@ -1,32 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { mockNotes } from '@/repositories/mockData';
+import { campusRepository } from '@/repositories/campusRepository';
 import { NoteDocument } from '@/types/campus';
+import { useProfile } from '@/hooks/useProfile';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 
 export default function StudentNotesExplorer() {
-  const [notesList, setNotesList] = useState<NoteDocument[]>(mockNotes);
+  const { profile } = useProfile();
+  const [notesList, setNotesList] = useState<NoteDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedNote, setSelectedNote] = useState<NoteDocument | null>(null);
   const [readerPage, setReaderPage] = useState(1);
   const [bookmarkedNotes, setBookmarkedNotes] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredNotes = notesList.filter((note) => {
-    const matchSubject =
-      selectedSubject === 'all' ||
-      note.subject.toLowerCase().includes(selectedSubject.toLowerCase());
-    const matchSearch =
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.teacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchSubject && matchSearch;
-  });
+  const loadNotes = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const studentSem = profile?.semesterNumber || 5;
+      const notes = await campusRepository.getNotes(selectedSubject, searchQuery, studentSem);
+      setNotesList(notes);
+    } catch {
+      toast.error('Failed to load notes library');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedSubject, searchQuery, profile?.semesterNumber]);
+
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
+
+  const filteredNotes = notesList;
 
   const handleOpenReader = (note: NoteDocument) => {
     setSelectedNote(note);

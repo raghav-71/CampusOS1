@@ -30,9 +30,9 @@ interface SignupFormData {
 }
 
 const mockCredentials = {
-  student: { email: 'arjun.sharma@campusos.edu', password: 'Student@2026' },
-  teacher: { email: 'dr.priya.nair@campusos.edu', password: 'Teacher@2026' },
-  admin: { email: 'admin@campusos.edu', password: 'Admin@2026' },
+  student: { email: 'student5@campusos.demo', password: 'Student@2026' },
+  teacher: { email: 'faculty@campusos.demo', password: 'Teacher@2026' },
+  admin: { email: 'admin@campusos.demo', password: 'Admin@2026' },
 };
 
 export default function LoginPageClient() {
@@ -61,17 +61,23 @@ export default function LoginPageClient() {
 
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 750));
+    await new Promise((r) => setTimeout(r, 400));
 
-    const creds = mockCredentials[activeRole];
-    if (data.email === creds.email && data.password === creds.password) {
-      const profile = await fetchProfileByEmail(data.email);
-      if (profile) {
-        saveProfile(profile);
+    const email = data.email.trim().toLowerCase();
+    let profile = await fetchProfileByEmail(email);
+
+    if (!profile) {
+      const creds = mockCredentials[activeRole];
+      if (email === creds.email.toLowerCase()) {
+        profile = await fetchProfileByEmail(creds.email);
       }
-      toast.success(`Welcome back! Transitioning to ${activeRole.toUpperCase()} workspace...`);
-      await new Promise((r) => setTimeout(r, 400));
-      router.push(roleRoutes[activeRole]);
+    }
+
+    if (profile) {
+      saveProfile(profile);
+      toast.success(`Welcome back, ${profile.fullName}! Opening ${profile.role.toUpperCase()} portal...`);
+      await new Promise((r) => setTimeout(r, 300));
+      router.push(roleRoutes[profile.role]);
     } else {
       setIsLoading(false);
       loginForm.setError('email', {

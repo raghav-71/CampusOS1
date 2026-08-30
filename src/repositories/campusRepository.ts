@@ -27,6 +27,20 @@ import {
 } from '@/types/campus';
 
 import {
+  seedStudents,
+  seedFaculty,
+  seedSubjects,
+  seedTimetable,
+  seedExams,
+  seedNotes,
+  seedAssignments,
+  seedSubmissions,
+  seedAnnouncements,
+  seedQuestionPapers,
+  seedAttendanceLogs,
+} from '@/data/seed';
+
+import {
   mockUsers,
   mockDepartments,
   mockSubjects,
@@ -145,58 +159,45 @@ export interface ICampusRepository {
 }
 
 export class MockCampusRepository implements ICampusRepository {
-  private users: UserProfile[] = [...mockUsers];
-  private subjects: Subject[] = [...mockSubjects];
-  private timetable: TimetableSlot[] = [...mockTimetable];
+  private users: UserProfile[] = [...mockUsers, ...seedStudents, ...seedFaculty];
+  private subjects: Subject[] = [...seedSubjects];
+  private timetable: TimetableSlot[] = [...seedTimetable];
   private teacherSchedule: TimetableSlot[] = [...mockTeacherSchedule];
   private teacherAssignments: TeacherSubjectAssignment[] = [...mockTeacherSubjectAssignments];
-  private notes: NoteDocument[] = [...mockNotes];
-  private announcements: Announcement[] = [...mockAnnouncements];
-  private assignments: Assignment[] = [...mockAssignments];
-  private submissions: Submission[] = [...mockSubmissions];
+  private notes: NoteDocument[] = [...seedNotes];
+  private announcements: Announcement[] = [...seedAnnouncements];
+  private assignments: Assignment[] = [...seedAssignments];
+  private submissions: Submission[] = [...seedSubmissions];
   private activities: ActivityItem[] = [...mockActivities];
-  private exams: ExamSchedule[] = [...mockExams];
+  private exams: ExamSchedule[] = [...seedExams];
   private marksCards: MarksCardDocument[] = [...mockMarksCardSubmissions];
   private examMarks: StudentExamMark[] = [...mockStudentExamMarks];
-  private questionPapers: QuestionPaperDocument[] = [...mockQuestionPapers];
-  private attendanceRecords: AttendanceRecord[] = [
-    {
-      id: 'att-1',
-      studentId: 'usr-001',
-      studentName: 'Arjun Sharma',
-      rollNumber: 'BCA2401',
-      subject: 'Operating Systems',
-      subjectCode: 'CS501',
-      date: '2026-08-23',
-      status: 'present',
-      semesterNumber: 5,
-      section: 'A',
-    },
-    {
-      id: 'att-2',
-      studentId: 'usr-002',
-      studentName: 'Priya Menon',
-      rollNumber: 'BCA2402',
-      subject: 'Operating Systems',
-      subjectCode: 'CS501',
-      date: '2026-08-23',
-      status: 'present',
-      semesterNumber: 5,
-      section: 'A',
-    },
-    {
-      id: 'att-3',
-      studentId: 'usr-004',
-      studentName: 'Rohit Verma',
-      rollNumber: 'BCA2403',
-      subject: 'Operating Systems',
-      subjectCode: 'CS501',
-      date: '2026-08-23',
-      status: 'absent',
-      semesterNumber: 5,
-      section: 'A',
-    },
-  ];
+  private questionPapers: QuestionPaperDocument[] = [...seedQuestionPapers];
+  private attendanceRecords: AttendanceRecord[] = [...seedAttendanceLogs];
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedNotes = localStorage.getItem('campusos_published_notes');
+        if (savedNotes) {
+          const parsed = JSON.parse(savedNotes);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.notes.map((n) => n.id));
+            const toAdd = parsed.filter((n: NoteDocument) => !existingIds.has(n.id));
+            this.notes = [...toAdd, ...this.notes];
+          }
+        }
+      } catch {}
+    }
+  }
+
+  private persistNotesToStorage() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('campusos_published_notes', JSON.stringify(this.notes));
+      } catch {}
+    }
+  }
 
   async getUsers(role?: Role, department?: string): Promise<UserProfile[]> {
     let result = [...this.users];
@@ -546,8 +547,11 @@ export class MockCampusRepository implements ICampusRepository {
     return records;
   }
 
-  async getNotes(subject?: string, query?: string): Promise<NoteDocument[]> {
+  async getNotes(subject?: string, query?: string, semesterNumber?: number): Promise<NoteDocument[]> {
     let list = [...this.notes];
+    if (semesterNumber) {
+      list = list.filter((n) => !n.semesterNumber || n.semesterNumber === semesterNumber);
+    }
     if (subject && subject !== 'all') {
       list = list.filter(
         (n) =>
@@ -574,6 +578,7 @@ export class MockCampusRepository implements ICampusRepository {
     } else {
       this.notes.unshift(note);
     }
+    this.persistNotesToStorage();
     return note;
   }
 
@@ -590,7 +595,15 @@ export class MockCampusRepository implements ICampusRepository {
       views: 1,
     };
     this.notes.unshift(newNote);
+    this.persistNotesToStorage();
     return newNote;
+  }
+
+  async deleteNote(noteId: string): Promise<boolean> {
+    const prev = this.notes.length;
+    this.notes = this.notes.filter((n) => n.id !== noteId);
+    this.persistNotesToStorage();
+    return this.notes.length < prev;
   }
 
   async getAnnouncements(role?: Role, userId?: string): Promise<Announcement[]> {
