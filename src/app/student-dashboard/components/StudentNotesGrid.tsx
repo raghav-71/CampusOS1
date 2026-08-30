@@ -125,7 +125,7 @@ export default function StudentNotesGrid() {
 }
 
 interface NoteCardProps {
-  note: (typeof notes)[0];
+  note: NoteDocument;
 }
 
 function NoteCard({ note }: NoteCardProps) {
