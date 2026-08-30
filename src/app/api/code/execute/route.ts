@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (typeof body.sourceCode !== 'string') {
+    const sourceCode = typeof body.sourceCode === 'string' ? body.sourceCode : typeof (body as any).code === 'string' ? (body as any).code : null;
+
+    if (sourceCode === null) {
       return NextResponse.json(
         { error: 'sourceCode string is required.' },
         { status: 400 }
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const result = await CodeExecutionService.executeCode({
       language: body.language,
-      sourceCode: body.sourceCode,
+      sourceCode: sourceCode,
       stdin: body.stdin,
       timeoutMs: body.timeoutMs || 10000,
       memoryLimitMb: body.memoryLimitMb || 128,

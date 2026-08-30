@@ -12,18 +12,26 @@ import { AIActionType } from '@/lib/codelab/ai/codePrompts';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      mode = 'action', // 'action' | 'fix' | 'chat'
+    let {
+      mode = 'action', // 'action' | 'fix' | 'chat' | 'explain' | 'optimize'
       action = 'EXPLAIN_CODE',
       message,
       context,
       history = [],
     } = body;
 
+    if (mode === 'explain') {
+      mode = 'action';
+      action = 'EXPLAIN_CODE';
+    } else if (mode === 'optimize') {
+      mode = 'action';
+      action = 'OPTIMIZE_CODE';
+    }
+
     const codeContext: CodeAIContext = context || {
-      language: 'python',
-      fileName: 'main.py',
-      sourceCode: '',
+      language: body.language || 'python',
+      fileName: body.fileName || (body.language === 'javascript' ? 'index.js' : 'main.py'),
+      sourceCode: body.sourceCode || body.code || '',
       aiMode: 'tutor',
     };
 
