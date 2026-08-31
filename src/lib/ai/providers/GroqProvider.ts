@@ -51,17 +51,26 @@ export class GroqProvider implements AIProvider {
     }
   }
 
+  private cachedModels: string[] | null = null;
+  private lastModelFetchTime = 0;
+
   async getAvailableModels(): Promise<string[]> {
     if (!this.isConfigured()) return CANDIDATE_GROQ_MODELS;
+    
+    // Return cached models if retrieved in the last 10 minutes
+    if (this.cachedModels && Date.now() - this.lastModelFetchTime < 10 * 60 * 1000) {
+      return this.cachedModels;
+    }
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const res = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { Authorization: `Bearer ${this.getCleanKey()}` },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      if (!res.ok) return CANDIDATE_GROQ_MODELS;
+      if (!res.ok) return this.cachedModels || CANDIDATE_GROQ_MODELS;
       const data = await res.json();
       if (Array.isArray(data.data)) {
         const available = data.data.map((m: any) => m.id as string);
@@ -75,11 +84,15 @@ export class GroqProvider implements AIProvider {
             !id.includes('tts') &&
             !id.includes('moderation')
         );
-        return activeChatModels.length > 0 ? activeChatModels : CANDIDATE_GROQ_MODELS;
+        if (activeChatModels.length > 0) {
+          this.cachedModels = activeChatModels;
+          this.lastModelFetchTime = Date.now();
+          return activeChatModels;
+        }
       }
       return CANDIDATE_GROQ_MODELS;
     } catch {
-      return CANDIDATE_GROQ_MODELS;
+      return this.cachedModels || CANDIDATE_GROQ_MODELS;
     }
   }
 

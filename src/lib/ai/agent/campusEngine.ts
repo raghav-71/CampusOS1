@@ -31,6 +31,8 @@ function getExecutionOptions(query: string, signal?: AbortSignal) {
 export interface StreamEvent {
   type: 'token' | 'step' | 'action' | 'done' | 'error';
   content?: string;
+  token?: string;
+  text?: string;
   step?: string;
   toolName?: string;
   action?: AIAction;
@@ -286,7 +288,7 @@ export class CampusEngine {
 
     const emitToken = (text: string) => {
       tokensEmittedCount++;
-      onEvent({ type: 'token', content: text });
+      onEvent({ type: 'token', content: text, token: text, text });
     };
 
     try {

@@ -625,11 +625,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           }
 
           if (event.type === 'token') {
-            accumulatedContentRef.current += event.token || '';
-            if (accumulatedContentRef.current.length > MAX_RESPONSE_LENGTH) {
-              controller.abort();
+            const token = event.content ?? event.token ?? event.text ?? '';
+            if (token) {
+              accumulatedContentRef.current += token;
+              if (accumulatedContentRef.current.length > MAX_RESPONSE_LENGTH) {
+                controller.abort();
+              }
+              scheduleBatchedUpdate();
             }
-            scheduleBatchedUpdate();
           } else if (event.type === 'step') {
             setActiveToolStatus(event.step);
           } else if (event.type === 'action') {
@@ -647,6 +650,11 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                   : m
               )
             );
+          } else if (event.type === 'error') {
+            accumulatedContentRef.current =
+              event.content || 'CampusOS AI encountered a temporary issue. Please try again.';
+            scheduleBatchedUpdate();
+            streamCompleted = true;
           } else if (event.type === 'done') {
             streamCompleted = true;
           }
@@ -666,15 +674,53 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         }
       } else {
         const data = await res.json();
-        accumulatedContentRef.current = data.answer || data.text || 'Response received.';
+        accumulatedContentRef.current = data.answer || data.text || data.response || 'Response received.';
         scheduleBatchedUpdate();
+      }
+
+      // If streaming finished but zero tokens were received (e.g. proxy dropped SSE body)
+      if (!accumulatedContentRef.current.trim()) {
+        try {
+          const fallbackRes = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: finalQuery,
+              userProfile: profile,
+              currentPath: pathname,
+              currentTab,
+              sessionId: `session_${profile?.id || 'guest'}`,
+              history: historyPayload,
+              selectedEntity: activeDocument
+                ? {
+                    id: activeDocument.id,
+                    title: activeDocument.title,
+                    fileName: activeDocument.fileName,
+                    subject: activeDocument.subject,
+                    extractedText: activeDocument.extractedText,
+                  }
+                : undefined,
+              stream: false,
+            }),
+          });
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            accumulatedContentRef.current =
+              fallbackData.answer || fallbackData.text || fallbackData.response || '';
+          }
+        } catch {
+          // Keep whatever content or show retry notice below
+        }
       }
 
       // Final state sync
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
 
-      const finalContent = accumulatedContentRef.current;
+      const finalContent =
+        accumulatedContentRef.current.trim() ||
+        'CampusOS AI is ready. Please click **Retry** below if your response was interrupted.';
+
       setMessages((prev) =>
         prev.map((m) =>
           m.id === aiMsgId
@@ -682,6 +728,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                 ...m,
                 content: finalContent,
                 durationMs: Date.now() - startTime,
+                canRetry: !accumulatedContentRef.current.trim(),
               }
             : m
         )
@@ -710,6 +757,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         )
       );
 
+      isLoadingRef.current = false;
+      setIsLoading(false);
+      setActiveToolStatus(null);
+    } finally {
       isLoadingRef.current = false;
       setIsLoading(false);
       setActiveToolStatus(null);

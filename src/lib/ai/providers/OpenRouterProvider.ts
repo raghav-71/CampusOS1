@@ -7,7 +7,8 @@ import { AIProvider, LLMMessage, LLMCompletionOptions, LLMCompletionResult, LLMT
 import { StreamingThinkFilter } from './StreamingThinkFilter';
 
 const CANDIDATE_OPENROUTER_MODELS = [
-  process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+  process.env.OPENROUTER_MODEL || (process.env.AI_MODEL && process.env.AI_MODEL.includes('/') ? process.env.AI_MODEL : 'meta-llama/llama-3.3-70b-instruct:free'),
+  'meta-llama/llama-3.3-70b-instruct:free',
   'google/gemini-2.0-flash-exp:free',
   'qwen/qwen-2.5-coder-32b-instruct:free',
   'mistralai/mistral-7b-instruct:free',

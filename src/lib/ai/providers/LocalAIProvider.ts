@@ -20,13 +20,21 @@ export class LocalAIProvider implements AIProvider {
     return (process.env.OLLAMA_BASE_URL || this.baseUrl || 'http://127.0.0.1:11434').replace(/\/$/, '');
   }
 
+  isConfigured(): boolean {
+    // If in cloud environment or production, disable local Ollama unless explicitly configured with a remote non-localhost URL
+    if (this.isCloudServerless()) return false;
+    
+    // In local development, enabled only if explicitly configured or running locally
+    return Boolean(process.env.ENABLE_OLLAMA === 'true' || process.env.OLLAMA_BASE_URL || !this.isCloudServerless());
+  }
+
   async isAvailable(): Promise<boolean> {
     // If in cloud environment without explicit remote URL, skip local Ollama immediately
-    if (this.isCloudServerless()) return false;
+    if (this.isCloudServerless() || !this.isConfigured()) return false;
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
       const res = await fetch(`${this.getBaseUrl()}/api/tags`, {
         signal: controller.signal,
       });
@@ -38,7 +46,7 @@ export class LocalAIProvider implements AIProvider {
   }
 
   private isCloudServerless(): boolean {
-    const isVercel = Boolean(process.env.VERCEL);
+    const isVercel = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
     const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
     const isNetlify = Boolean(process.env.NETLIFY);
     const isDefaultLocalhost = this.getBaseUrl().includes('127.0.0.1') || this.getBaseUrl().includes('localhost');

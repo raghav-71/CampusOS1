@@ -74,6 +74,7 @@ export class ProviderChain {
   static getProviderCascade(intent: AIQueryIntent = 'normal'): AIProvider[] {
     const forced = (process.env.AI_PROVIDER || '').toLowerCase().trim();
     const isCloud = this.isCloudServerless();
+    const includeLocal = !isCloud && localAIProvider.isConfigured();
 
     // If an explicit provider is forced (and not 'auto')
     if (forced && forced !== 'auto') {
@@ -89,12 +90,12 @@ export class ProviderChain {
       if (forced === 'openrouter' && openRouterProvider.isConfigured()) {
         return [openRouterProvider, groqProvider, geminiProvider, nvidiaNemotronProvider, fallbackProvider];
       }
-      if (forced === 'ollama' && !isCloud) {
+      if (forced === 'ollama' && includeLocal) {
         return [localAIProvider, groqProvider, openRouterProvider, fallbackProvider];
       }
     }
 
-    // Dynamic Intent-based Priority Cascade:
+    // Dynamic Intent-based Priority Cascade (Cloud First -> Deterministic Fallback):
     switch (intent) {
       case 'rag_document':
         // RAG / Document Analysis -> Gemini (Large context & document precision) -> Groq -> OpenRouter -> Nemotron
@@ -103,7 +104,7 @@ export class ProviderChain {
           groqProvider,
           openRouterProvider,
           nvidiaNemotronProvider,
-          ...(!isCloud ? [localAIProvider] : []),
+          ...(includeLocal ? [localAIProvider] : []),
           fallbackProvider,
         ];
 
@@ -114,7 +115,7 @@ export class ProviderChain {
           groqProvider,
           openRouterProvider,
           geminiProvider,
-          ...(!isCloud ? [localAIProvider] : []),
+          ...(includeLocal ? [localAIProvider] : []),
           fallbackProvider,
         ];
 
@@ -127,7 +128,7 @@ export class ProviderChain {
           openRouterProvider,
           geminiProvider,
           nvidiaNemotronProvider,
-          ...(!isCloud ? [localAIProvider] : []),
+          ...(includeLocal ? [localAIProvider] : []),
           fallbackProvider,
         ];
     }
