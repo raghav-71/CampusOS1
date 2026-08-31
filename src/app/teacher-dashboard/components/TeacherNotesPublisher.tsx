@@ -93,6 +93,16 @@ export default function TeacherNotesPublisher() {
     if (!title.trim()) {
       setTitle(file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '));
     }
+    DocumentParserService.parseFile(file)
+      .then((parsed) => {
+        if (parsed.success && parsed.pageCount && parsed.pageCount > 0) {
+          setPagesInput(String(parsed.pageCount));
+        }
+        if (parsed.isScanned) {
+          toast.info('Notice: This document appears to be image-based or scanned.');
+        }
+      })
+      .catch(() => {});
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {

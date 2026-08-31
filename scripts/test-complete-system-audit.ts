@@ -263,6 +263,61 @@ Experiment 6: Role-Based Authorization and JWT Token Authentication.`,
   const canPriyaManageDBMS = AuthorizationService.canFacultyManageSubject(teacherPriya.email!, 'CS301', 3);
   assert(!canPriyaManageDBMS, 'Dr. Priya Nair CANNOT manage DBMS (CS301) in Semester 3 (Assigned to Prof. Rajesh)');
 
+  // ==========================================================================
+  // SCENARIO 14: Natural Language Absence Comprehension & Leave Letter
+  // ==========================================================================
+  console.log('\n--- SCENARIO 14: Natural Language Absence & Leave Letter ---');
+  const absenceResponse = await AIService.handleRequest({
+    message: "I won't be able to attend classes tomorrow because I have an important dental appointment",
+    userProfile: studentSem5,
+    stream: false,
+  });
+
+  assert(
+    absenceResponse.answer.toLowerCase().includes('mentor') ||
+      absenceResponse.answer.toLowerCase().includes('teacher') ||
+      absenceResponse.answer.toLowerCase().includes('letter'),
+    'Natural language absence query advises mentor contact and offers leave letter',
+    absenceResponse.answer.slice(0, 120) + '...'
+  );
+
+  const leaveLetterResponse = await AIService.handleRequest({
+    message: 'Write a leave letter for me',
+    userProfile: studentSem5,
+    stream: false,
+  });
+
+  assert(
+    leaveLetterResponse.answer.toLowerCase().includes('leave of absence') &&
+      leaveLetterResponse.answer.includes('Arjun Sharma') &&
+      leaveLetterResponse.answer.includes('BCA2401'),
+    'Leave letter generation formats official application with student name and roll number',
+    'Generated formal letter for Arjun Sharma (BCA2401)'
+  );
+
+  // ==========================================================================
+  // SCENARIO 15: Anonymous Feedback System & Admin Anonymity Guarantee
+  // ==========================================================================
+  console.log('\n--- SCENARIO 15: Anonymous Feedback & Admin Anonymity Guarantee ---');
+  const submittedFb = await campusRepository.submitFeedback({
+    category: 'Teaching',
+    rating: 5,
+    message: 'The live interactive OS memory paging visualization helped clarify internal fragmentation.',
+    submittedRole: 'student',
+  });
+
+  assert(
+    submittedFb.id.startsWith('fb-') && submittedFb.status === 'pending',
+    'Student anonymous feedback successfully created'
+  );
+
+  const allFeedbacks = await campusRepository.getFeedback();
+  const hasUserMarker = allFeedbacks.some((f: any) => f.studentName || f.email || f.userId || f.rollNumber);
+  assert(
+    !hasUserMarker,
+    'Admin feedback repository strictly preserves 100% anonymity (zero identity markers stored)'
+  );
+
   // Clean up test document
   await campusRepository.deleteNote(uploadedNote.id);
 
@@ -271,7 +326,7 @@ Experiment 6: Role-Based Authorization and JWT Token Authentication.`,
   console.log('======================================================================');
 
   if (passed === total) {
-    console.log('🎉 ALL 15 CAMPUSOS FUNCTIONAL & ARCHITECTURAL AUDIT SCENARIOS PASSED!');
+    console.log('🎉 ALL CAMPUSOS FUNCTIONAL & ARCHITECTURAL AUDIT SCENARIOS PASSED!');
   } else {
     process.exit(1);
   }

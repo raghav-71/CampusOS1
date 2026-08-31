@@ -95,26 +95,44 @@ export interface AttendanceRecord {
   section?: string;
 }
 
+export interface AssignmentAttachment {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  url?: string;
+  dataUrl?: string;
+  extractedText?: string;
+}
+
 export interface Assignment {
   id: string;
   title: string;
   subject: string;
   subjectId?: string;
+  subjectCode?: string;
   department: 'BCA';
   semester: string;
   semesterNumber: BcaSemester;
+  targetSemester?: BcaSemester;
   teacher: string;
   teacherId?: string;
   dueDate: string;
+  dueTime?: string;
   totalSubmissions: number;
   gradedSubmissions: number;
   maxScore: number;
   description?: string;
-  status: 'active' | 'grading' | 'closed';
+  status: 'draft' | 'active' | 'grading' | 'closed';
+  allowLateSubmissions?: boolean;
+  attachments?: AssignmentAttachment[];
   fileUrl?: string;
   fileName?: string;
   fileData?: string;
+  fileSize?: string;
   extractedText?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Submission {
@@ -123,16 +141,24 @@ export interface Submission {
   assignmentTitle: string;
   studentId: string;
   studentName: string;
+  studentEmail?: string;
   rollNumber: string;
   subject: string;
+  subjectCode?: string;
+  semesterNumber?: BcaSemester;
   submittedAt: string;
-  status: 'submitted' | 'graded' | 'late';
+  status: 'submitted' | 'graded' | 'late' | 'resubmission_requested';
   score?: number;
   maxScore: number;
+  textAnswer?: string;
   fileUrl?: string;
   fileName?: string;
   fileSize?: string;
+  fileData?: string;
+  extractedText?: string;
   feedback?: string;
+  gradedAt?: string;
+  gradedBy?: string;
 }
 
 export interface NoteDocument {
@@ -451,4 +477,24 @@ export interface TeacherFilterState {
   semester: string;
   subject: string;
   section: string;
+}
+
+export type FeedbackCategory =
+  | 'Teaching'
+  | 'Course'
+  | 'CampusOS'
+  | 'Faculty'
+  | 'Technical Issue'
+  | 'Suggestion'
+  | 'Other';
+
+export interface AnonymousFeedback {
+  id: string;
+  category: FeedbackCategory;
+  rating?: number; // 1 to 5
+  message: string;
+  submittedRole: 'student' | 'teacher';
+  submittedAt: string; // ISO date or readable time
+  status: 'pending' | 'reviewed' | 'addressed';
+  // STRICT ANONYMITY: No student/teacher name, email, roll number, or user ID is stored or exposed
 }

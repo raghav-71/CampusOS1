@@ -218,32 +218,8 @@ export class CampusEngine {
         durationMs: Date.now() - startTime,
       };
     } catch (err: any) {
-      console.warn('[CampusEngine] LLM provider error:', err?.message || err);
-
-      const lowerQ = query.toLowerCase();
-      const isCampusSpecific =
-        lowerQ.includes('attendance') ||
-        lowerQ.includes('timetable') ||
-        lowerQ.includes('schedule') ||
-        lowerQ.includes('marks') ||
-        lowerQ.includes('grades') ||
-        lowerQ.includes('notes');
-
-      if (isCampusSpecific) {
-        return await DeterministicEngine.process(query, context);
-      }
-
-      const status = await ProviderChain.getStatus();
-      return {
-        answer: `### ⚠️ Campus AI: Service Notice\n\nI was unable to complete this query through remote language models. Please check your network or OpenRouter configuration.\n\n**Provider Status:**\n- **OpenRouter (Free Tier)**: ${status.providers.openrouter.configured ? (status.providers.openrouter.available ? 'Connected' : 'Configured') : 'API Key missing'}`,
-        category: 'GENERAL',
-        toolsUsed: [],
-        executionSteps: [{ step: 'LLM Connection Check', status: 'FAILED', durationMs: 10 }],
-        suggestedPrompts: ['What is my attendance?', 'Open my timetable'],
-        modelUsed: 'none',
-        provider: 'Campus OS Diagnostics',
-        durationMs: Date.now() - startTime,
-      };
+      console.warn('[CampusEngine] LLM provider offline, switching to deterministic reasoning:', err?.message || err);
+      return await DeterministicEngine.process(query, context);
     }
   }
 

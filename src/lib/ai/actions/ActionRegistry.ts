@@ -165,6 +165,22 @@ export class ActionRegistry {
       },
     ],
     [
+      'navigate_to_feedback',
+      {
+        type: 'navigate_to_feedback',
+        description: 'Navigate to anonymous feedback portal',
+        allowedRoles: ['student', 'teacher', 'admin'],
+        getRoute: (role: Role) =>
+          role === 'admin'
+            ? '/admin-dashboard?tab=feedback'
+            : role === 'teacher'
+            ? '/teacher-dashboard?tab=feedback'
+            : '/student-dashboard?tab=feedback',
+        getLabel: () => 'Open Anonymous Feedback',
+        requiresConfirmation: false,
+      },
+    ],
+    [
       'confirm_write_announcement',
       {
         type: 'confirm_write_announcement',

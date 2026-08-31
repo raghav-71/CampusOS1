@@ -93,11 +93,15 @@ export class ContextBuilder {
       });
 
       if (auth.allowed) {
+        const fullExtracted = docEntity.extractedText || docEntity.description || '';
         documentSummary = [
           `### 📄 Active Document Content: "${docEntity.title}" (${docEntity.subject || 'Academic Document'})`,
           `- Author / Instructor: ${docEntity.teacher || docEntity.uploadedBy || 'Faculty Member'}`,
           `- Target Cohort: ${docEntity.semester || `Semester ${docEntity.semesterNumber || studentSem}`}`,
-          `- Authentic Extracted Document Text:\n"""\n${(docEntity.extractedText || docEntity.description || '').slice(0, 6000)}\n"""`,
+          `- Authentic Extracted Document Text:`,
+          `"""`,
+          fullExtracted.slice(0, 12000),
+          `"""`,
         ].join('\n');
       } else {
         documentSummary = `[RESTRICTED DOCUMENT ACCESS]: The active user is unauthorized to access document "${docEntity.title}" belonging to another semester.`;

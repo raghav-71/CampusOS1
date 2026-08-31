@@ -12,6 +12,7 @@ import AdminDepartmentsView from './AdminDepartmentsView';
 import AdminAuditLogsView from './AdminAuditLogsView';
 import AdminReportsView from './AdminReportsView';
 import AdminSettingsView from './AdminSettingsView';
+import AdminFeedbackView from './AdminFeedbackView';
 import AdminAICopilot from '@/components/ai/AdminAICopilot';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
@@ -36,6 +37,8 @@ function AdminTabRouter() {
       return <AdminReportsView />;
     case 'settings':
       return <AdminSettingsView />;
+    case 'feedback':
+      return <AdminFeedbackView />;
     case 'events':
     case 'audit':
       return <AdminAuditLogsView />;

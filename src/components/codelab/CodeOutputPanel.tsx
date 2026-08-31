@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { CodeExecutionResult, ParsedErrorMarker } from '@/types/codelab';
 import {
   Terminal as TerminalIcon,
@@ -323,21 +324,39 @@ export default function CodeOutputPanel({
         {/* INPUT (STDIN) TAB */}
         {activeTab === 'stdin' && (
           <div className="h-full flex flex-col space-y-2">
-            <div className="text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Standard Input (stdin) passed to your program upon execution:</span>
-              <button
-                onClick={() => onStdinChange('')}
-                className="text-[10px] text-muted-foreground hover:text-danger cursor-pointer"
-              >
-                Clear Input
-              </button>
+            <div className="text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>Standard Input (stdin) passed to your program upon execution:</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-accent font-semibold">
+                  Persists across runs
+                </span>
+              </div>
+              {stdin.length > 0 && (
+                <button
+                  onClick={() => {
+                    onStdinChange('');
+                    toast.info('Cleared stdin input');
+                  }}
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-danger/10 hover:bg-danger/20 text-rose-300 border border-danger/30 transition-all cursor-pointer font-bold"
+                >
+                  Clear Input ✕
+                </button>
+              )}
             </div>
+
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80 flex-wrap">
+              <span className="font-semibold">Compatible with:</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted/40 font-mono">Python input()</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted/40 font-mono">C/C++ cin & scanf()</span>
+              <span className="px-1.5 py-0.5 rounded bg-muted/40 font-mono">Java Scanner(System.in)</span>
+            </div>
+
             <textarea
               value={stdin}
               onChange={(e) => onStdinChange(e.target.value)}
-              placeholder="e.g.&#10;5&#10;10 20 30 40 50"
-              rows={5}
-              className="w-full bg-[#060b18] text-foreground text-xs font-mono p-3 rounded-xl border border-border focus:outline-none focus:border-primary resize-none placeholder:text-muted-foreground/40"
+              placeholder={`Enter input lines for your program here before clicking Run...\nExample:\n5\n10 20 30 40 50`}
+              rows={4}
+              className="w-full flex-1 min-h-[90px] bg-[#060b18] text-foreground text-xs font-mono p-3 rounded-xl border border-border focus:outline-none focus:border-primary resize-none placeholder:text-muted-foreground/40 leading-relaxed"
             />
           </div>
         )}

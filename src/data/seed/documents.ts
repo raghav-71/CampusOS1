@@ -120,10 +120,103 @@ Instructor: Dr. Amit Sen | BCA Semester 5
    - Classless Inter-Domain Routing (CIDR) notation (/24, /27, /30).
    - Calculating Network ID, First Usable Host, Last Usable Host, and Broadcast Address.
 2. Routing Protocols:
-   - Distance Vector Routing: Bellman-Ford equation.
+   - Distance Vector Routing: Bellman-Ford equation Dx(y) = min_v { c(x,v) + Dv(y) }. Count to infinity problem.
    - Link State Routing: OSPF, Dijkstra Shortest Path First algorithm.
 3. Transport Protocols:
-   - TCP 3-Way Handshake, Sliding Window flow control, and Congestion Control.
+   - TCP 3-Way Handshake (SYN -> SYN-ACK -> ACK), Sliding Window flow control, and AIMD congestion control.
+`,
+  },
+  {
+    id: 'doc-504',
+    title: 'C# Lab SEP Journal 2026',
+    fileName: 'C# Lab SEP Journal 2026.pdf',
+    fileType: 'pdf',
+    fileSize: '4.6 MB',
+    sizeBytes: 4823449,
+    category: 'notes',
+    subject: 'C# & .NET Programming Lab',
+    subjectCode: 'CS504',
+    semester: 'Semester 5',
+    targetSemester: 5,
+    uploadedBy: 'Dr. Priya Nair',
+    uploadedById: 'usr-faculty-001',
+    uploadedAt: '2026-08-25',
+    status: 'published',
+    visibility: 'students',
+    downloads: 215,
+    views: 520,
+    extractedText: `--- PAGE 1 ---
+# C# & .NET LABORATORY JOURNAL 2026
+Department of Computer Applications | BCA Semester 5
+Course Code: BCA505P | Academic Year: 2026-2027
+Instructor: Dr. Priya Nair
+
+TABLE OF CONTENTS
+- Experiment 1: Classes, Objects, and Parameterized Constructors
+- Experiment 2: Single, Multilevel, and Hierarchical Inheritance with Polymorphism
+- Experiment 3: Abstract Classes and Multiple Interface Implementation
+- Experiment 4: Delegates, Multicast Delegates, and Event Handling Architecture
+- Experiment 5: LINQ (Language Integrated Query) Operations and File Stream I/O
+- Experiment 6: Windows Forms GUI Development and ADO.NET Data Binding
+- Experiment 7: Defensive Programming, Structured Exception Handling, and Custom Exceptions
+- Experiment 8: Multithreading and Asynchronous Programming with Task (Async / Await)
+
+--- PAGE 2 ---
+## Experiment 1: Classes, Objects & Constructors
+Objective: Implement a Student Information Management System in C# showcasing encapsulation and static member tracking.
+
+Program Specification:
+\`\`\`csharp
+using System;
+
+public class Student {
+    private string studentId;
+    private string fullName;
+    private double gpa;
+    private static int totalEnrolled = 0;
+
+    public Student(string id, string name, double gpa) {
+        this.studentId = id;
+        this.fullName = name;
+        this.gpa = gpa;
+        totalEnrolled++;
+    }
+
+    public void DisplayProfile() {
+        Console.WriteLine($"ID: {studentId} | Name: {fullName} | GPA: {gpa:F2}");
+    }
+
+    public static int GetTotalCount() => totalEnrolled;
+}
+\`\`\`
+
+--- PAGE 3 ---
+## Experiment 3: Abstract Classes & Interface Implementation
+Objective: Design a Bank Account Processing Engine using abstract base classes and multiple interfaces (ITransaction, IAuditable).
+
+Key Invariants & Theoretical Rules:
+- Abstract classes cannot be instantiated directly; they serve as base templates.
+- An interface defines contract specifications (signatures only) without state.
+- C# allows single class inheritance but multiple interface implementation.
+
+--- PAGE 4 ---
+## Experiment 5: LINQ (Language Integrated Query) & File Stream I/O
+Objective: Perform complex filtering, projection, and aggregation on student datasets using LINQ queries, and serialize records to CSV file streams.
+
+Sample Query:
+\`\`\`csharp
+var honorsStudents = from s in studentList
+                     where s.GPA >= 3.75
+                     orderby s.FullName ascending
+                     select new { s.StudentId, s.FullName, s.GPA };
+\`\`\`
+
+--- PAGE 5 ---
+## Viva Questions & Exam Preparation
+1. What is the distinction between \`ref\` and \`out\` parameter passing in C#?
+2. Explain the Garbage Collection generational model (Gen 0, Gen 1, Gen 2) in CLR.
+3. How do Delegates provide type-safe function pointers in .NET?
+4. What is the difference between \`Task.Run\` and \`async / await\`?
 `,
   },
   {

@@ -89,6 +89,11 @@ export class AIService {
       return ActionRegistry.resolveAction('navigate_to_analytics', role);
     }
 
+    // 13. Anonymous Feedback
+    if (/\b(open|show|view|go to|take me to|submit)\s+(feedback|anonymous feedback|faculty feedback|suggestion portal|suggestions)\b/i.test(q)) {
+      return ActionRegistry.resolveAction('navigate_to_feedback', role);
+    }
+
     return null;
   }
 

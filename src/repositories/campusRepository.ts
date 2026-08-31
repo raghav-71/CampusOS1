@@ -24,6 +24,8 @@ import {
   QuestionPaperDocument,
   TeacherSubjectAssignment,
   GradeDistributionMetric,
+  AnonymousFeedback,
+  FeedbackCategory,
 } from '@/types/campus';
 
 import {
@@ -136,13 +138,34 @@ export interface ICampusRepository {
   markAllNotificationsRead(userId?: string): Promise<boolean>;
 
   // Assignments & Submissions
-  getAssignments(teacherName?: string): Promise<Assignment[]>;
-  createAssignment(assignment: Assignment): Promise<Assignment>;
-  getSubmissions(assignmentId?: string): Promise<Submission[]>;
+  getAssignments(
+    filters?: string | { subject?: string; semester?: number; status?: string; teacherName?: string },
+    userProfile?: Partial<UserProfile>
+  ): Promise<Assignment[]>;
+  getAssignmentById(id: string, userProfile?: Partial<UserProfile>): Promise<Assignment | null>;
+  createAssignment(
+    assignment: Omit<Assignment, 'id' | 'createdAt' | 'totalSubmissions' | 'gradedSubmissions'> & { id?: string },
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Assignment>;
+  updateAssignment(
+    id: string,
+    updates: Partial<Assignment>,
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Assignment | null>;
+  deleteAssignment(id: string, facultyProfile?: Partial<UserProfile>): Promise<boolean>;
+  submitAssignment(
+    payload: Omit<Submission, 'id' | 'submittedAt' | 'status' | 'assignmentTitle'> & { id?: string; assignmentTitle?: string; textAnswer?: string },
+    studentProfile?: Partial<UserProfile>
+  ): Promise<Submission>;
+  getSubmissions(
+    filters?: string | { assignmentId?: string; studentId?: string },
+    userProfile?: Partial<UserProfile>
+  ): Promise<Submission[]>;
   gradeSubmission(
     submissionId: string,
     score: number,
-    feedback?: string
+    feedback?: string,
+    facultyProfile?: Partial<UserProfile>
   ): Promise<Submission | null>;
 
   // Exams
@@ -160,6 +183,16 @@ export interface ICampusRepository {
     file: { name: string; size: string; type: 'pdf' | 'image' | 'doc'; previewUrl?: string }
   ): Promise<MarksCardDocument>;
   deleteMarksCard(semester: number): Promise<boolean>;
+
+  // Anonymous Feedback (Strict Anonymity)
+  getFeedback(category?: FeedbackCategory): Promise<AnonymousFeedback[]>;
+  submitFeedback(
+    payload: Omit<AnonymousFeedback, 'id' | 'submittedAt' | 'status'>
+  ): Promise<AnonymousFeedback>;
+  updateFeedbackStatus(
+    id: string,
+    status: 'pending' | 'reviewed' | 'addressed'
+  ): Promise<boolean>;
 
   // Metrics & Analytics
   getStudyProgress(semester?: number): Promise<StudyProgressMetric[]>;
@@ -187,6 +220,44 @@ export class MockCampusRepository implements ICampusRepository {
   private examMarks: StudentExamMark[] = [...mockStudentExamMarks];
   private questionPapers: QuestionPaperDocument[] = [...seedQuestionPapers];
   private attendanceRecords: AttendanceRecord[] = [...seedAttendanceLogs];
+  private feedbacks: AnonymousFeedback[] = [
+    {
+      id: 'fb-001',
+      category: 'Teaching',
+      rating: 5,
+      message: 'The interactive Operating Systems simulations and Banker Algorithm walkthroughs in Lab 2 were immensely helpful for understanding deadlock avoidance.',
+      submittedRole: 'student',
+      submittedAt: '2026-08-28T14:30:00Z',
+      status: 'reviewed',
+    },
+    {
+      id: 'fb-002',
+      category: 'Course',
+      rating: 4,
+      message: 'Can we include more real-world cloud deployment case studies in the Cloud Computing & DevOps syllabus for Semester 6?',
+      submittedRole: 'student',
+      submittedAt: '2026-08-29T10:15:00Z',
+      status: 'pending',
+    },
+    {
+      id: 'fb-003',
+      category: 'CampusOS',
+      rating: 5,
+      message: 'The real-time attendance tracking and instant PDF lecture notes download have made keeping up with coursework seamless.',
+      submittedRole: 'student',
+      submittedAt: '2026-08-29T16:45:00Z',
+      status: 'addressed',
+    },
+    {
+      id: 'fb-004',
+      category: 'Technical Issue',
+      rating: 4,
+      message: 'Projector in Room A-204 experienced minor HDMI flicker during morning lecture sessions. Requesting AV maintenance review.',
+      submittedRole: 'teacher',
+      submittedAt: '2026-08-30T09:20:00Z',
+      status: 'reviewed',
+    },
+  ];
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -240,6 +311,16 @@ export class MockCampusRepository implements ICampusRepository {
             this.questionPapers = [...toAdd, ...this.questionPapers];
           }
         }
+
+        const savedSubm = localStorage.getItem('campusos_submissions');
+        if (savedSubm) {
+          const parsed = JSON.parse(savedSubm);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(this.submissions.map((s) => s.id));
+            const toAdd = parsed.filter((s: Submission) => !existingIds.has(s.id));
+            this.submissions = [...toAdd, ...this.submissions];
+          }
+        }
       } catch {}
     }
   }
@@ -257,6 +338,14 @@ export class MockCampusRepository implements ICampusRepository {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('campusos_assignments', JSON.stringify(this.assignments));
+      } catch {}
+    }
+  }
+
+  private persistSubmissionsToStorage() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('campusos_submissions', JSON.stringify(this.submissions));
       } catch {}
     }
   }
@@ -866,37 +955,296 @@ export class MockCampusRepository implements ICampusRepository {
     return true;
   }
 
-  async getAssignments(teacherName?: string, userProfile?: Partial<UserProfile>): Promise<Assignment[]> {
+  async getAssignments(
+    filters?: string | { subject?: string; semester?: number; status?: string; teacherName?: string },
+    userProfile?: Partial<UserProfile>
+  ): Promise<Assignment[]> {
     let list = [...this.assignments];
-    if (teacherName) list = list.filter((a) => a.teacher.includes(teacherName));
-    if (userProfile && userProfile.role === 'student' && userProfile.semesterNumber) {
-      list = list.filter((a) => a.semesterNumber === userProfile.semesterNumber);
+
+    // 1. Strict student semester isolation
+    if (userProfile && userProfile.role === 'student') {
+      const sem = userProfile.semesterNumber || 5;
+      list = list.filter((a) => a.semesterNumber === sem);
+      // Students never see drafts
+      list = list.filter((a) => a.status !== 'draft');
     }
+
+    // 2. Filter object or string
+    if (typeof filters === 'string') {
+      if (filters.trim()) {
+        list = list.filter((a) => a.teacher.includes(filters) || a.subject.includes(filters));
+      }
+    } else if (filters) {
+      if (filters.teacherName) {
+        list = list.filter((a) => a.teacher.toLowerCase().includes(filters.teacherName!.toLowerCase()));
+      }
+      if (filters.semester) {
+        list = list.filter((a) => a.semesterNumber === filters.semester);
+      }
+      if (filters.subject && filters.subject !== 'all') {
+        const sub = filters.subject.toLowerCase();
+        list = list.filter(
+          (a) =>
+            a.subject.toLowerCase().includes(sub) ||
+            a.subjectId?.toLowerCase() === sub ||
+            a.subjectCode?.toLowerCase() === sub
+        );
+      }
+      if (filters.status && filters.status !== 'all') {
+        list = list.filter((a) => a.status === filters.status);
+      }
+    }
+
     return list;
   }
 
-  async createAssignment(assignment: Assignment): Promise<Assignment> {
-    this.assignments.unshift(assignment);
-    this.persistAssignmentsToStorage();
-    return assignment;
+  async getAssignmentById(id: string, userProfile?: Partial<UserProfile>): Promise<Assignment | null> {
+    const asg = this.assignments.find((a) => a.id === id);
+    if (!asg) return null;
+
+    // Strict semester isolation check
+    if (userProfile && userProfile.role === 'student') {
+      const studentSem = userProfile.semesterNumber || 5;
+      if (asg.semesterNumber !== studentSem) {
+        const error = new Error(
+          `403 Forbidden: You are enrolled in Semester ${studentSem}. You cannot access assignments for Semester ${asg.semesterNumber}.`
+        );
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    return asg;
   }
 
-  async getSubmissions(assignmentId?: string): Promise<Submission[]> {
+  async createAssignment(
+    assignment: Omit<Assignment, 'id' | 'createdAt' | 'totalSubmissions' | 'gradedSubmissions'> & { id?: string },
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Assignment> {
+    // Server-side faculty teaching authorization check
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+        subjectCode: assignment.subjectCode || assignment.subjectId,
+        subjectId: assignment.subjectId,
+        subject: assignment.subject,
+        semesterNumber: assignment.semesterNumber,
+      });
+      if (!validation.allowed) {
+        const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const newId = assignment.id || `asg-${Date.now()}`;
+    const newAssignment: Assignment = {
+      ...assignment,
+      id: newId,
+      department: 'BCA',
+      targetSemester: assignment.semesterNumber,
+      status: assignment.status || 'active',
+      totalSubmissions: 0,
+      gradedSubmissions: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.assignments.unshift(newAssignment);
+    this.persistAssignmentsToStorage();
+    return newAssignment;
+  }
+
+  async updateAssignment(
+    id: string,
+    updates: Partial<Assignment>,
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Assignment | null> {
+    const idx = this.assignments.findIndex((a) => a.id === id);
+    if (idx === 0 || idx > 0) {
+      const existing = this.assignments[idx];
+
+      if (facultyProfile && facultyProfile.role === 'teacher') {
+        const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+          subjectCode: updates.subjectCode || existing.subjectCode || existing.subjectId,
+          subjectId: updates.subjectId || existing.subjectId,
+          subject: updates.subject || existing.subject,
+          semesterNumber: updates.semesterNumber || existing.semesterNumber,
+        });
+        if (!validation.allowed) {
+          const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment.');
+          (error as any).status = 403;
+          throw error;
+        }
+      }
+
+      this.assignments[idx] = {
+        ...existing,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      this.persistAssignmentsToStorage();
+      return this.assignments[idx];
+    }
+    return null;
+  }
+
+  async deleteAssignment(id: string, facultyProfile?: Partial<UserProfile>): Promise<boolean> {
+    const idx = this.assignments.findIndex((a) => a.id === id);
+    if (idx < 0) return false;
+
+    const existing = this.assignments[idx];
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+        subjectCode: existing.subjectCode || existing.subjectId,
+        subjectId: existing.subjectId,
+        subject: existing.subject,
+        semesterNumber: existing.semesterNumber,
+      });
+      if (!validation.allowed) {
+        const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    this.assignments.splice(idx, 1);
+    this.submissions = this.submissions.filter((s) => s.assignmentId !== id);
+    this.persistAssignmentsToStorage();
+    this.persistSubmissionsToStorage();
+    return true;
+  }
+
+  async submitAssignment(
+    payload: Omit<Submission, 'id' | 'submittedAt' | 'status' | 'assignmentTitle'> & { id?: string; assignmentTitle?: string; textAnswer?: string },
+    studentProfile?: Partial<UserProfile>
+  ): Promise<Submission> {
+    const assignment = this.assignments.find((a) => a.id === payload.assignmentId);
+    if (!assignment) {
+      throw new Error(`Assignment with ID "${payload.assignmentId}" not found.`);
+    }
+
+    // Student semester check
+    if (studentProfile && studentProfile.role === 'student') {
+      const studentSem = studentProfile.semesterNumber || 5;
+      if (assignment.semesterNumber !== studentSem) {
+        const error = new Error(
+          `403 Forbidden: You are enrolled in Semester ${studentSem}. You cannot submit assignments for Semester ${assignment.semesterNumber}.`
+        );
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const existingIdx = this.submissions.findIndex(
+      (s) => s.assignmentId === payload.assignmentId && s.studentId === payload.studentId
+    );
+
+    const submissionId = payload.id || (existingIdx >= 0 ? this.submissions[existingIdx].id : `subm-${Date.now()}`);
+    const newSubmission: Submission = {
+      ...payload,
+      id: submissionId,
+      assignmentTitle: assignment.title,
+      subject: assignment.subject,
+      subjectCode: assignment.subjectCode,
+      semesterNumber: assignment.semesterNumber,
+      submittedAt: new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      status: 'submitted',
+      maxScore: assignment.maxScore,
+    };
+
+    if (existingIdx >= 0) {
+      this.submissions[existingIdx] = newSubmission;
+    } else {
+      this.submissions.unshift(newSubmission);
+      assignment.totalSubmissions = (assignment.totalSubmissions || 0) + 1;
+      this.persistAssignmentsToStorage();
+    }
+
+    this.persistSubmissionsToStorage();
+    return newSubmission;
+  }
+
+  async getSubmissions(
+    filters?: string | { assignmentId?: string; studentId?: string },
+    userProfile?: Partial<UserProfile>
+  ): Promise<Submission[]> {
     let list = [...this.submissions];
-    if (assignmentId) list = list.filter((s) => s.assignmentId === assignmentId);
+
+    // 1. Strict student isolation: student can ONLY retrieve their own submission
+    if (userProfile && userProfile.role === 'student') {
+      const studentId = userProfile.id || 'usr-001';
+      list = list.filter((s) => s.studentId === studentId);
+    }
+
+    // 2. Filter by assignmentId or studentId
+    if (typeof filters === 'string') {
+      if (filters.trim()) {
+        list = list.filter((s) => s.assignmentId === filters);
+      }
+    } else if (filters) {
+      if (filters.assignmentId) {
+        list = list.filter((s) => s.assignmentId === filters.assignmentId);
+      }
+      if (filters.studentId) {
+        list = list.filter((s) => s.studentId === filters.studentId);
+      }
+    }
+
     return list;
   }
 
   async gradeSubmission(
     submissionId: string,
     score: number,
-    feedback?: string
+    feedback?: string,
+    facultyProfile?: Partial<UserProfile>
   ): Promise<Submission | null> {
     const sub = this.submissions.find((s) => s.id === submissionId);
     if (!sub) return null;
+
+    const asg = this.assignments.find((a) => a.id === sub.assignmentId);
+
+    // Faculty authorization check
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      if (asg) {
+        const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+          subjectCode: asg.subjectCode || asg.subjectId,
+          subjectId: asg.subjectId,
+          subject: asg.subject,
+          semesterNumber: asg.semesterNumber,
+        });
+        if (!validation.allowed) {
+          const error = new Error(validation.error || '403 Forbidden: Unauthorized to grade this subject.');
+          (error as any).status = 403;
+          throw error;
+        }
+      }
+    }
+
+    const wasGraded = sub.status === 'graded';
     sub.score = score;
     sub.status = 'graded';
-    if (feedback) sub.feedback = feedback;
+    if (feedback !== undefined) sub.feedback = feedback;
+    sub.gradedAt = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    sub.gradedBy = facultyProfile?.fullName || 'Faculty Instructor';
+
+    if (!wasGraded && asg) {
+      asg.gradedSubmissions = (asg.gradedSubmissions || 0) + 1;
+      this.persistAssignmentsToStorage();
+    }
+
+    this.persistSubmissionsToStorage();
     return sub;
   }
 
@@ -994,6 +1342,42 @@ export class MockCampusRepository implements ICampusRepository {
 
   async getGradeDistributions(): Promise<GradeDistributionMetric[]> {
     return [...mockGradeDistributions];
+  }
+
+  async getFeedback(category?: FeedbackCategory): Promise<AnonymousFeedback[]> {
+    let list = [...this.feedbacks];
+    if (category) {
+      list = list.filter((f) => f.category === category);
+    }
+    return list;
+  }
+
+  async submitFeedback(
+    payload: Omit<AnonymousFeedback, 'id' | 'submittedAt' | 'status'>
+  ): Promise<AnonymousFeedback> {
+    const created: AnonymousFeedback = {
+      id: `fb-${Date.now()}`,
+      category: payload.category,
+      rating: payload.rating || 5,
+      message: payload.message,
+      submittedRole: payload.submittedRole,
+      submittedAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    this.feedbacks.unshift(created);
+    return created;
+  }
+
+  async updateFeedbackStatus(
+    id: string,
+    status: 'pending' | 'reviewed' | 'addressed'
+  ): Promise<boolean> {
+    const item = this.feedbacks.find((f) => f.id === id);
+    if (item) {
+      item.status = status;
+      return true;
+    }
+    return false;
   }
 
   async getActivities(): Promise<ActivityItem[]> {

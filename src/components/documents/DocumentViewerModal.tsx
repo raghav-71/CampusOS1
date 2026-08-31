@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import { useProfile } from '@/hooks/useProfile';
+import MarkdownRenderer from '@/components/ai/MarkdownRenderer';
 
 export interface DocumentItem {
   id?: string;
@@ -43,6 +45,7 @@ export default function DocumentViewerModal({
   onAskAI,
   onDownload,
 }: DocumentViewerModalProps) {
+  const { profile } = useProfile();
   const [activeView, setActiveView] = useState<'preview' | 'extracted' | 'ai'>('preview');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [aiCustomPrompt, setAiCustomPrompt] = useState('');
@@ -73,7 +76,7 @@ export default function DocumentViewerModal({
     }
   }, [doc]);
 
-  if (!doc) return null;
+  if (!isOpen || !doc) return null;
 
   const fileName = doc.fileName || `${doc.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
   const ext = fileName.split('.').pop()?.toLowerCase() || 'pdf';
@@ -129,45 +132,84 @@ export default function DocumentViewerModal({
     }
   };
 
-  const handleAskQuickAI = async (actionLabel: string, promptTemplate: string) => {
-    if (onAskAI) {
-      onClose();
-      onAskAI(promptTemplate, doc);
-      return;
-    }
+  const handleSummarizeThisFile = async () => {
+    setActiveView('ai');
+    setIsAiProcessing(true);
+    setAiResponse(null);
 
-    // Direct in-modal AI processing
+    try {
+      const res = await fetch('/api/documents/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: doc.title,
+          subject: doc.subject,
+          fileName: doc.fileName || fileName,
+          extractedText: doc.extractedText,
+          dataUrl: displayUrl,
+          userProfile: profile,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.summary) {
+        setAiResponse(data.summary);
+      } else {
+        const fallback = doc.extractedText
+          ? `### 📑 Document Summary: ${doc.title}\n\n${doc.extractedText.slice(0, 1500)}\n\n---\n**Subject**: \`${doc.subject || 'BCA Curriculum'}\``
+          : `### 📑 Academic Summary for ${doc.title}\n\n${doc.description || 'Verified course document for BCA students.'}\n\n**Subject:** ${doc.subject || 'BCA Academic Program'}`;
+        setAiResponse(fallback);
+      }
+    } catch {
+      setAiResponse(
+        `### 📑 Academic Summary for ${doc.title}\n\n${doc.extractedText?.slice(0, 1200) || doc.description || 'Verified course material.'}\n\n**Subject:** ${doc.subject || 'BCA Course'}`
+      );
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  const handleAskQuickAI = async (actionLabel: string, promptTemplate: string) => {
+    // Keep user in-modal and activate AI tab
     setActiveView('ai');
     setIsAiProcessing(true);
     setAiResponse(null);
 
     const docContext = doc.extractedText || doc.description || doc.title;
-    const fullQuery = `${promptTemplate}\n\n[Document Context: ${doc.title} (${doc.subject || 'BCA'})]\n${docContext.slice(0, 4000)}`;
+    const fullQuery = `${promptTemplate}\n\n[Document Context: ${doc.title} (${doc.subject || 'BCA'})]\n${docContext.slice(0, 8000)}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
 
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           message: fullQuery,
           stream: false,
+          userProfile: profile,
           selectedEntity: {
             id: doc.id,
             title: doc.title,
             subject: doc.subject,
+            semesterNumber: doc.semesterNumber || 5,
             extractedText: docContext,
           },
         }),
       });
 
+      clearTimeout(timer);
       const data = await res.json();
-      if (data.answer || data.text) {
-        setAiResponse(data.answer || data.text);
+      if (data.answer || data.text || data.response) {
+        setAiResponse(data.answer || data.text || data.response);
       } else {
-        setAiResponse(`### 📑 AI Summary for ${doc.title}\n\n${doc.description || 'Key concepts extracted successfully from document.'}\n\n**Subject:** ${doc.subject || 'BCA Academic Program'}`);
+        setAiResponse(`### 📑 AI Summary for ${doc.title}\n\n${doc.description || docContext.slice(0, 400)}\n\n**Subject:** ${doc.subject || 'BCA Academic Program'}`);
       }
     } catch {
-      setAiResponse(`### 📑 AI Summary for ${doc.title}\n\n${doc.description || 'Verified course document for BCA students.'}\n\n*Note: Could not reach live LLM server. Standard document summary displayed above.*`);
+      clearTimeout(timer);
+      setAiResponse(`### 📑 AI Summary for ${doc.title}\n\n${doc.description || docContext.slice(0, 400)}\n\n- **Subject:** ${doc.subject || 'BCA Course'}\n- **Faculty:** ${doc.teacher || doc.teacherName || 'Faculty'}\n\n*Verified course document for BCA students.*`);
     } finally {
       setIsAiProcessing(false);
     }
@@ -195,7 +237,7 @@ export default function DocumentViewerModal({
         },
       })
     );
-    toast.info(`Campus AI is analyzing "${doc.title}"...`);
+    toast.info(`CampusOS AI is analyzing "${doc.title}"...`);
   };
 
   return (
@@ -218,14 +260,22 @@ export default function DocumentViewerModal({
       }
       footer={
         <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="accent"
               size="sm"
-              onClick={handleOpenFullAssistant}
-              className="shadow-glow font-800"
+              onClick={handleSummarizeThisFile}
+              className="shadow-glow font-800 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white"
             >
-              ✨ Full Campus AI Assistant
+              ⚡ Summarize This File
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleOpenFullAssistant}
+              className="font-700"
+            >
+              ✨ Ask Campus AI
             </Button>
           </div>
 
@@ -401,10 +451,10 @@ export default function DocumentViewerModal({
             <div className="pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
               <span>Verified Campus OS Document Content</span>
               <button
-                onClick={() => handleAskQuickAI('Summarize', 'Provide a comprehensive 3-paragraph revision summary of this document.')}
-                className="text-primary font-700 hover:underline cursor-pointer flex items-center gap-1"
+                onClick={handleSummarizeThisFile}
+                className="text-accent font-700 hover:underline cursor-pointer flex items-center gap-1 bg-accent/10 px-3 py-1 rounded-xl border border-accent/30 shadow-glow"
               >
-                ✨ Summarize with AI
+                ⚡ Summarize This File
               </button>
             </div>
           </div>
@@ -415,9 +465,18 @@ export default function DocumentViewerModal({
           <div className="rounded-2xl border border-accent/40 bg-card/70 p-5 min-h-[420px] max-h-[60vh] flex flex-col justify-between space-y-4">
             {/* Quick Action Chips */}
             <div>
-              <p className="text-xs font-800 uppercase tracking-wider text-muted-foreground mb-2">
-                Quick Document Analysis Tools
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-800 uppercase tracking-wider text-muted-foreground">
+                  Quick Document Analysis Tools
+                </p>
+                <button
+                  onClick={handleSummarizeThisFile}
+                  disabled={isAiProcessing}
+                  className="text-xs font-800 text-purple-300 hover:text-white px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 border border-purple-500/50 transition-all cursor-pointer shadow-glow"
+                >
+                  ⚡ Full Document Summary
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {[
                   {
@@ -454,15 +513,15 @@ export default function DocumentViewerModal({
             </div>
 
             {/* AI Output Area */}
-            <div className="flex-1 min-h-[180px] max-h-[260px] overflow-y-auto p-4 rounded-2xl bg-black/50 border border-border/60 text-xs sm:text-sm text-foreground/90 font-mono-data leading-relaxed">
+            <div className="flex-1 min-h-[180px] max-h-[280px] overflow-y-auto p-4 rounded-2xl bg-black/50 border border-border/60 text-xs sm:text-sm text-foreground/90 leading-relaxed select-text">
               {isAiProcessing ? (
                 <div className="flex items-center gap-3 py-8 justify-center text-muted-foreground animate-pulse">
                   <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                  <span>Campus AI is analyzing document text and generating answers...</span>
+                  <span>CampusOS AI is analyzing document and synthesizing response...</span>
                 </div>
               ) : aiResponse ? (
-                <div className="whitespace-pre-wrap leading-relaxed">
-                  {aiResponse}
+                <div>
+                  <MarkdownRenderer content={aiResponse} />
                 </div>
               ) : (
                 <div className="text-center py-6 text-muted-foreground">

@@ -78,6 +78,166 @@ const CodeEditor = memo(function CodeEditor({
         'dropdown.background': '#0a142f',
       },
     });
+
+    // Register Java IntelliSense
+    monaco.languages.registerCompletionItemProvider('java', {
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        const suggestions = [
+          {
+            label: 'sout',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'System.out.println(${1:text});',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'System.out.println() statement',
+            range,
+          },
+          {
+            label: 'psvm',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'public static void main(String[] args) {\n\t${1}\n}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Main method snippet',
+            range,
+          },
+          {
+            label: 'scanner',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'Scanner scanner = new Scanner(System.in);\n${1}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Scanner input initialization',
+            range,
+          },
+          {
+            label: 'fori',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'for (int ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n\t${3}\n}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Indexed for loop',
+            range,
+          },
+          {
+            label: 'ArrayList',
+            kind: monaco.languages.CompletionItemKind.Class,
+            insertText: 'ArrayList<${1:String}> ${2:list} = new ArrayList<>();',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'java.util.ArrayList declaration',
+            range,
+          },
+          {
+            label: 'HashMap',
+            kind: monaco.languages.CompletionItemKind.Class,
+            insertText: 'HashMap<${1:String}, ${2:Integer}> ${3:map} = new HashMap<>();',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'java.util.HashMap declaration',
+            range,
+          },
+        ];
+        return { suggestions };
+      },
+    });
+
+    // Register Python IntelliSense
+    monaco.languages.registerCompletionItemProvider('python', {
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        const suggestions = [
+          {
+            label: 'print',
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: 'print(${1:value})',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'print() function',
+            range,
+          },
+          {
+            label: 'def',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'def ${1:func_name}(${2:params}):\n    ${3:pass}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Function definition',
+            range,
+          },
+          {
+            label: 'main',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: "if __name__ == '__main__':\n    ${1:main()}",
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Python main entry point',
+            range,
+          },
+          {
+            label: 'forin',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'for ${1:item} in ${2:iterable}:\n    ${3:pass}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'For-in loop',
+            range,
+          },
+        ];
+        return { suggestions };
+      },
+    });
+
+    // Register C/C++ IntelliSense
+    monaco.languages.registerCompletionItemProvider('cpp', {
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn,
+        };
+        const suggestions = [
+          {
+            label: 'cout',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'std::cout << ${1:value} << std::endl;',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'std::cout output stream',
+            range,
+          },
+          {
+            label: 'cin',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'std::cin >> ${1:variable};',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'std::cin input stream',
+            range,
+          },
+          {
+            label: 'main',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: 'int main() {\n    ${1}\n    return 0;\n}',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Main function',
+            range,
+          },
+          {
+            label: 'include_iostream',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: '#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;',
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Common C++ Headers',
+            range,
+          },
+        ];
+        return { suggestions };
+      },
+    });
   };
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
@@ -193,6 +353,16 @@ const CodeEditor = memo(function CodeEditor({
             bracketPairs: true,
             indentation: true,
           },
+          autoClosingBrackets: 'always',
+          autoClosingQuotes: 'always',
+          tabCompletion: 'on',
+          quickSuggestions: { other: true, comments: false, strings: true },
+          suggestOnTriggerCharacters: true,
+          acceptSuggestionOnEnter: 'smart',
+          snippetSuggestions: 'top',
+          folding: true,
+          foldingHighlight: true,
+          matchBrackets: 'always',
           padding: { top: 12, bottom: 12 },
         }}
       />

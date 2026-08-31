@@ -18,6 +18,7 @@ import StudentProfileView from './StudentProfileView';
 import StudentAttendanceView from './StudentAttendanceView';
 import StudentAssignmentsView from './StudentAssignmentsView';
 import StudentMarksView from './StudentMarksView';
+import StudentFeedbackView from './StudentFeedbackView';
 import CodeLabWorkspace from '@/components/codelab/CodeLabWorkspace';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
 
@@ -63,6 +64,8 @@ function StudentTabRouter() {
       return <StudentEventsView />;
     case 'profile':
       return <StudentProfileView />;
+    case 'feedback':
+      return <StudentFeedbackView />;
     case 'announcements':
     case 'notices':
       return (

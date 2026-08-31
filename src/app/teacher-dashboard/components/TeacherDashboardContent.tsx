@@ -17,6 +17,7 @@ import TeacherClassesView from '@/app/teacher-dashboard/components/TeacherClasse
 import TeacherQuestionPapersView from '@/app/teacher-dashboard/components/TeacherQuestionPapersView';
 import TeacherTimetableFull from '@/app/teacher-dashboard/components/TeacherTimetableFull';
 import TeacherProfileView from '@/app/teacher-dashboard/components/TeacherProfileView';
+import TeacherFeedbackView from '@/app/teacher-dashboard/components/TeacherFeedbackView';
 import FacultyAIEngine from '@/components/ai/FacultyAIEngine';
 import FacultyCodeLabWorkspace from '@/components/codelab/faculty/FacultyCodeLabWorkspace';
 import PageTransition, { StaggerItem } from '@/components/motion/PageTransition';
@@ -58,6 +59,8 @@ function TeacherTabRouter() {
       return <TeacherTimetableFull />;
     case 'profile':
       return <TeacherProfileView />;
+    case 'feedback':
+      return <TeacherFeedbackView />;
     case 'aigen':
     case 'ai':
       return <FacultyAIEngine />;

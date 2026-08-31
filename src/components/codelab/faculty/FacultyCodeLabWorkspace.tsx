@@ -14,6 +14,7 @@ import { CODE_TEMPLATES } from '@/lib/codelab/templates';
 import CodeEditor from '../CodeEditor';
 import FileExplorer from '../FileExplorer';
 import CodeOutputPanel from '../CodeOutputPanel';
+import CodeDiffModal from '../CodeDiffModal';
 import FacultyCodeHeader from './FacultyCodeHeader';
 import FacultyAIPanel from './FacultyAIPanel';
 import AssignmentBuilderModal from './AssignmentBuilderModal';
@@ -27,6 +28,10 @@ export default function FacultyCodeLabWorkspace() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [executionResult, setExecutionResult] = useState<CodeExecutionResult | null>(null);
   const [targetJumpLine, setTargetJumpLine] = useState<number | null>(null);
+
+  // AI Fix Patch & Diff Modal
+  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
+  const [pendingPatch, setPendingPatch] = useState<any>(null);
 
   // Faculty AI Mode
   const [facultyMode, setFacultyMode] = useState<FacultyAIMode>('developer');
@@ -260,6 +265,65 @@ export default function FacultyCodeLabWorkspace() {
     toast.info('Reset code to starter template.');
   };
 
+  // One-Click AI Fix for Faculty
+  const handleRequestAiFix = async () => {
+    if (!activeFile) return;
+
+    toast.loading('CampusOS AI is diagnosing and synthesizing fix...', { id: 'faculty-ai-fix' });
+
+    const codeContext: CodeAIContext = {
+      language: getLanguageById(activeFile.languageId).displayName,
+      fileName: activeFile.name,
+      sourceCode: activeCode,
+      selectedCode: selectedText || undefined,
+      cursorLine: cursorPosition.line,
+      stdin: workspace?.stdin,
+      stdout: executionResult?.stdout,
+      stderr: executionResult?.stderr,
+      compilationOutput: executionResult?.compilationOutput,
+      executionStatus: executionResult?.status,
+      expectedOutput: workspace?.expectedOutput,
+      aiMode: 'solution',
+    };
+
+    try {
+      const response = await fetch('/api/code/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'fix',
+          context: codeContext,
+        }),
+      });
+
+      const data = await response.json();
+      toast.dismiss('faculty-ai-fix');
+
+      if (data.success && data.patch) {
+        setPendingPatch(data.patch);
+        setIsDiffModalOpen(true);
+      } else {
+        toast.error('AI could not generate a fix: ' + (data.error || 'Check connection'));
+      }
+    } catch (err: any) {
+      toast.dismiss('faculty-ai-fix');
+      toast.error('AI Fix error: ' + err.message);
+    }
+  };
+
+  const handleApplyFix = (newCode: string) => {
+    setActiveCode(newCode);
+    if (activeFile) {
+      codeWorkspaceRepo.updateFile(activeFile.id, { content: newCode }).then((updated) => {
+        setWorkspace((prev) =>
+          prev ? { ...prev, files: prev.files.map((f) => (f.id === updated.id ? updated : f)) } : prev
+        );
+      });
+    }
+    toast.success('Applied AI patch to editor.');
+    setIsDiffModalOpen(false);
+  };
+
   const codeAIContext: CodeAIContext = useMemo(
     () => ({
       language: getLanguageById(activeLanguageId).displayName,
@@ -273,7 +337,7 @@ export default function FacultyCodeLabWorkspace() {
       compilationOutput: executionResult?.compilationOutput,
       executionStatus: executionResult?.status,
       expectedOutput: workspace?.expectedOutput,
-      aiMode: 'tutor',
+      aiMode: 'solution',
     }),
     [
       activeLanguageId,
@@ -431,7 +495,7 @@ export default function FacultyCodeLabWorkspace() {
                   setTargetJumpLine(line);
                   if (mobileTab === 'output') setMobileTab('editor');
                 }}
-                onFixWithAi={() => setShowAiPanel(true)}
+                onFixWithAi={handleRequestAiFix}
               />
             </div>
           )}
@@ -450,6 +514,7 @@ export default function FacultyCodeLabWorkspace() {
             onOpenAssignmentBuilder={() => setIsAssignmentModalOpen(true)}
             onOpenQuestionBuilder={() => setIsQuestionModalOpen(true)}
             onOpenEvaluator={() => setIsEvaluatorModalOpen(true)}
+            onRequestFix={handleRequestAiFix}
           />
         </div>
       </div>
@@ -476,6 +541,15 @@ export default function FacultyCodeLabWorkspace() {
         onClose={() => setIsEvaluatorModalOpen(false)}
         referenceSolutionCode={activeCode}
         languageId={activeLanguageId}
+      />
+
+      {/* AI Diff & One-Click Fix Review Modal */}
+      <CodeDiffModal
+        isOpen={isDiffModalOpen}
+        onReject={() => setIsDiffModalOpen(false)}
+        patch={pendingPatch}
+        languageId={activeLanguageId}
+        onApply={handleApplyFix}
       />
     </div>
   );

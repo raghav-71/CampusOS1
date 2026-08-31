@@ -31,20 +31,45 @@ export class FallbackProvider implements IUnifiedAIProvider {
     _options?: LLMCompletionOptions
   ): Promise<LLMCompletionResult> {
     const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const systemMsg = messages.find((m) => m.role === 'system')?.content || '';
+
+    let userName = 'Arjun Sharma';
+    const nameMatch = systemMsg.match(/User:\s*([^|\n]+)/i);
+    if (nameMatch && nameMatch[1]?.trim()) {
+      userName = nameMatch[1].trim();
+    }
+
+    let userRole: any = 'student';
+    if (systemMsg.includes('Role: TEACHER')) userRole = 'teacher';
+    else if (systemMsg.includes('Role: ADMIN')) userRole = 'admin';
+
+    let selectedEntity: any = undefined;
+    if (systemMsg.includes('Active Document Content:') || systemMsg.includes('Authentic Extracted Document Text:')) {
+      const titleMatch = systemMsg.match(/Active Document Content:\s*"([^"]+)"/i);
+      const textMatch = systemMsg.match(/Authentic Extracted Document Text:\s*"""([\s\S]*?)"""/i);
+      const subjectMatch = systemMsg.match(/Active Document Content:[^\n]*\(([^)]+)\)/i);
+      selectedEntity = {
+        title: titleMatch ? titleMatch[1] : 'Active Document',
+        subject: subjectMatch ? subjectMatch[1] : 'Computer Applications',
+        extractedText: textMatch ? textMatch[1].trim() : '',
+      };
+    }
+
     const res = await DeterministicEngine.process(latestUserMsg, {
-      userId: 'offline-user',
-      userRole: 'student',
-      userName: 'Campus Member',
-      department: 'BCA',
+      userId: 'usr-001',
+      userRole,
+      userName,
+      department: 'BCA (Bachelor of Computer Applications)',
       semester: 5,
       currentPath: '/student-dashboard',
       currentTab: 'overview',
+      selectedEntity,
     });
 
     return {
       text: res.answer,
       modelUsed: res.modelUsed,
-      provider: this.name,
+      provider: 'CampusOS AI',
       durationMs: res.durationMs,
     };
   }

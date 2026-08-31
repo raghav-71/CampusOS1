@@ -44,6 +44,7 @@ interface FacultyAIPanelProps {
   onOpenAssignmentBuilder: () => void;
   onOpenQuestionBuilder: () => void;
   onOpenEvaluator: () => void;
+  onRequestFix?: () => void;
 }
 
 const AI_TIMEOUT_MS = 25000;
@@ -63,6 +64,7 @@ function FacultyAIPanelInner({
   onOpenAssignmentBuilder,
   onOpenQuestionBuilder,
   onOpenEvaluator,
+  onRequestFix,
 }: FacultyAIPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -72,6 +74,7 @@ function FacultyAIPanelInner({
       content: `### 🎓 Faculty Coding Assistant Active
 
 Welcome Professor. I can assist you with:
+- **Fix with AI**: Root-cause diagnostic & one-click diff fix for errors
 - **Assignment & Question Authoring**: Formulate structured problems with hidden test cases
 - **Reference Solution Generation**: Write optimal $O(N)$ solutions in any supported language
 - **Oral Viva Questions**: Generate viva questions with answer keys
@@ -106,6 +109,14 @@ Welcome Professor. I can assist you with:
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
     };
   }, []);
+
+  const handleActionClick = (actionKey: string, displayTitle: string, promptText: string) => {
+    if (actionKey === 'FIX_CODE' && onRequestFix) {
+      onRequestFix();
+      return;
+    }
+    executeFacultyAI(actionKey, promptText, displayTitle);
+  };
 
   const executeFacultyAI = async (actionKey: string, promptText: string, displayTitle?: string) => {
     if (requestState === 'loading') return;
@@ -187,6 +198,14 @@ Welcome Professor. I can assist you with:
   };
 
   const facultyActions = [
+    {
+      key: 'FIX_CODE',
+      label: 'Fix with AI',
+      icon: <Sparkles className="w-3.5 h-3.5 text-accent" />,
+      title: 'AI Code Diagnosis & Fix',
+      prompt: 'Diagnose syntax, logic, and runtime issues in this code, and provide a direct corrected fix.',
+      highlight: true,
+    },
     {
       key: 'GENERATE_ASSIGNMENT',
       label: 'Generate Assignment',
@@ -299,7 +318,7 @@ Welcome Professor. I can assist you with:
             <button
               key={action.key}
               disabled={requestState === 'loading'}
-              onClick={() => executeFacultyAI(action.key, action.prompt, action.title)}
+              onClick={() => handleActionClick(action.key, action.title, action.prompt)}
               className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 action.highlight
                   ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 hover:bg-purple-500/30 shadow-glow'

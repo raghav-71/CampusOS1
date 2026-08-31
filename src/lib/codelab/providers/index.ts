@@ -12,6 +12,10 @@ export class ExecutionProviderRegistry {
     new PistonProvider(),
   ];
 
+  static getAllProviders(): ICodeExecutionProvider[] {
+    return this.providers;
+  }
+
   static async getActiveProvider(): Promise<ICodeExecutionProvider> {
     const forced = process.env.CODE_EXECUTION_PROVIDER?.toLowerCase();
 

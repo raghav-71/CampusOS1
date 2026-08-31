@@ -750,23 +750,14 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-800 text-foreground tracking-tight flex items-center gap-1.5">
-                  <span>Campus AI</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 font-mono">
-                    GPT-Grade
+                  <span>CampusOS AI</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
+                    Active
                   </span>
                 </h3>
-                <button
-                  onClick={() => setShowHardwareInfo(!showHardwareInfo)}
-                  className="cursor-pointer hover:opacity-90 transition-opacity"
-                >
-                  <Badge variant={aiStatus.localAvailable ? 'success' : 'cyan'}>
-                    {aiStatus.localAvailable ? '🟢 Ollama Local Active' : `⚡ ${aiStatus.provider.split(' ')[0]}`}
-                  </Badge>
-                </button>
               </div>
               <p className="text-[11px] text-muted-foreground font-500">
-                Model: <span className="text-foreground font-mono">{aiStatus.model}</span> · Tab:{' '}
-                <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
+                Academic Assistant · <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
               </p>
             </div>
           </div>
@@ -781,17 +772,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               <span className="hidden sm:inline">New Chat</span>
             </button>
             <button
-              onClick={() => setDebugMode(!debugMode)}
-              className={`text-[10px] px-2 py-1 rounded-lg border font-mono cursor-pointer transition-colors ${
-                debugMode
-                  ? 'border-accent text-accent bg-accent/10'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
-              title="Toggle AI Tool Debug Inspector"
-            >
-              {debugMode ? '🛠️ Debug: ON' : '🛠️ Debug'}
-            </button>
-            <button
               onClick={onClose}
               className="w-8 h-8 rounded-xl hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/40"
               title="Close Assistant"
@@ -803,42 +783,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             </button>
           </div>
         </div>
-
-        {/* Hardware & Provider Info Popover */}
-        {showHardwareInfo && aiStatus.hardware && (
-          <div className="p-3 bg-muted/40 border-b border-border/80 text-xs space-y-1.5 animate-fade-in">
-            <div className="flex items-center justify-between font-700 text-foreground">
-              <span>🖥️ System Hardware & Recommended Model</span>
-              <button
-                onClick={() => setShowHardwareInfo(false)}
-                className="text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-              <div>
-                System RAM: <span className="text-foreground font-600">{aiStatus.hardware.totalRamGb} GB</span> (
-                {aiStatus.hardware.freeRamGb} GB free)
-              </div>
-              <div>
-                CPU: <span className="text-foreground font-600">{aiStatus.hardware.cpuCores} Cores</span>
-              </div>
-              <div className="col-span-2">
-                Recommended Local Ollama Model:{' '}
-                <code className="text-accent font-mono px-1 bg-black/40 rounded">
-                  {aiStatus.hardware.recommendedLocalModel}
-                </code>
-              </div>
-            </div>
-            <div className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">
-              Run locally:{' '}
-              <code className="text-emerald-400 font-mono">
-                ollama run {aiStatus.hardware.recommendedLocalModel}
-              </code>
-            </div>
-          </div>
-        )}
 
         {/* Quick Action Pills */}
         <div className="p-2.5 border-b border-border/50 bg-muted/20 flex gap-2 overflow-x-auto text-xs no-scrollbar">
