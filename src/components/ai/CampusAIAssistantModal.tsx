@@ -35,6 +35,18 @@ interface AIStatusData {
   };
 }
 
+export interface ActiveDocumentContext {
+  id?: string;
+  title: string;
+  subject?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: string;
+  extractedText: string;
+  pageCount?: number;
+  isScanned?: boolean;
+}
+
 interface MessageWithMetadata extends AIChatMessage {
   executionSteps?: Array<{ step: string; toolName?: string; status: string; durationMs?: number }>;
   toolsUsed?: string[];
@@ -74,7 +86,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
         {msg.attachedFileName && (
           <div className="mb-2 px-2.5 py-1 rounded-lg bg-black/30 text-[11px] font-mono flex items-center gap-1.5 text-accent border border-accent/20">
             <span>📄</span>
-            <span>Attached: {msg.attachedFileName}</span>
+            <span>Document Focus: {msg.attachedFileName}</span>
           </div>
         )}
 
@@ -82,7 +94,7 @@ const ChatMessageItem = memo(function ChatMessageItem({
         {msg.executionSteps && msg.executionSteps.length > 0 && (
           <div className="mb-3 p-2.5 rounded-xl bg-muted/40 border border-primary/20 text-[11px] space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground font-700 uppercase tracking-wider text-[10px]">
-              <span>⚡ Academic Superpower Execution</span>
+              <span>⚡ Academic Intelligence Processing</span>
               <span className="text-primary font-mono">{msg.executionSteps.length} Step(s)</span>
             </div>
             {msg.executionSteps.map((step, sIdx) => (
@@ -219,7 +231,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     {
       id: 'msg-init',
       role: 'assistant',
-      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am **Campus AI** ✨\n\nI am a **general-purpose AI assistant** with integrated **Campus OS superpowers**.\n\nAsk me anything:\n- 💡 **General Knowledge & Concepts** (*"What is quantum computing?", "Explain Dijkstra's algorithm"*)\n- 💻 **Programming & Code** (*"Write a Python script to sort students", "Explain polymorphism in Java"*)\n- 🎓 **Academic Tutoring & Prep** (*"Help me prepare for my DBMS viva", "Explain normalization like I'm 10"*)\n- 📊 **Your Academic Records** (*"What is my attendance?", "Which subject am I weakest in?"*)\n- 📅 **Campus Actions & Navigation** (*"Open my timetable", "When is my next exam?"*)\n\nHow can I help you today?`,
+      content: `Hello **${profile?.fullName || 'Campus Member'}**! I am **Campus AI** ✨\n\nI provide **authentic document intelligence**, programming assistance, and academic mentoring.\n\nWhat would you like to explore?\n- 📄 **Document Intelligence** (*"Summarize attached PDF"*, *"Generate 10 MCQs from this document"*, *"Explain Question 3"*)\n- 💡 **General Computer Science** (*"Explain 3NF Normalization"*, *"How does Banker's Algorithm prevent deadlock?"*)\n- 💻 **Programming & Code Lab** (*"Write a Python script for Dijkstra's algorithm"*, *"Fix bug in C# code"*)\n- 📊 **Campus Records & Actions** (*"What is my attendance?"*, *"Open my timetable"*)\n\nHow can I help you today?`,
       timestamp: 'Just now',
     },
   ]);
@@ -228,8 +240,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   const [isLoading, setIsLoading] = useState(false);
   const [activeToolStatus, setActiveToolStatus] = useState<string | null>(null);
   const [debugMode, setDebugMode] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
-  const [showHardwareInfo, setShowHardwareInfo] = useState(false);
+  const [activeDocument, setActiveDocument] = useState<ActiveDocumentContext | null>(null);
 
   // References for streaming lifecycle and non-blocking batching
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -277,16 +288,24 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     };
   }, []);
 
-  // Listen for campusos:open-ai events (e.g. from notes reader, exams view, or shortcuts)
+  // Listen for campusos:open-ai events (e.g. from notes reader, exams view, or assignments)
   useEffect(() => {
     const handleOpenAIEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       const { query, initialMessage, selectedDocument } = customEvent.detail || {};
 
       if (selectedDocument) {
-        setAttachedFile({
-          name: selectedDocument.title || 'Selected Document',
-          content: selectedDocument.extractedText || selectedDocument.description || '',
+        const text = selectedDocument.extractedText || selectedDocument.description || '';
+        setActiveDocument({
+          id: selectedDocument.id,
+          title: selectedDocument.title || selectedDocument.name || 'Selected Document',
+          subject: selectedDocument.subject,
+          fileName: selectedDocument.fileName || selectedDocument.title,
+          fileType: selectedDocument.fileType || 'pdf',
+          fileSize: selectedDocument.fileSize,
+          extractedText: text,
+          pageCount: selectedDocument.pageCount,
+          isScanned: selectedDocument.isScanned,
         });
       }
 
@@ -325,34 +344,41 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     [router, onClose]
   );
 
-  // Role-specific Inspiration Prompts
+  // Quick Action Prompts
   const getQuickActions = () => {
+    if (activeDocument) {
+      return [
+        { label: '⚡ Summarize This File', query: `Summarize the core topics, key definitions, and exam points from "${activeDocument.title}".` },
+        { label: '🎯 Generate 10 MCQs', query: `Generate 10 MCQs with 4 options and answers from "${activeDocument.title}".` },
+        { label: '💡 Explain Key Concepts', query: `Explain the fundamental concepts and mechanisms in "${activeDocument.title}".` },
+        { label: '📝 Practice Viva Questions', query: `Generate 5 high-yield viva questions with answers from "${activeDocument.title}".` },
+      ];
+    }
+
     if (userRole === 'student') {
       return [
         { label: '💡 What is Quantum Computing?', query: 'What is quantum computing?' },
         { label: '💻 Python CGPA Script', query: 'Write a Python program to calculate and sort student CGPA.' },
         { label: '🎓 DBMS Viva Tutor', query: 'Help me prepare for my DBMS viva. Quiz me step by step.' },
         { label: '📊 Check My Attendance', query: 'What is my attendance?' },
-        { label: '🎯 Weakest Subject & Plan', query: 'Which subject am I weakest in? Formulate a prioritized study plan.' },
         { label: '📅 Open Timetable', query: 'Open my timetable' },
         { label: '📝 Explain Normalization', query: 'Explain DBMS normalization in simple terms with examples.' },
       ];
     }
+
     if (userRole === 'teacher') {
       return [
         { label: '👥 Show My Classes', query: 'Show my assigned classes and student counts' },
         { label: '⚠️ Attendance Risk (<75%)', query: 'Which students have low attendance below 75%?' },
         { label: '🚀 Start My Next Class', query: 'Start my next class session' },
         { label: '📝 Question Papers', query: 'Show official question papers' },
-        { label: '💡 Generate Code Example', query: 'Write a Java multi-threading example for students.' },
       ];
     }
-    // Admin
+
     return [
       { label: '🏛️ Campus Stats', query: 'Show BCA institutional statistics' },
       { label: '🚨 Attendance Risk', query: 'Show students at academic risk' },
       { label: '📢 Create Notice', query: 'Broadcast an announcement about exam hall allotment' },
-      { label: '📈 Open Analytics', query: 'Open analytics dashboard' },
     ];
   };
 
@@ -360,25 +386,31 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('File size exceeds 20MB limit.');
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('File size exceeds 25MB limit.');
       return;
     }
 
-    const toastId = toast.loading(`Processing ${file.name}...`);
+    const toastId = toast.loading(`Reading & extracting "${file.name}"...`);
     try {
       const { DocumentParserService } = await import('@/services/documentParserService');
       const parsed = await DocumentParserService.parseFile(file);
       toast.dismiss(toastId);
 
       if (parsed.success) {
-        setAttachedFile({
-          name: parsed.fileName,
-          content: parsed.extractedText,
+        setActiveDocument({
+          title: parsed.fileName,
+          fileName: parsed.fileName,
+          fileType: parsed.fileType,
+          fileSize: `${(parsed.fileSize / 1024).toFixed(1)} KB`,
+          extractedText: parsed.extractedText,
+          pageCount: parsed.pageCount,
+          isScanned: parsed.isScanned,
         });
-        toast.success(`Attached "${file.name}" (${(file.size / 1024).toFixed(1)} KB)`);
+
+        toast.success(`Attached "${file.name}" (${(file.size / 1024).toFixed(1)} KB) — Text extracted!`);
       } else {
-        toast.error(parsed.error || 'Failed to read document.');
+        toast.error(parsed.error || 'Failed to extract text from document.');
       }
     } catch (err: any) {
       toast.dismiss(toastId);
@@ -400,7 +432,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       rafIdRef.current = null;
     }
 
-    // Flush any remaining content in buffer
     const aiId = activeAiMsgIdRef.current;
     const finalBuffer = accumulatedContentRef.current;
     if (aiId && finalBuffer) {
@@ -432,7 +463,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         timestamp: 'Just now',
       },
     ]);
-    setAttachedFile(null);
+    setActiveDocument(null);
     toast.success('Conversation history reset.');
   };
 
@@ -446,19 +477,26 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
   const sendMessage = async (textToSend?: string, toolHint?: string) => {
     const query = (textToSend || inputText).trim();
-    if ((!query && !attachedFile) || isLoadingRef.current) return;
+    if ((!query && !activeDocument) || isLoadingRef.current) return;
 
     lastUserQueryRef.current = query;
-    const finalQuery = attachedFile
-      ? `${query}\n\n[Attached Document: ${attachedFile.name}]\n\`\`\`\n${attachedFile.content.slice(0, 4000)}\n\`\`\``
-      : query;
+
+    // Attach active document context to query if not already embedded
+    let finalQuery = query;
+    if (
+      activeDocument &&
+      activeDocument.extractedText &&
+      !query.includes(activeDocument.extractedText.slice(0, 60))
+    ) {
+      finalQuery = `${query}\n\n[Active Document: "${activeDocument.title}"]\n"""\n${activeDocument.extractedText.slice(0, 8000)}\n"""`;
+    }
 
     const userMsg: MessageWithMetadata = {
       id: `usr-${Date.now()}`,
       role: 'user',
       content: query,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      attachedFileName: attachedFile?.name,
+      attachedFileName: activeDocument?.title,
     };
 
     const aiMsgId = `ai-${Date.now()}`;
@@ -478,18 +516,15 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
     ]);
 
     setInputText('');
-    setAttachedFile(null);
     setIsLoading(true);
-    setActiveToolStatus(toolHint || 'AI is typing...');
+    setActiveToolStatus(toolHint || (activeDocument ? 'Reading & analyzing document...' : 'AI is typing...'));
 
-    // Smooth scroll on sending new message
     setTimeout(() => scrollToBottom(true), 50);
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const startTime = Date.now();
 
-    // Set client-side timeout to avoid indefinite hanging
     timeoutIdRef.current = setTimeout(() => {
       if (isLoadingRef.current) {
         controller.abort();
@@ -514,7 +549,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
       }
     }, REQUEST_TIMEOUT_MS);
 
-    // Schedule batched state update via requestAnimationFrame
     let isBatchUpdateScheduled = false;
     const scheduleBatchedUpdate = () => {
       if (isBatchUpdateScheduled) return;
@@ -526,7 +560,6 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         setMessages((prev) =>
           prev.map((m) => (m.id === aiMsgId ? { ...m, content: currentContent } : m))
         );
-        // Instant scroll during token streaming avoids layout thrashing
         scrollToBottom(false);
       });
     };
@@ -548,6 +581,15 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           currentTab,
           sessionId: `session_${profile?.id || 'guest'}`,
           history: historyPayload,
+          selectedEntity: activeDocument
+            ? {
+                id: activeDocument.id,
+                title: activeDocument.title,
+                fileName: activeDocument.fileName,
+                subject: activeDocument.subject,
+                extractedText: activeDocument.extractedText,
+              }
+            : undefined,
           stream: true,
         }),
       });
@@ -579,174 +621,108 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           try {
             event = JSON.parse(jsonStr);
           } catch {
-            return; // Ignore partial lines safely
+            return;
           }
 
-          if (event.type === 'token' && typeof event.content === 'string') {
-            if (accumulatedContentRef.current.length < MAX_RESPONSE_LENGTH) {
-              accumulatedContentRef.current += event.content;
-              scheduleBatchedUpdate();
-            } else if (!accumulatedContentRef.current.includes('[Response truncated]')) {
-              accumulatedContentRef.current += '\n\n⚠️ *[Response truncated due to maximum length safety]*';
-              scheduleBatchedUpdate();
+          if (event.type === 'token') {
+            accumulatedContentRef.current += event.token || '';
+            if (accumulatedContentRef.current.length > MAX_RESPONSE_LENGTH) {
+              controller.abort();
             }
+            scheduleBatchedUpdate();
           } else if (event.type === 'step') {
-            setActiveToolStatus(event.step || 'Executing tool...');
-          } else if (event.type === 'action' && event.action) {
+            setActiveToolStatus(event.step);
+          } else if (event.type === 'action') {
             setMessages((prev) =>
-              prev.map((m) => (m.id === aiMsgId ? { ...m, action: event.action } : m))
+              prev.map((m) =>
+                m.id === aiMsgId
+                  ? {
+                      ...m,
+                      action: {
+                        type: 'navigate',
+                        label: event.action?.label || 'Navigate',
+                        route: event.action?.route || pathname,
+                      },
+                    }
+                  : m
+              )
             );
-            const targetRoute = event.action.route || (event.action.payload?.tab ? `/student-dashboard?tab=${event.action.payload.tab}` : null);
-            if (targetRoute) {
-              toast.success(`Navigating to ${event.action.label || targetRoute}`);
-              router.push(targetRoute);
-              onClose();
-            }
           } else if (event.type === 'done') {
             streamCompleted = true;
-            const durationMs = Date.now() - startTime;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === aiMsgId
-                  ? {
-                      ...m,
-                      content: accumulatedContentRef.current,
-                      modelUsed: event.modelUsed,
-                      provider: event.provider,
-                      durationMs,
-                    }
-                  : m
-              )
-            );
-            setActiveToolStatus('Complete');
-          } else if (event.type === 'error') {
-            const errMsg = event.content || 'Sorry, the response was interrupted. Please try again.';
-            accumulatedContentRef.current += `\n\n⚠️ *${errMsg}*`;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === aiMsgId
-                  ? {
-                      ...m,
-                      content: accumulatedContentRef.current,
-                      isError: true,
-                      canRetry: true,
-                    }
-                  : m
-              )
-            );
-            toast.error(errMsg);
           }
         };
 
-        while (true) {
+        while (!streamCompleted) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split(/\r?\n/);
-          buffer = lines.pop() ?? '';
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
             processSseLine(line);
           }
         }
-
-        if (buffer.trim()) {
-          processSseLine(buffer);
-        }
-
-        // Cancel any pending animation frames and flush final text
-        if (rafIdRef.current) {
-          cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-        }
-
-        const finalContent = accumulatedContentRef.current;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === aiMsgId ? { ...m, content: finalContent } : m))
-        );
-
-        if (!streamCompleted && !finalContent.trim()) {
-          throw new Error('Sorry, the response was interrupted. Please try again.');
-        }
       } else {
         const data = await res.json();
-        const durationMs = Date.now() - startTime;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiMsgId
-              ? {
-                  ...m,
-                  content: data.answer || 'Response received.',
-                  action: data.action,
-                  modelUsed: data.modelUsed,
-                  provider: data.provider,
-                  durationMs,
-                }
-              : m
-          )
-        );
+        accumulatedContentRef.current = data.answer || data.text || 'Response received.';
+        scheduleBatchedUpdate();
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      const errMsg = err.message || 'Sorry, the response was interrupted. Please try again.';
-      toast.error(errMsg);
+
+      // Final state sync
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+
+      const finalContent = accumulatedContentRef.current;
       setMessages((prev) =>
-        prev.map((m) => {
-          if (m.id !== aiMsgId) return m;
-          const prevContent = m.content.trim() || accumulatedContentRef.current.trim();
-          return {
-            ...m,
-            content: prevContent
-              ? `${prevContent}\n\n⚠️ *Sorry, the response was interrupted. Please try again.*`
-              : '⚠️ **Notice**: Sorry, the response was interrupted. Please click **Retry** below.',
-            isError: true,
-            canRetry: true,
-          };
-        })
+        prev.map((m) =>
+          m.id === aiMsgId
+            ? {
+                ...m,
+                content: finalContent,
+                durationMs: Date.now() - startTime,
+              }
+            : m
+        )
       );
-    } finally {
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-        timeoutIdRef.current = null;
-      }
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-      }
+
       isLoadingRef.current = false;
       setIsLoading(false);
-      window.setTimeout(() => setActiveToolStatus(null), 1200);
-      abortControllerRef.current = null;
+      setActiveToolStatus(null);
+      setTimeout(() => scrollToBottom(true), 50);
+    } catch (err: any) {
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+
+      if (err.name === 'AbortError') return;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === aiMsgId
+            ? {
+                ...m,
+                content: `⚠️ **AI Service Notice**: ${err.message || 'The AI service encountered an error.'}\n\nPlease click **Retry** to try again.`,
+                isError: true,
+                canRetry: true,
+              }
+            : m
+        )
+      );
+
+      isLoadingRef.current = false;
+      setIsLoading(false);
+      setActiveToolStatus(null);
     }
   };
-
-  const handleRegenerate = () => {
-    if (messages.length < 2 || isLoading) return;
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-    if (lastUserMsg) {
-      sendMessage(lastUserMsg.content);
-    }
-  };
-
-  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in cursor-pointer"
-        onClick={onClose}
-      />
-
-      {/* Slide-over 3D AI Intelligence Core Panel */}
-      <div className="relative w-full sm:max-w-2xl bg-card/95 backdrop-blur-2xl border-l border-primary/40 h-full flex flex-col shadow-2xl animate-slide-right z-10 selection:bg-accent selection:text-black">
-        {/* Header Bar */}
-        <div className="p-4 sm:p-4.5 border-b border-border/80 flex items-center justify-between bg-card/80 relative overflow-hidden">
-          <div className="absolute top-0 right-1/4 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-md animate-fade-in">
+      <div className="glass-card w-full max-w-3xl h-[92vh] sm:h-[86vh] rounded-3xl border border-border/80 shadow-2xl flex flex-col overflow-hidden animate-scale-up">
+        {/* Header */}
+        <div className="p-4 border-b border-border/60 flex items-center justify-between bg-card/60 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <AIOrb size="md" status={isLoading ? 'analyzing' : 'idle'} />
+            <AIOrb status={isLoading ? 'analyzing' : 'idle'} size="md" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-800 text-foreground tracking-tight flex items-center gap-1.5">
@@ -757,7 +733,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                 </h3>
               </div>
               <p className="text-[11px] text-muted-foreground font-500">
-                Academic Assistant · <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
+                Academic Copilot · <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
               </p>
             </div>
           </div>
@@ -830,19 +806,33 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Attached Document Bar */}
-        {attachedFile && (
-          <div className="px-4 py-2 bg-primary/10 border-t border-primary/30 flex items-center justify-between text-xs animate-fade-in">
-            <span className="flex items-center gap-1.5 text-accent font-500">
-              <span>📄</span>
-              <span className="truncate max-w-[250px]">{attachedFile.name}</span>
-            </span>
-            <button
-              onClick={() => setAttachedFile(null)}
-              className="text-muted-foreground hover:text-foreground cursor-pointer font-bold"
-            >
-              ✕
-            </button>
+        {/* ─── ACTIVE DOCUMENT BANNER (PERSISTENT CONTEXT) ────────────────── */}
+        {activeDocument && (
+          <div className="px-4 py-2.5 bg-gradient-to-r from-purple-950/40 to-indigo-950/40 border-t border-purple-500/30 flex items-center justify-between text-xs animate-fade-in">
+            <div className="flex items-center gap-2 truncate pr-2">
+              <span className="text-base flex-shrink-0">📑</span>
+              <div className="truncate">
+                <span className="font-700 text-purple-200 truncate block">
+                  Active Document: "{activeDocument.title}"
+                </span>
+                <span className="text-[10px] text-purple-300/70 font-mono">
+                  {activeDocument.fileSize || 'Attached'} {activeDocument.pageCount ? `· ${activeDocument.pageCount} Pages` : ''} · AI Document Mode Enabled
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setActiveDocument(null);
+                  toast.info('Document detached from AI chat.');
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 transition-all font-600 cursor-pointer"
+                title="Detach Document"
+              >
+                ✕ Detach
+              </button>
+            </div>
           </div>
         )}
 
@@ -874,7 +864,11 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
             <input
               type="text"
-              placeholder={`Ask anything: "Explain polymorphism", "What is my attendance?", "DBMS study plan"...`}
+              placeholder={
+                activeDocument
+                  ? `Ask about "${activeDocument.title}": "Generate 10 MCQs", "Summarize", "Explain question 3"...`
+                  : `Ask anything: "Explain polymorphism", "What is my attendance?", "DBMS study plan"...`
+              }
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="input-field py-2.5 text-xs sm:text-sm font-500 flex-1"
@@ -896,7 +890,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                 type="submit"
                 variant="primary"
                 size="md"
-                disabled={(!inputText.trim() && !attachedFile) || isLoading}
+                disabled={(!inputText.trim() && !activeDocument) || isLoading}
                 className="px-5 shadow-glow font-800"
               >
                 Send
@@ -917,4 +911,3 @@ export default function CampusAIAssistantModal(props: CampusAIAssistantModalProp
     </Suspense>
   );
 }
-

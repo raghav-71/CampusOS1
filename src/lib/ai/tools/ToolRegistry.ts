@@ -17,7 +17,7 @@ export interface AIExecutionContext {
   semester: number;
   currentPath: string;
   currentTab: string;
-  selectedEntity?: string;
+  selectedEntity?: any;
 }
 
 export interface ToolExecutionResult {

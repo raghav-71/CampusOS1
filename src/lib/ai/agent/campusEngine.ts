@@ -107,7 +107,8 @@ export class CampusEngine {
         fullName: context.userName,
         role: context.userRole,
         department: (context.department || 'BCA') as any,
-        semester: `Sem ${context.semester}`,
+        semester: `Semester ${context.semester}`,
+        semesterNumber: context.semester,
       },
     });
 
@@ -259,7 +260,8 @@ export class CampusEngine {
         fullName: context.userName,
         role: context.userRole,
         department: (context.department || 'BCA') as any,
-        semester: `Sem ${context.semester}`,
+        semester: `Semester ${context.semester}`,
+        semesterNumber: context.semester,
       },
     });
 

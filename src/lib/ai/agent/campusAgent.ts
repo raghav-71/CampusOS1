@@ -37,7 +37,7 @@ export class CampusAgent {
       semester: parseInt(String(userProfile.semester || '5').replace(/[^0-9]/g, ''), 10) || 5,
       currentPath,
       currentTab,
-      selectedEntity: typeof selectedEntity === 'string' ? selectedEntity : undefined,
+      selectedEntity: selectedEntity || undefined,
     };
 
     const sessionKey = sessionId || `sess_${userProfile.id || 'guest'}`;

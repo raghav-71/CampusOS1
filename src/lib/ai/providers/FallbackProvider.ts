@@ -43,6 +43,18 @@ export class FallbackProvider implements IUnifiedAIProvider {
     if (systemMsg.includes('Role: TEACHER')) userRole = 'teacher';
     else if (systemMsg.includes('Role: ADMIN')) userRole = 'admin';
 
+    const semMatch = systemMsg.match(/Semester\s*(\d+)/i);
+    const userSem = semMatch ? parseInt(semMatch[1], 10) : 5;
+
+    if (systemMsg.includes('[RESTRICTED DOCUMENT ACCESS]')) {
+      return {
+        text: `🛡️ **Access Denied (Strict Semester Isolation)**: You are enrolled in Semester ${userSem}. You cannot access, inspect, or summarize materials for other semesters.`,
+        modelUsed: 'campus-security-guard',
+        provider: 'CampusOS Security',
+        durationMs: 15,
+      };
+    }
+
     let selectedEntity: any = undefined;
     if (systemMsg.includes('Active Document Content:') || systemMsg.includes('Authentic Extracted Document Text:')) {
       const titleMatch = systemMsg.match(/Active Document Content:\s*"([^"]+)"/i);
@@ -60,7 +72,7 @@ export class FallbackProvider implements IUnifiedAIProvider {
       userRole,
       userName,
       department: 'BCA (Bachelor of Computer Applications)',
-      semester: 5,
+      semester: userSem,
       currentPath: '/student-dashboard',
       currentTab: 'overview',
       selectedEntity,

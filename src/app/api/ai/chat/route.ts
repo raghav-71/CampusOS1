@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       userProfile,
       currentPath,
       currentTab,
-      selectedEntity: selectedEntity || selectedContext,
+      selectedEntity: selectedEntity || body.selectedDocument || body.activeDocument || selectedContext,
       codeLabContext,
       history: Array.isArray(history) ? history : [],
       stream,

@@ -1,7 +1,7 @@
 /**
  * Campus OS Document Parser Service
  * Robust, universal document parsing pipeline for PDF, DOCX, TXT, CSV, JSON, Code, and Images.
- * Uses `unpdf` for multi-page PDF text extraction, page preservation, and scanned PDF detection.
+ * Uses `unpdf` for multi-page PDF text extraction and `mammoth` for Word (.docx) document parsing.
  */
 
 import { DocumentChunk, DocumentChunker } from '@/lib/ai/documents/DocumentChunker';
@@ -85,26 +85,10 @@ export class DocumentParserService {
         return await this.parsePdfBuffer(new Uint8Array(arrayBuffer), name, size);
       }
 
-      // 4. DOCX files -> Extract readable XML text nodes
+      // 4. DOCX files -> Extract readable text with mammoth
       if (ext === 'docx' || ext === 'doc') {
         const arrayBuffer = await file.arrayBuffer();
-        const text = this.extractTextFromDocxBytes(new Uint8Array(arrayBuffer));
-        const trimmed = text || `[Word Document: ${name} (${(size / 1024).toFixed(1)} KB)]`;
-        const chunks = DocumentChunker.chunkText(trimmed);
-
-        return {
-          fileName: name,
-          fileType: 'docx',
-          fileSize: size,
-          pageCount: 1,
-          isScanned: false,
-          extractedText: trimmed,
-          chunks,
-          summary: DocumentChunker.generateAcademicSummary(name, trimmed),
-          charCount: trimmed.length,
-          lineCount: trimmed.split('\n').length,
-          success: true,
-        };
+        return await this.parseDocxBuffer(arrayBuffer, name, size);
       }
 
       // 5. Image files -> Preview metadata
@@ -168,13 +152,23 @@ export class DocumentParserService {
    * Parse PDF bytes with unpdf, maintaining multi-page structure and scanned detection
    */
   static async parsePdfBuffer(
-    buffer: Uint8Array,
+    buffer: Uint8Array | ArrayBuffer | Buffer,
     fileName: string,
-    fileSize = buffer.length
+    fileSize = (buffer as any).byteLength || (buffer as any).length || 0
   ): Promise<ParsedDocumentResult> {
     try {
       const { extractText } = await import('unpdf');
-      const result = await extractText(buffer, { mergePages: false });
+      const uint8 = buffer instanceof Uint8Array && buffer.constructor.name === 'Uint8Array'
+        ? buffer
+        : new Uint8Array(
+            buffer instanceof ArrayBuffer
+              ? buffer
+              : (buffer as any).buffer || buffer,
+            (buffer as any).byteOffset || 0,
+            (buffer as any).byteLength || (buffer as any).length
+          );
+
+      const result = await extractText(uint8, { mergePages: false });
 
       const totalPages = result.totalPages || (Array.isArray(result.text) ? result.text.length : 1);
       const rawPages: string[] = Array.isArray(result.text) ? result.text : [result.text || ''];
@@ -198,12 +192,9 @@ export class DocumentParserService {
       const combinedText = formattedPages.join('\n\n');
       const isScanned = totalPages > 0 && totalLetters < 40;
 
-      let summary = '';
-      if (isScanned) {
-        summary = `⚠️ **Notice**: This PDF appears to be scanned or image-based (${totalPages} page${totalPages > 1 ? 's' : ''}). Text extraction found little or no selectable text.`;
-      } else {
-        summary = DocumentChunker.generateAcademicSummary(fileName, combinedText);
-      }
+      const summaryText = isScanned
+        ? `⚠️ **Notice**: This PDF appears to be scanned or image-based (${totalPages} page${totalPages > 1 ? 's' : ''}). Text extraction found little or no selectable text.`
+        : DocumentChunker.generateAcademicSummary(fileName, combinedText);
 
       const chunks = DocumentChunker.chunkText(combinedText);
 
@@ -215,50 +206,84 @@ export class DocumentParserService {
         isScanned,
         extractedText: combinedText,
         chunks,
-        summary,
+        summary: summaryText,
         charCount: combinedText.length,
         lineCount: combinedText.split('\n').length,
         success: true,
       };
     } catch (err: any) {
-      // If unpdf fails, provide graceful diagnostics without falsely claiming corruption
       return {
         fileName,
         fileType: 'pdf',
         fileSize,
-        pageCount: 1,
+        pageCount: 0,
         isScanned: false,
-        extractedText: `[PDF Document: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)]`,
-        summary: `PDF document "${fileName}" (${(fileSize / 1024).toFixed(1)} KB). You can view and download the original file directly.`,
+        extractedText: `[PDF Parsing Error: ${err.message}]`,
+        summary: `Error extracting text from PDF "${fileName}": ${err.message}`,
         charCount: 0,
-        lineCount: 1,
-        success: true,
-        error: `PDF reader warning: ${err.message}`,
+        lineCount: 0,
+        success: false,
+        error: err.message,
       };
     }
   }
 
   /**
-   * Parse Data URL (Base64) into extracted document result
+   * Parse DOCX ArrayBuffer with mammoth
    */
-  static async parseDataUrl(dataUrl: string, fileName: string): Promise<ParsedDocumentResult> {
-    if (!dataUrl) {
+  static async parseDocxBuffer(
+    buffer: ArrayBuffer | Uint8Array,
+    fileName: string,
+    fileSize = buffer.byteLength
+  ): Promise<ParsedDocumentResult> {
+    try {
+      const uint8 = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+      const arrayBuffer = uint8.buffer.slice(uint8.byteOffset, uint8.byteOffset + uint8.byteLength) as ArrayBuffer;
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      const text = (result.value || '').trim();
+
+      const trimmed = text || `[Word Document: ${fileName} (${(fileSize / 1024).toFixed(1)} KB)]`;
+      const chunks = DocumentChunker.chunkText(trimmed);
+
       return {
         fileName,
-        fileType: 'unknown',
-        fileSize: 0,
-        extractedText: '',
-        summary: 'No document data found.',
+        fileType: 'docx',
+        fileSize,
+        pageCount: 1,
+        isScanned: false,
+        extractedText: trimmed,
+        chunks,
+        summary: DocumentChunker.generateAcademicSummary(fileName, trimmed),
+        charCount: trimmed.length,
+        lineCount: trimmed.split('\n').length,
+        success: true,
+      };
+    } catch (err: any) {
+      return {
+        fileName,
+        fileType: 'docx',
+        fileSize,
+        pageCount: 0,
+        isScanned: false,
+        extractedText: `[DOCX Parsing Error: ${err.message}]`,
+        summary: `Failed to extract DOCX: ${err.message}`,
         charCount: 0,
         lineCount: 0,
         success: false,
+        error: err.message,
       };
     }
+  }
 
+  /**
+   * Parse Base64 Data URL
+   */
+  static async parseDataUrl(dataUrl: string, fileName: string): Promise<ParsedDocumentResult> {
     try {
-      const base64Index = dataUrl.indexOf('base64,');
+      const base64Index = dataUrl.indexOf(';base64,');
       if (base64Index !== -1) {
-        const base64 = dataUrl.slice(base64Index + 7);
+        const base64 = dataUrl.slice(base64Index + 8);
         const binaryString = typeof window !== 'undefined' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
@@ -271,7 +296,11 @@ export class DocumentParserService {
           return await this.parsePdfBuffer(bytes, fileName, len);
         }
 
-        const decoder = new TextDecoder('utf-8');
+        if (ext === 'docx' || ext === 'doc' || dataUrl.includes('wordprocessingml')) {
+          return await this.parseDocxBuffer(bytes.buffer, fileName, len);
+        }
+
+        const decoder = new TextDecoder('utf-8', { fatal: false });
         const text = decoder.decode(bytes);
         const chunks = DocumentChunker.chunkText(text);
 
@@ -312,35 +341,6 @@ export class DocumentParserService {
         success: false,
         error: err.message,
       };
-    }
-  }
-
-  /**
-   * Text extraction from DOCX byte streams
-   */
-  private static extractTextFromDocxBytes(bytes: Uint8Array): string {
-    try {
-      const decoder = new TextDecoder('utf-8', { fatal: false });
-      const raw = decoder.decode(bytes);
-
-      // Match XML text nodes <w:t>Text</w:t>
-      const textMatches: string[] = [];
-      const regex = /<w:t(?:\s+[^>]*)?>([^<]+)<\/w:t>/g;
-      let match: RegExpExecArray | null;
-
-      while ((match = regex.exec(raw)) !== null) {
-        if (match[1]) {
-          textMatches.push(match[1]);
-        }
-      }
-
-      if (textMatches.length > 0) {
-        return textMatches.join(' ');
-      }
-
-      return '';
-    } catch {
-      return '';
     }
   }
 }

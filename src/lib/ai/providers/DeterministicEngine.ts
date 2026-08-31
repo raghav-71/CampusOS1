@@ -57,6 +57,22 @@ export class DeterministicEngine {
     // ─── 0. ATTACHED DOCUMENT / STUDY MATERIAL CONTEXT ─────────────────────────
     const selectedDoc: any = context.selectedEntity;
     if (selectedDoc && (selectedDoc.extractedText || selectedDoc.title || selectedDoc.description)) {
+      // Security Boundary Check for Cross-Semester Document Access
+      const targetSem = selectedDoc.targetSemester || selectedDoc.semesterNumber;
+      const studentSem = context.semester;
+      if (context.userRole === 'student' && targetSem && studentSem && targetSem !== studentSem) {
+        return {
+          answer: `🛡️ **Access Denied (Strict Access Control Boundary)**: You are enrolled in Semester ${studentSem}. You cannot access, inspect, or summarize materials for Semester ${targetSem}.`,
+          category: 'ACTION',
+          toolsUsed: [],
+          executionSteps: [{ step: 'Security boundary validation', status: 'FAILED', durationMs: 5 }],
+          suggestedPrompts: ['What is my attendance?', 'When is my next exam?', 'Open my timetable'],
+          modelUsed: 'campus-security-guard',
+          provider: 'CampusOS Security',
+          durationMs: Date.now() - startTime,
+        };
+      }
+
       const text = selectedDoc.extractedText || selectedDoc.description || '';
       const docTitle = selectedDoc.title || selectedDoc.name || 'Attached Course Document';
       const chunks = DocumentChunker.chunkText(text);
@@ -175,8 +191,25 @@ ${refContext.length > 50 ? `\n**Reference Specification Notes:**\n> ${refContext
         };
       }
 
-      // B. Viva & Exam Questions
-      if (q.includes('viva') || q.includes('exam question') || q.includes('questions') || q.includes('mcq') || q.includes('quiz')) {
+      // D. Authentic Multiple Choice Questions (MCQs) Generation
+      if (q.includes('mcq') || q.includes('multiple choice') || q.includes('10 questions') || q.includes('quiz me') || q.includes('generate questions')) {
+        recordStep('Generating 10 authentic MCQs from document text');
+        const mcqOutput = DocumentChunker.generateAuthenticMCQs(docTitle, text, selectedDoc.subject, 10);
+        return {
+          answer: mcqOutput,
+          category: 'ACADEMIC',
+          toolsUsed,
+          executionSteps: steps,
+          suggestedPrompts: ['Summarize this document', 'Explain Question 3 in detail', 'What are key definitions?'],
+          modelUsed: 'CampusOS AI',
+          provider: 'CampusOS AI',
+          durationMs: Date.now() - startTime,
+          isOfflineFallback: true,
+        };
+      }
+
+      // E. Viva & Exam Revision Questions
+      if (q.includes('viva') || q.includes('exam question') || q.includes('interview')) {
         recordStep('Extracting viva & exam questions from document text');
         const relevant = DocumentChunker.findRelevantChunks(query, chunks, 3);
         const refText = relevant.map((r) => r.text).join('\n\n');
@@ -197,7 +230,7 @@ ${refContext.length > 50 ? `\n**Reference Specification Notes:**\n> ${refContext
           category: 'ACADEMIC',
           toolsUsed,
           executionSteps: steps,
-          suggestedPrompts: ['Summarize this document', 'Explain key formulas', 'Practice MCQs'],
+          suggestedPrompts: ['Generate 10 MCQs from this document', 'Summarize this document', 'Explain key formulas'],
           modelUsed: 'CampusOS AI',
           provider: 'CampusOS AI',
           durationMs: Date.now() - startTime,
@@ -209,15 +242,19 @@ ${refContext.length > 50 ? `\n**Reference Specification Notes:**\n> ${refContext
       recordStep('Querying relevant document chunks', 'search_document');
       const relevantChunks = DocumentChunker.findRelevantChunks(query, chunks, 3);
       if (relevantChunks.length > 0) {
-        const topChunk = relevantChunks[0];
-        const excerpt = topChunk.text.slice(0, 1000);
+        let answerText = `### 📑 Document Extract: ${docTitle}\n\n`;
+        relevantChunks.slice(0, 2).forEach((c) => {
+          const headingLabel = c.heading || (c.pageNumber ? `Page ${c.pageNumber}` : 'Relevant Section');
+          answerText += `#### ${headingLabel}\n${c.text.slice(0, 1000)}\n\n`;
+        });
+        answerText += `---\n**Subject Area**: \`${selectedDoc.subject || 'BCA Coursework'}\` · **Status**: Verified course document content.`;
 
         return {
-          answer: `### 📑 Document Extract: ${docTitle}${topChunk.pageNumber ? ` (Page ${topChunk.pageNumber})` : ''}\n\n${excerpt}\n\n---\n**Subject Area**: \`${selectedDoc.subject || 'BCA Coursework'}\` · **Status**: Verified course document content.`,
+          answer: answerText,
           category: 'ACADEMIC',
           toolsUsed,
           executionSteps: steps,
-          suggestedPrompts: ['Summarize this document', 'Give me viva questions', 'Explain this concept simply'],
+          suggestedPrompts: ['Generate 10 MCQs from this document', 'Summarize this document', 'Explain this concept simply'],
           modelUsed: 'CampusOS AI',
           provider: 'CampusOS AI',
           durationMs: Date.now() - startTime,

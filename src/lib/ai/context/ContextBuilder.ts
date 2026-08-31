@@ -61,7 +61,12 @@ export class ContextBuilder {
     };
 
     const role: Role = profile.role || 'student';
-    const studentSem: number = profile.semesterNumber || 5;
+    const studentSem: number =
+      profile.semesterNumber ||
+      (typeof profile.semester === 'number'
+        ? profile.semester
+        : parseInt(String(profile.semester || '5').replace(/[^0-9]/g, ''), 10)) ||
+      5;
     const path = options.currentPath || '/student-dashboard';
     const tab = (options.currentTab || 'overview').toLowerCase();
 
@@ -78,10 +83,23 @@ export class ContextBuilder {
       }
     }
 
-    // 3. Document Summary (when a document is opened or asked about)
+    // 3. Document Summary (when a document is opened, attached, or asked about)
     let documentSummary: string | undefined = undefined;
-    const docEntity = options.selectedDocument || options.selectedEntity;
-    if (docEntity && (docEntity.extractedText || docEntity.title)) {
+    let docEntity = options.selectedDocument || options.selectedEntity;
+
+    // If only an ID was provided, attempt to resolve from repository
+    if (docEntity && typeof docEntity === 'object' && docEntity.id && !docEntity.extractedText) {
+      try {
+        const repoDoc =
+          (await campusRepository.getDocumentById(docEntity.id, profile).catch(() => null)) ||
+          (await campusRepository.getAssignmentById(docEntity.id, profile).catch(() => null));
+        if (repoDoc) {
+          docEntity = { ...repoDoc, ...docEntity };
+        }
+      } catch {}
+    }
+
+    if (docEntity && (docEntity.extractedText || docEntity.title || docEntity.fileName || docEntity.fileData)) {
       const auth = AuthorizationService.canUserAccessDocument(profile, {
         targetSemester: docEntity.targetSemester || docEntity.semesterNumber,
         semesterNumber: docEntity.semesterNumber || docEntity.targetSemester,
@@ -93,18 +111,38 @@ export class ContextBuilder {
       });
 
       if (auth.allowed) {
-        const fullExtracted = docEntity.extractedText || docEntity.description || '';
+        let fullExtracted = docEntity.extractedText || '';
+
+        // If no extractedText but fileData (Base64) exists, extract on the fly
+        if (!fullExtracted && docEntity.fileData) {
+          try {
+            const { DocumentParserService } = await import('@/services/documentParserService');
+            const parsed = await DocumentParserService.parseDataUrl(
+              docEntity.fileData,
+              docEntity.fileName || `${docEntity.title || 'document'}.pdf`
+            );
+            if (parsed.success && parsed.extractedText) {
+              fullExtracted = parsed.extractedText;
+            }
+          } catch {}
+        }
+
+        if (!fullExtracted) {
+          fullExtracted = docEntity.description || docEntity.title || 'Course document material.';
+        }
+
         documentSummary = [
-          `### 📄 Active Document Content: "${docEntity.title}" (${docEntity.subject || 'Academic Document'})`,
+          `### 📄 Active Document Content: "${docEntity.title || docEntity.fileName || 'Attached Course Material'}" (${docEntity.subject || 'Academic Subject'})`,
           `- Author / Instructor: ${docEntity.teacher || docEntity.uploadedBy || 'Faculty Member'}`,
           `- Target Cohort: ${docEntity.semester || `Semester ${docEntity.semesterNumber || studentSem}`}`,
           `- Authentic Extracted Document Text:`,
           `"""`,
-          fullExtracted.slice(0, 12000),
+          fullExtracted.slice(0, 16000),
           `"""`,
+          `- Document Instruction for AI: You are in Document Analysis Mode for the active document above. When asked to summarize, explain, generate MCQs, extract questions, or answer questions about this document, generate your response strictly from the authentic extracted text above. Never claim the document content is unavailable.`,
         ].join('\n');
       } else {
-        documentSummary = `[RESTRICTED DOCUMENT ACCESS]: The active user is unauthorized to access document "${docEntity.title}" belonging to another semester.`;
+        documentSummary = `[RESTRICTED DOCUMENT ACCESS]: The active user is unauthorized to access document "${docEntity.title || 'Requested Document'}" belonging to another semester.`;
       }
     }
 
