@@ -46,11 +46,11 @@ export default function StudentNotesGrid() {
     <div className="mt-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
         <div>
-          <h3 className="text-lg font-600 text-foreground">Recent Notes</h3>
+          <h3 className="text-lg font-700 text-foreground">Recent Notes</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Latest uploads from your teachers</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 glass-card rounded-xl px-3 py-2 w-48">
+          <div className="flex items-center gap-2 bg-slate-50 border border-border rounded-xl px-3 py-2 w-48 sm:w-56 focus-within:border-primary">
             <svg
               width="14"
               height="14"
@@ -68,7 +68,7 @@ export default function StudentNotesGrid() {
               placeholder="Search notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none w-full"
+              className="bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none w-full"
             />
           </div>
           <button className="btn-secondary text-xs px-3 py-2">View All Notes →</button>
@@ -81,10 +81,10 @@ export default function StudentNotesGrid() {
           <button
             key={`filter-${filter.replace(/\s+/g, '-').toLowerCase()}`}
             onClick={() => setActiveFilter(filter)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-500 transition-all duration-150 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-600 transition-all cursor-pointer ${
               activeFilter === filter
-                ? 'bg-primary text-white shadow-glow'
-                : 'glass-card text-muted-foreground hover:text-foreground border border-border'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-white text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             {filter}
@@ -94,8 +94,8 @@ export default function StudentNotesGrid() {
 
       {/* Notes grid */}
       {filtered.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 border border-border text-center">
-          <div className="w-12 h-12 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center text-muted-foreground">
+        <div className="bg-white rounded-2xl p-12 border border-border text-center shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-brand-50 border border-brand-200 mx-auto mb-4 flex items-center justify-center text-primary-dark">
             <svg
               width="24"
               height="24"
@@ -108,8 +108,8 @@ export default function StudentNotesGrid() {
               <polyline points="14 2 14 8 20 8" />
             </svg>
           </div>
-          <h4 className="text-base font-600 text-foreground mb-1">No notes found</h4>
-          <p className="text-sm text-muted-foreground">
+          <h4 className="text-base font-700 text-foreground mb-1">No notes found</h4>
+          <p className="text-xs text-muted-foreground">
             Try changing the subject filter or search query
           </p>
         </div>
@@ -130,15 +130,15 @@ interface NoteCardProps {
 
 function NoteCard({ note }: NoteCardProps) {
   return (
-    <div className="glass-card rounded-2xl p-4 border border-border glass-card-hover cursor-pointer relative overflow-hidden group">
+    <div className="bg-white rounded-2xl p-4 border border-border shadow-sm hover:shadow-md hover:border-brand-300 transition-all cursor-pointer relative overflow-hidden group">
       {note.isNew && (
-        <span className="absolute top-3 right-3 badge-success text-xs px-2 py-0.5 rounded-md font-600">
+        <span className="absolute top-3 right-3 badge-green text-xs px-2 py-0.5 rounded-md font-600">
           New
         </span>
       )}
       {/* File icon */}
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-12 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center flex-shrink-0 text-primary-dark">
           <svg
             width="18"
             height="18"

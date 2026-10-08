@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { KPICardData, TeacherFilterState } from '@/types/campus';
-import AnimatedCard from '@/components/motion/AnimatedCard';
 import AnimatedNumber from '@/components/motion/AnimatedNumber';
 
 interface TeacherKPIGridProps {
@@ -22,111 +21,81 @@ export default function TeacherKPIGrid({ filters }: TeacherKPIGridProps) {
   const notesCount = isSem3 ? 18 : isAll ? 42 : 24;
   const papersCount = isSem3 ? 2 : isAll ? 6 : 4;
 
-  const teacherKPIs: (KPICardData & { icon: string; badgeText: string })[] = [
+  const teacherKPIs = [
     {
       id: 'tkpi-classes',
-      title: "Today's Lectures",
+      title: "TODAY'S LECTURES",
       value: lectureCount,
-      unit: 'Scheduled Sessions',
-      change: isSem3 ? 'Data Structures (Hall B-102)' : 'Next: Operating Systems at 10:30 AM',
-      trend: 'neutral',
-      detail: isSem3 ? 'BCA Semester 3 · Section A (54 Enrolled)' : 'BCA Semester 5 · Room A-204 (58 Enrolled)',
-      color: 'text-accent',
-      bgColor: 'bg-accent/10',
-      borderColor: 'border-accent/40',
-      hero: true,
-      icon: '📅',
-      badgeText: 'Active Timetable',
+      unit: 'scheduled',
+      status: isSem3 ? 'Data Structures (Hall B-102)' : 'Next: OS at 10:30 AM',
+      subtitle: isSem3 ? 'BCA Semester 3 · 54 Enrolled' : 'BCA Semester 5 · Room A-204 · 58 Enrolled',
+      progress: 33,
+      badgeText: 'Active',
     },
     {
       id: 'tkpi-notes',
-      title: 'Notes & Study Materials',
+      title: 'STUDY MATERIALS',
       value: notesCount,
-      unit: 'Published Chapters',
-      change: '+4 Chapters Uploaded This Term',
-      trend: 'positive',
-      detail: isSem3 ? '1.2k student reads & downloads' : '2.8k total verified student downloads',
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-      borderColor: 'border-primary/40',
-      icon: '📚',
+      unit: 'chapters',
+      status: '+4 uploaded this term',
+      subtitle: isSem3 ? '1.2k student reads' : '2.8k verified student downloads',
+      progress: 75,
       badgeText: 'Course Library',
     },
     {
       id: 'tkpi-papers',
-      title: 'Question Papers & Exams',
+      title: 'QUESTION PAPERS',
       value: papersCount,
-      unit: 'Official Archives',
-      change: '1st & 2nd Internal Assessment Ready',
-      trend: 'positive',
-      detail: 'Dean Approved · University Model Papers',
-      color: 'text-cyan-400',
-      bgColor: 'bg-cyan-500/10',
-      borderColor: 'border-cyan-500/40',
-      icon: '📑',
-      badgeText: 'Exam Registry',
+      unit: 'archives',
+      status: 'Internal assessments ready',
+      subtitle: 'Dean approved · University model papers',
+      progress: 100,
+      badgeText: 'Verified',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       {teacherKPIs.map((kpi) => (
-        <TeacherKPICard key={kpi.id} kpi={kpi} />
-      ))}
-    </div>
-  );
-}
+        <div
+          key={kpi.id}
+          className="p-5 sm:p-6 border border-black/[0.06] bg-white rounded-[18px] flex flex-col justify-between shadow-card hover:shadow-card-hover transition-all duration-200"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold tracking-wider text-[#8E8E93] uppercase">
+                {kpi.title}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#DCFCE7] text-[#15803D]">
+                {kpi.badgeText}
+              </span>
+            </div>
 
-interface TeacherKPICardProps {
-  kpi: KPICardData & { icon: string; badgeText: string };
-}
+            <div className="flex items-baseline gap-2 my-2">
+              <span className="text-3xl sm:text-4xl font-extrabold text-[#1D1D1F] tracking-tight">
+                <AnimatedNumber value={kpi.value} />
+              </span>
+              <span className="text-xs font-semibold text-[#6E6E73]">
+                {kpi.unit}
+              </span>
+            </div>
 
-function TeacherKPICard({ kpi }: TeacherKPICardProps) {
-  const trendColors = {
-    positive: 'text-success',
-    warning: 'text-warning',
-    danger: 'text-danger',
-    neutral: 'text-accent',
-  };
-
-  return (
-    <AnimatedCard
-      className={`p-5 sm:p-6 border ${kpi.borderColor} bg-card/60 relative overflow-hidden rounded-3xl flex flex-col justify-between shadow-glass hover:shadow-glow transition-all`}
-    >
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{kpi.icon}</span>
-            <p className="text-xs font-800 tracking-wider text-muted-foreground uppercase">
-              {kpi.title}
+            <p className="text-xs font-semibold text-[#15803D] mt-1">
+              {kpi.status}
             </p>
           </div>
-          <span className="badge-cyan text-[10px] px-2.5 py-0.5 rounded-full font-700">
-            {kpi.badgeText}
-          </span>
+
+          <div className="mt-4 pt-3 border-t border-black/[0.04]">
+            <div className="w-full h-1.5 bg-[#F0FDF4] rounded-full overflow-hidden mb-1.5">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${kpi.progress}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-[#8E8E93] truncate">{kpi.subtitle}</p>
+          </div>
         </div>
-
-        <div className="flex items-baseline gap-2 my-2">
-          <span className="text-3xl sm:text-4xl font-800 text-foreground font-mono-data">
-            <AnimatedNumber value={kpi.value} />
-          </span>
-          {kpi.unit && (
-            <span className="text-xs font-600 text-muted-foreground">
-              {kpi.unit}
-            </span>
-          )}
-        </div>
-
-        <p className={`text-xs font-700 mt-1 leading-snug ${trendColors[kpi.trend]}`}>
-          {kpi.change}
-        </p>
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="font-500 text-foreground/80 leading-tight">
-          {kpi.detail}
-        </span>
-      </div>
-    </AnimatedCard>
+      ))}
+    </div>
   );
 }

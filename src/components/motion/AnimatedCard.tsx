@@ -14,9 +14,9 @@ interface AnimatedCardProps extends React.HTMLAttributes<HTMLDivElement> {
 export default function AnimatedCard({
   children,
   className = '',
-  maxTilt = 3.5,
+  maxTilt = 2,
   enableSpotlight = true,
-  glowColor = 'rgba(0, 216, 246, 0.12)',
+  glowColor = 'rgba(34, 197, 94, 0.05)',
   style,
   ...props
 }: AnimatedCardProps) {

@@ -36,65 +36,84 @@ export default function StudentMarksView() {
     <PageTransition>
       <div className="space-y-6 max-w-7xl mx-auto pb-10">
         {/* Header Title Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-card p-6 rounded-3xl border border-border/60 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-[20px] border border-black/[0.06] shadow-card">
           <div>
-            <div className="flex items-center gap-2.5 mb-1">
-              <span className="text-2xl">🎓</span>
-              <h2 className="text-2xl font-800 text-foreground tracking-tight">Academic Marks & Transcripts</h2>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-500">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
+              Academic Marks & Transcripts
+            </h2>
+            <p className="text-xs sm:text-[13px] text-[#6E6E73] font-normal mt-0.5">
               Verified semester grade cards, internal assessment scores, and university transcripts.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownloadTranscript}
-              className="btn-primary text-xs py-2.5 px-4 rounded-xl shadow-glow cursor-pointer font-800 flex items-center gap-2"
+              className="btn-primary text-xs py-2 px-4 shadow-subtle"
             >
-              <span>📥</span>
               <span>Download Transcript (PDF)</span>
             </button>
           </div>
         </div>
 
-        {/* CGPA & SGPA Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* CGPA & SGPA Metric Cards in Apple Style */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <StaggerItem order={1}>
-            <div className="glass-card p-5 rounded-2xl border border-primary/40 shadow-sm relative overflow-hidden">
-              <div className="text-xs text-muted-foreground font-600 mb-1">Cumulative CGPA</div>
-              <div className="text-3xl font-900 text-foreground">8.82 <span className="text-sm text-muted-foreground font-600">/ 10.0</span></div>
-              <div className="text-[11px] text-emerald-400 font-700 mt-1">⭐ First Class with Distinction</div>
+            <div className="bg-white p-5 rounded-[18px] border border-black/[0.06] shadow-card">
+              <span className="text-[10.5px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+                Cumulative CGPA
+              </span>
+              <div className="text-3xl font-extrabold text-[#1D1D1F] tracking-tight mt-1 font-mono-data">
+                8.82 <span className="text-xs font-normal text-[#8E8E93]">/ 10.0</span>
+              </div>
+              <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+                <div className="h-full bg-primary rounded-full" style={{ width: '88.2%' }} />
+              </div>
+              <p className="text-[11px] text-[#15803D] font-semibold">First Class with Distinction</p>
             </div>
           </StaggerItem>
 
           <StaggerItem order={2}>
-            <div className="glass-card p-5 rounded-2xl border border-border/50 shadow-sm relative overflow-hidden">
-              <div className="text-xs text-muted-foreground font-600 mb-1">Current SGPA (Sem 5 Projected)</div>
-              <div className="text-3xl font-900 text-accent">9.00 <span className="text-sm text-muted-foreground font-600">/ 10.0</span></div>
-              <div className="text-[11px] text-muted-foreground mt-1">20 Earned Credits in Term</div>
+            <div className="bg-white p-5 rounded-[18px] border border-black/[0.06] shadow-card">
+              <span className="text-[10.5px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+                Current SGPA (Sem 5 Projected)
+              </span>
+              <div className="text-3xl font-extrabold text-[#15803D] tracking-tight mt-1 font-mono-data">
+                9.00 <span className="text-xs font-normal text-[#8E8E93]">/ 10.0</span>
+              </div>
+              <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+                <div className="h-full bg-primary rounded-full" style={{ width: '90%' }} />
+              </div>
+              <p className="text-[11px] text-[#6E6E73]">20 Earned Credits in Term</p>
             </div>
           </StaggerItem>
 
           <StaggerItem order={3}>
-            <div className="glass-card p-5 rounded-2xl border border-border/50 shadow-sm relative overflow-hidden">
-              <div className="text-xs text-muted-foreground font-600 mb-1">Total Credits Completed</div>
-              <div className="text-3xl font-900 text-foreground">104 <span className="text-sm text-muted-foreground font-600">/ 140 Credits</span></div>
-              <div className="text-[11px] text-accent font-700 mt-1">BCA Degree Progress: 74%</div>
+            <div className="bg-white p-5 rounded-[18px] border border-black/[0.06] shadow-card">
+              <span className="text-[10.5px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+                Total Credits Completed
+              </span>
+              <div className="text-3xl font-extrabold text-[#1D1D1F] tracking-tight mt-1 font-mono-data">
+                104 <span className="text-xs font-normal text-[#8E8E93]">/ 140</span>
+              </div>
+              <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+                <div className="h-full bg-primary rounded-full" style={{ width: '74%' }} />
+              </div>
+              <p className="text-[11px] text-[#15803D] font-semibold">BCA Degree Progress: 74%</p>
             </div>
           </StaggerItem>
         </div>
 
         {/* Marks Table */}
-        <div className="glass-card p-6 rounded-3xl border border-border/60 shadow-lg space-y-4">
+        <div className="bg-white p-6 rounded-[20px] border border-black/[0.06] shadow-card space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-800 text-foreground">Semester 5 Marks Ledger</h3>
-              <p className="text-xs text-muted-foreground">Theory, Internal Assessments, and External University Marks</p>
+              <h3 className="text-base font-bold text-[#1D1D1F]">Semester 5 Marks Ledger</h3>
+              <p className="text-xs text-[#8E8E93]">Theory, Internal Assessments, and External University Marks</p>
             </div>
             <select
               value={selectedSem}
               onChange={(e) => setSelectedSem(Number(e.target.value))}
-              className="bg-card/80 border border-border rounded-xl px-3 py-1.5 text-xs text-foreground font-600 cursor-pointer focus:outline-none"
+              className="bg-[#FAFAFC] border border-black/[0.08] rounded-xl px-3 py-1.5 text-xs text-[#1D1D1F] font-medium cursor-pointer focus:border-primary outline-none"
             >
               {[1, 2, 3, 4, 5, 6].map((sem) => (
                 <option key={sem} value={sem}>Semester {sem}</option>
@@ -102,30 +121,30 @@ export default function StudentMarksView() {
             </select>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-xl border border-black/[0.06]">
+            <table className="w-full text-left text-xs table-clean">
               <thead>
-                <tr className="border-b border-border/60 text-muted-foreground font-700">
-                  <th className="pb-3 px-2">Code</th>
-                  <th className="pb-3 px-2">Subject Name</th>
-                  <th className="pb-3 px-2 text-center">Credits</th>
-                  <th className="pb-3 px-2 text-center">Internal (25)</th>
-                  <th className="pb-3 px-2 text-center">External (75)</th>
-                  <th className="pb-3 px-2 text-center">Total (100)</th>
-                  <th className="pb-3 px-2 text-right">Grade</th>
+                <tr>
+                  <th>Code</th>
+                  <th>Subject Name</th>
+                  <th className="text-center">Credits</th>
+                  <th className="text-center">Internal (25)</th>
+                  <th className="text-center">External (75)</th>
+                  <th className="text-center">Total (100)</th>
+                  <th className="text-right">Grade</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody>
                 {sem5Marks.map((m) => (
-                  <tr key={m.code} className="hover:bg-secondary/30 transition-colors">
-                    <td className="py-3.5 px-2 font-mono-data text-accent font-700">{m.code}</td>
-                    <td className="py-3.5 px-2 font-700 text-foreground">{m.name}</td>
-                    <td className="py-3.5 px-2 text-center font-600 text-muted-foreground">{m.credits}</td>
-                    <td className="py-3.5 px-2 text-center font-700 text-foreground">{m.internal}</td>
-                    <td className="py-3.5 px-2 text-center font-700 text-foreground">{m.external}</td>
-                    <td className="py-3.5 px-2 text-center font-900 text-foreground">{m.total}</td>
-                    <td className="py-3.5 px-2 text-right">
-                      <span className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-900 bg-primary/15 text-primary border border-primary/30">
+                  <tr key={m.code}>
+                    <td className="font-mono-data text-[#15803D] font-bold">{m.code}</td>
+                    <td className="font-semibold text-[#1D1D1F]">{m.name}</td>
+                    <td className="text-center text-[#6E6E73]">{m.credits}</td>
+                    <td className="text-center font-medium text-[#1D1D1F]">{m.internal}</td>
+                    <td className="text-center font-medium text-[#1D1D1F]">{m.external}</td>
+                    <td className="text-center font-bold text-[#1D1D1F]">{m.total}</td>
+                    <td className="text-right">
+                      <span className="inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-[#DCFCE7] text-[#15803D]">
                         {m.grade} ({m.gradePoint})
                       </span>
                     </td>

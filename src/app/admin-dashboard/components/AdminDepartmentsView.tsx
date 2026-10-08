@@ -138,55 +138,55 @@ export default function AdminDepartmentsView() {
           {bcaCohorts.map((cohort) => (
             <div
               key={cohort.year}
-              className="glass-card rounded-3xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm hover:shadow-glow"
+              className="bg-white rounded-[18px] p-5 border border-black/[0.06] flex flex-col justify-between shadow-card hover:shadow-card-hover transition-all"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="badge-violet text-xs px-2.5 py-0.5 rounded-lg font-700">
+                  <span className="badge-green text-xs px-2.5 py-0.5 rounded-lg font-semibold">
                     BCA Year {cohort.year}
                   </span>
-                  <span className="text-xs text-muted-foreground font-mono-data">
+                  <span className="text-xs text-[#6E6E73] font-mono-data">
                     {cohort.semesters}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-800 text-foreground mb-1">{cohort.yearLabel}</h3>
-                <p className="text-xs text-muted-foreground mb-4">
+                <h3 className="text-lg font-semibold text-[#1D1D1F] mb-1">{cohort.yearLabel}</h3>
+                <p className="text-xs text-[#6E6E73] mb-4">
                   Academic Lead:{' '}
-                  <span className="text-foreground font-700">{cohort.coordinator}</span>
+                  <span className="text-[#1D1D1F] font-semibold">{cohort.coordinator}</span>
                 </p>
 
-                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/40 space-y-2 text-xs">
+                <div className="p-3.5 rounded-[14px] bg-[#F5F5F7] border border-black/[0.04] space-y-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Enrolled Students</span>
-                    <span className="font-800 text-primary metric-value">
+                    <span className="text-[#6E6E73]">Enrolled Students</span>
+                    <span className="font-semibold text-primary-dark metric-value">
                       {cohort.enrolled} Active
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Curriculum Courses</span>
-                    <span className="font-700 text-foreground">
+                    <span className="text-[#6E6E73]">Curriculum Courses</span>
+                    <span className="font-semibold text-[#1D1D1F]">
                       {cohort.subjectsCount} Subjects
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Faculty Allocation</span>
-                    <span className="font-600 text-accent">
+                    <span className="text-[#6E6E73]">Faculty Allocation</span>
+                    <span className="font-medium text-primary-dark">
                       {cohort.facultyCount} Instructors
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 mt-4 border-t border-border/40 flex items-center justify-between text-xs">
-                <span className="text-success font-700">● Accredited UGC BCA</span>
+              <div className="pt-3 mt-4 border-t border-black/[0.06] flex items-center justify-between text-xs">
+                <span className="text-primary-dark font-medium">● Accredited UGC BCA</span>
                 <button
                   onClick={() => {
                     const targetSem = cohort.year * 2 - 1;
                     setSelectedSemester(targetSem as any);
                     toast.info(`Filtered curriculum to BCA Year ${cohort.year}`);
                   }}
-                  className="text-primary hover:underline font-700 cursor-pointer"
+                  className="text-primary-dark hover:underline font-semibold cursor-pointer active:scale-[0.98]"
                 >
                   View Year Curriculum →
                 </button>
@@ -196,23 +196,23 @@ export default function AdminDepartmentsView() {
         </div>
 
         {/* Registered Subjects Table */}
-        <div className="glass-card rounded-3xl border border-border overflow-hidden shadow-glass">
-          <div className="p-5 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-[18px] border border-black/[0.06] overflow-hidden shadow-card">
+          <div className="p-5 border-b border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
             <div>
-              <h3 className="text-base font-800 text-foreground tracking-tight">
+              <h3 className="text-base font-semibold text-[#1D1D1F] tracking-tight">
                 Master BCA Curriculum ({filteredSubjects.length} Courses)
               </h3>
-              <p className="text-xs text-muted-foreground">Standardized 3-Year Curriculum Directory</p>
+              <p className="text-xs text-[#6E6E73]">Standardized 3-Year Curriculum Directory</p>
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs font-700 text-muted-foreground">Semester:</label>
+              <label className="text-xs font-semibold text-[#6E6E73]">Semester:</label>
               <select
                 value={selectedSemester}
                 onChange={(e) =>
                   setSelectedSemester(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))
                 }
-                className="bg-card border border-border rounded-xl px-3 py-1.5 text-xs text-foreground font-600 outline-none cursor-pointer"
+                className="bg-white border border-black/[0.08] rounded-[11px] px-3 py-1.5 text-xs text-[#1D1D1F] font-medium outline-none cursor-pointer focus:border-primary"
               >
                 <option value="all">All 6 Semesters</option>
                 <option value="1">Semester 1 (1st Year)</option>
@@ -228,34 +228,34 @@ export default function AdminDepartmentsView() {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-border text-muted-foreground text-left">
-                  <th className="py-3.5 px-4">Code</th>
-                  <th className="py-3.5 px-4">Course Name</th>
-                  <th className="py-3.5 px-4">Term & Year</th>
-                  <th className="py-3.5 px-4">Type</th>
-                  <th className="py-3.5 px-4">Credits</th>
-                  <th className="py-3.5 px-4 text-right">Primary Faculty</th>
+                <tr className="bg-[#FAFAFC] border-b border-black/[0.06] text-[#6E6E73] font-semibold text-left">
+                  <th className="py-3.5 px-4 font-medium">Code</th>
+                  <th className="py-3.5 px-4 font-medium">Course Name</th>
+                  <th className="py-3.5 px-4 font-medium">Term & Year</th>
+                  <th className="py-3.5 px-4 font-medium">Type</th>
+                  <th className="py-3.5 px-4 font-medium">Credits</th>
+                  <th className="py-3.5 px-4 text-right font-medium">Primary Faculty</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-black/[0.04]">
                 {filteredSubjects.map((sub) => (
-                  <tr key={sub.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-3.5 px-4 font-mono-data font-800 text-foreground">
+                  <tr key={sub.id} className="hover:bg-[#F5F5F7]/60 transition-colors">
+                    <td className="py-3.5 px-4 font-mono-data font-semibold text-[#1D1D1F]">
                       {sub.code}
                     </td>
-                    <td className="py-3.5 px-4 font-700 text-foreground">{sub.name}</td>
-                    <td className="py-3.5 px-4 text-muted-foreground">
+                    <td className="py-3.5 px-4 font-semibold text-[#1D1D1F]">{sub.name}</td>
+                    <td className="py-3.5 px-4 text-[#6E6E73]">
                       BCA {sub.semester} (Year {sub.year})
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded font-600">
+                      <span className="badge-cyan text-[10px] px-2 py-0.5 rounded font-semibold">
                         {sub.type}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-primary font-mono-data">
+                    <td className="py-3.5 px-4 font-semibold text-primary-dark font-mono-data">
                       {sub.credits} Credits
                     </td>
-                    <td className="py-3.5 px-4 text-right font-600 text-foreground">
+                    <td className="py-3.5 px-4 text-right font-medium text-[#1D1D1F]">
                       {sub.instructor}
                     </td>
                   </tr>

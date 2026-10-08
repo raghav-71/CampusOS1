@@ -61,7 +61,6 @@ interface MessageWithMetadata extends AIChatMessage {
 const MAX_RESPONSE_LENGTH = 60000;
 const REQUEST_TIMEOUT_MS = 45000;
 
-// Memoized individual message item to prevent historical messages from re-rendering during streaming
 const ChatMessageItem = memo(function ChatMessageItem({
   msg,
   debugMode,
@@ -76,15 +75,15 @@ const ChatMessageItem = memo(function ChatMessageItem({
   return (
     <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
       <div
-        className={`max-w-[94%] p-4 sm:p-5 rounded-2xl ${
+        className={`max-w-[92%] p-4 sm:p-5 rounded-[18px] text-[13.5px] leading-relaxed ${
           msg.role === 'user'
-            ? 'bg-gradient-to-br from-primary to-blue-600 text-white rounded-tr-none shadow-glow font-500'
-            : 'glass-card border border-border/80 text-foreground rounded-tl-none shadow-glass'
+            ? 'bg-[#DCFCE7] text-[#1D1D1F] border border-black/[0.04] rounded-tr-sm shadow-subtle'
+            : 'bg-white border border-black/[0.06] text-[#1D1D1F] rounded-tl-sm shadow-card'
         }`}
       >
         {/* Attached document tag */}
         {msg.attachedFileName && (
-          <div className="mb-2 px-2.5 py-1 rounded-lg bg-black/30 text-[11px] font-mono flex items-center gap-1.5 text-accent border border-accent/20">
+          <div className="mb-2 px-2.5 py-1 rounded-lg bg-white text-[11px] font-mono flex items-center gap-1.5 text-primary-dark border border-brand-100 shadow-sm">
             <span>📄</span>
             <span>Document Focus: {msg.attachedFileName}</span>
           </div>
@@ -92,21 +91,21 @@ const ChatMessageItem = memo(function ChatMessageItem({
 
         {/* Multi-step tool execution tracker in message */}
         {msg.executionSteps && msg.executionSteps.length > 0 && (
-          <div className="mb-3 p-2.5 rounded-xl bg-muted/40 border border-primary/20 text-[11px] space-y-1.5">
+          <div className="mb-3 p-2.5 rounded-xl bg-slate-50 border border-border text-[11px] space-y-1.5">
             <div className="flex items-center justify-between text-muted-foreground font-700 uppercase tracking-wider text-[10px]">
-              <span>⚡ Academic Intelligence Processing</span>
-              <span className="text-primary font-mono">{msg.executionSteps.length} Step(s)</span>
+              <span>⚡ Academic Processing</span>
+              <span className="text-primary-dark font-mono">{msg.executionSteps.length} Step(s)</span>
             </div>
             {msg.executionSteps.map((step, sIdx) => (
               <div key={sIdx} className="flex items-center gap-2 text-foreground/90 font-500">
-                <span className="text-accent font-bold">●</span>
+                <span className="text-primary font-bold">●</span>
                 <span className="flex-1">{step.step}</span>
                 {step.toolName && (
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-brand-50 text-primary-dark border border-brand-100">
                     {step.toolName}
                   </span>
                 )}
-                <span className="text-emerald-400 font-700">✓</span>
+                <span className="text-primary font-700">✓</span>
               </div>
             ))}
           </div>
@@ -768,23 +767,23 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-card w-full max-w-3xl h-[92vh] sm:h-[86vh] rounded-3xl border border-border/80 shadow-2xl flex flex-col overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/30 backdrop-blur-md animate-fade-in">
+      <div className="bg-white w-full max-w-3xl h-[90vh] sm:h-[84vh] rounded-[22px] border border-black/[0.08] shadow-modal flex flex-col overflow-hidden animate-modal-pop">
         {/* Header */}
-        <div className="p-4 border-b border-border/60 flex items-center justify-between bg-card/60 backdrop-blur-sm">
+        <div className="p-4 border-b border-black/[0.06] flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
             <AIOrb status={isLoading ? 'analyzing' : 'idle'} size="md" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-800 text-foreground tracking-tight flex items-center gap-1.5">
-                  <span>CampusOS AI</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
-                    Active
+                <h3 className="text-sm font-bold text-[#1D1D1F] tracking-tight flex items-center gap-1.5">
+                  <span>CampusOS Copilot</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] font-semibold">
+                    Ready
                   </span>
                 </h3>
               </div>
-              <p className="text-[11px] text-muted-foreground font-500">
-                Academic Copilot · <span className="text-accent font-700">{currentTab.toUpperCase()}</span>
+              <p className="text-[11px] text-[#6E6E73] font-normal">
+                Academic Copilot · {currentTab.toUpperCase()}
               </p>
             </div>
           </div>
@@ -792,7 +791,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
           <div className="flex items-center gap-2">
             <button
               onClick={handleNewConversation}
-              className="text-[11px] px-2.5 py-1.5 rounded-xl border border-border/60 hover:border-accent hover:text-accent bg-muted/30 font-600 transition-colors cursor-pointer flex items-center gap-1"
+              className="text-xs px-2.5 py-1.5 rounded-xl border border-black/[0.08] hover:bg-black/[0.03] text-[#1D1D1F] font-medium transition-colors cursor-pointer flex items-center gap-1"
               title="Start New Conversation"
             >
               <span>✨</span>
@@ -800,10 +799,10 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             </button>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/40"
+              className="w-7 h-7 rounded-full bg-black/[0.04] hover:bg-black/[0.08] flex items-center justify-center text-[#8E8E93] hover:text-[#1D1D1F] transition-colors cursor-pointer"
               title="Close Assistant"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -812,13 +811,13 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         </div>
 
         {/* Quick Action Pills */}
-        <div className="p-2.5 border-b border-border/50 bg-muted/20 flex gap-2 overflow-x-auto text-xs no-scrollbar">
+        <div className="p-2 border-b border-black/[0.04] bg-[#FAFAFC] flex gap-2 overflow-x-auto text-xs no-scrollbar">
           {getQuickActions().map((qa, i) => (
             <button
               key={i}
               onClick={() => sendMessage(qa.query)}
               disabled={isLoading}
-              className="btn-press whitespace-nowrap px-3 py-1.5 rounded-xl glass-card border border-primary/30 text-foreground hover:border-accent hover:text-accent hover:bg-accent/10 transition-all cursor-pointer font-600 text-[11px] shadow-sm flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="whitespace-nowrap px-3 py-1.5 rounded-lg bg-white border border-black/[0.06] text-[#48484A] hover:text-[#1D1D1F] hover:bg-black/[0.02] transition-colors cursor-pointer font-medium text-[11px] flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-subtle"
             >
               {qa.label}
             </button>
@@ -828,7 +827,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         {/* Message Stream */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 p-4 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed"
+          className="flex-1 p-4 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed bg-slate-50/30"
         >
           {messages.map((msg) => (
             <ChatMessageItem
@@ -847,7 +846,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               <button
                 type="button"
                 onClick={handleStopGeneration}
-                className="text-[10px] px-2.5 py-1 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer font-600 flex items-center gap-1.5"
+                className="text-[10px] px-2.5 py-1 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer font-600 flex items-center gap-1.5"
               >
                 <span>⏹</span>
                 <span>Stop Generation</span>
@@ -859,15 +858,15 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
 
         {/* ─── ACTIVE DOCUMENT BANNER (PERSISTENT CONTEXT) ────────────────── */}
         {activeDocument && (
-          <div className="px-4 py-2.5 bg-gradient-to-r from-purple-950/40 to-indigo-950/40 border-t border-purple-500/30 flex items-center justify-between text-xs animate-fade-in">
+          <div className="px-4 py-2.5 bg-brand-50 border-t border-brand-100 flex items-center justify-between text-xs animate-fade-in">
             <div className="flex items-center gap-2 truncate pr-2">
               <span className="text-base flex-shrink-0">📑</span>
               <div className="truncate">
-                <span className="font-700 text-purple-200 truncate block">
+                <span className="font-700 text-primary-dark truncate block">
                   Active Document: "{activeDocument.title}"
                 </span>
-                <span className="text-[10px] text-purple-300/70 font-mono">
-                  {activeDocument.fileSize || 'Attached'} {activeDocument.pageCount ? `· ${activeDocument.pageCount} Pages` : ''} · AI Document Mode Enabled
+                <span className="text-[10px] text-slate-600 font-mono">
+                  {activeDocument.fileSize || 'Attached'} {activeDocument.pageCount ? `· ${activeDocument.pageCount} Pages` : ''} · AI Document Mode
                 </span>
               </div>
             </div>
@@ -878,7 +877,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
                   setActiveDocument(null);
                   toast.info('Document detached from AI chat.');
                 }}
-                className="text-xs px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 transition-all font-600 cursor-pointer"
+                className="text-xs px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-all font-600 cursor-pointer"
                 title="Detach Document"
               >
                 ✕ Detach
@@ -888,7 +887,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
         )}
 
         {/* Input Bar */}
-        <div className="p-4 border-t border-border/80 bg-card/90">
+        <div className="p-4 border-t border-border bg-white">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -907,7 +906,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-10 h-10 rounded-xl border border-border/60 hover:border-accent hover:text-accent flex items-center justify-center text-muted-foreground transition-colors cursor-pointer flex-shrink-0"
+              className="w-10 h-10 rounded-xl border border-border hover:border-primary hover:text-primary-dark hover:bg-brand-50 flex items-center justify-center text-slate-500 transition-colors cursor-pointer flex-shrink-0"
               title="Attach Document for Analysis / RAG"
             >
               📎
@@ -922,7 +921,7 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               }
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="input-field py-2.5 text-xs sm:text-sm font-500 flex-1"
+              className="input-field py-2.5 text-xs sm:text-sm font-500 flex-1 bg-white border-border focus:border-primary"
               disabled={isLoading}
               autoFocus
             />
@@ -931,21 +930,19 @@ function CampusAIAssistantModalInner({ isOpen, onClose }: CampusAIAssistantModal
               <button
                 type="button"
                 onClick={handleStopGeneration}
-                className="px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-700 hover:bg-red-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 border border-red-200 text-xs font-700 hover:bg-red-100 transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <span>⏹</span>
                 <span>Stop</span>
               </button>
             ) : (
-              <MagneticButton
+              <button
                 type="submit"
-                variant="primary"
-                size="md"
                 disabled={(!inputText.trim() && !activeDocument) || isLoading}
-                className="px-5 shadow-glow font-800"
+                className="btn-primary px-5 text-xs sm:text-sm font-700 shadow-sm"
               >
                 Send
-              </MagneticButton>
+              </button>
             )}
           </form>
         </div>

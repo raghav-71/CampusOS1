@@ -131,7 +131,7 @@ export default function StudentExamsView() {
           </div>
 
           <Button
-            variant="accent"
+            variant="primary"
             size="sm"
             onClick={() => setHallTicketOpen(true)}
             leftIcon={
@@ -153,20 +153,20 @@ export default function StudentExamsView() {
         </div>
 
         {/* Filter Controls Bar */}
-        <AnimatedCard className="p-4 sm:p-5 border-primary/30 space-y-4 shadow-glass">
+        <AnimatedCard className="p-4 sm:p-5 border border-black/[0.06] bg-white rounded-[18px] space-y-4 shadow-card">
           {/* Row 1: Semester Selector */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            <span className="text-xs font-700 text-muted-foreground whitespace-nowrap mr-2">
+            <span className="text-xs font-semibold text-[#6E6E73] whitespace-nowrap mr-2">
               Semester:
             </span>
             {PROGRAM_SEMESTERS.map((sem) => (
               <button
                 key={sem.semester}
                 onClick={() => setSelectedSemester(sem.semester)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
+                className={`px-3.5 py-1.5 rounded-[12px] text-xs font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
                   selectedSemester === sem.semester
-                    ? 'bg-gradient-to-r from-primary to-blue-600 text-white shadow-glow border border-primary/50'
-                    : 'glass-card border border-border/70 text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'bg-[#F5F5F7] text-[#6E6E73] hover:text-[#1D1D1F]'
                 }`}
               >
                 {sem.shortLabel} {sem.isCurrent && '⚡'}
@@ -175,7 +175,7 @@ export default function StudentExamsView() {
           </div>
 
           {/* Row 2: Category & Type Tabs */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-black/[0.06]">
             {/* Category Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {[
@@ -187,10 +187,10 @@ export default function StudentExamsView() {
                 <button
                   key={tab.key}
                   onClick={() => setSelectedCategory(tab.key as any)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
+                  className={`px-3.5 py-1.5 rounded-[12px] text-xs font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
                     selectedCategory === tab.key
-                      ? 'bg-accent/20 text-accent border border-accent/40 font-800 shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                      ? 'bg-primary-soft text-primary-dark font-bold'
+                      : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/[0.04]'
                   }`}
                 >
                   {tab.label}
@@ -208,10 +208,10 @@ export default function StudentExamsView() {
                 <button
                   key={t.key}
                   onClick={() => setSelectedType(t.key as any)}
-                  className={`px-3 py-1 rounded-xl text-xs font-700 transition-all cursor-pointer btn-press ${
+                  className={`px-3 py-1 rounded-[12px] text-xs font-semibold transition-all cursor-pointer active:scale-[0.98] ${
                     selectedType === t.key
-                      ? 'bg-primary/20 text-primary border border-primary/40'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary-soft text-primary-dark font-bold'
+                      : 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/[0.04]'
                   }`}
                 >
                   {t.label}
@@ -223,8 +223,8 @@ export default function StudentExamsView() {
 
         {/* Empty State */}
         {filteredExams.length === 0 ? (
-          <div className="glass-card rounded-3xl p-12 text-center text-muted-foreground border border-border/80 space-y-2 animate-fade-in">
-            <p className="text-base font-700 text-foreground">No Examinations Found</p>
+          <div className="glass-card rounded-[22px] p-12 text-center text-[#6E6E73] border border-black/[0.06] space-y-2 animate-fade-in shadow-card">
+            <p className="text-base font-semibold text-[#1D1D1F]">No Examinations Found</p>
             <p className="text-xs">
               No examination schedules match your selected filters for {currentSemInfo.label}.
             </p>
@@ -236,7 +236,7 @@ export default function StudentExamsView() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg">📝</span>
-                  <h3 className="text-base font-800 text-foreground">Theory Examinations</h3>
+                  <h3 className="text-base font-semibold text-[#1D1D1F]">Theory Examinations</h3>
                   <Badge variant="cyan">{theoryExams.length} Scheduled</Badge>
                 </div>
 
@@ -246,62 +246,62 @@ export default function StudentExamsView() {
                     return (
                       <AnimatedCard
                         key={exam.id}
-                        className={`p-6 border transition-all flex flex-col justify-between shadow-sm hover:shadow-glow ${
+                        className={`p-6 border rounded-[18px] bg-white transition-all flex flex-col justify-between shadow-card hover:shadow-card-hover ${
                           index === 0 && selectedSemester === 5
-                            ? 'border-warning/50 bg-warning/5'
-                            : 'border-border/80 hover:border-primary/40'
+                            ? 'border-primary/40 ring-2 ring-primary/10'
+                            : 'border-black/[0.06]'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
                               <span
-                                className={`text-xs px-2.5 py-0.5 rounded-lg font-700 border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
+                                className={`text-xs px-2.5 py-0.5 rounded-lg font-semibold border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
                               >
                                 {exam.subjectCode}
                               </span>
                               {getCategoryBadge(exam.examCategory)}
                             </div>
-                            <span className="text-[11px] text-muted-foreground font-700">
+                            <span className="text-[11px] text-[#6E6E73] font-medium">
                               Max: {exam.maxMarks || 50} Marks
                             </span>
                           </div>
 
-                          <h4 className="text-lg font-800 text-foreground mb-1 flex items-center gap-2">
+                          <h4 className="text-lg font-semibold text-[#1D1D1F] mb-1 flex items-center gap-2">
                             <span
                               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                               style={{ background: colorDef.hex }}
                             />
                             {exam.subject}
                           </h4>
-                          <p className="text-xs text-muted-foreground mb-3 font-500">
-                            Location: <span className="text-foreground font-700">{exam.room}</span> · Faculty: {exam.faculty}
+                          <p className="text-xs text-[#6E6E73] mb-3">
+                            Location: <span className="text-[#1D1D1F] font-semibold">{exam.room}</span> · Faculty: {exam.faculty}
                           </p>
 
-                          <div className="space-y-2 p-3.5 rounded-2xl bg-muted/20 border border-border/40 text-xs mb-3">
+                          <div className="space-y-2 p-3.5 rounded-[14px] bg-[#F5F5F7] border border-black/[0.04] text-xs mb-3">
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Exam Date:</span>
-                              <span className="font-800 text-foreground">{exam.date}</span>
+                              <span className="text-[#6E6E73]">Exam Date:</span>
+                              <span className="font-semibold text-[#1D1D1F]">{exam.date}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Time & Duration:</span>
-                              <span className="font-800 text-foreground font-mono-data">
+                              <span className="text-[#6E6E73]">Time & Duration:</span>
+                              <span className="font-semibold text-[#1D1D1F] font-mono-data">
                                 {exam.time} ({exam.duration})
                               </span>
                             </div>
                             {exam.syllabusCovered && (
-                              <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
-                                <span className="font-700 text-foreground">Syllabus Scope: </span>
+                              <div className="pt-2 border-t border-black/[0.06] text-[11px] text-[#6E6E73]">
+                                <span className="font-semibold text-[#1D1D1F]">Syllabus Scope: </span>
                                 {exam.syllabusCovered}
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-border/40 flex items-center justify-between">
+                        <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between">
                           <button
                             onClick={() => toast.info(`Viewing curriculum syllabus for ${exam.subject}`)}
-                            className="text-xs text-primary hover:underline font-700 cursor-pointer btn-press"
+                            className="text-xs text-primary-dark hover:underline font-semibold cursor-pointer active:scale-[0.98]"
                           >
                             View Exam Syllabus →
                           </button>
@@ -319,7 +319,7 @@ export default function StudentExamsView() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg">🧪</span>
-                  <h3 className="text-base font-800 text-foreground">Laboratory Practical Examinations</h3>
+                  <h3 className="text-base font-semibold text-[#1D1D1F]">Laboratory Practical Examinations</h3>
                   <Badge variant="violet">{labExams.length} Scheduled</Badge>
                 </div>
 
@@ -329,59 +329,59 @@ export default function StudentExamsView() {
                     return (
                       <AnimatedCard
                         key={exam.id}
-                        className="p-6 border border-primary/40 bg-primary/5 transition-all flex flex-col justify-between shadow-sm hover:shadow-glow"
+                        className="p-6 border border-black/[0.06] bg-white rounded-[18px] transition-all flex flex-col justify-between shadow-card hover:shadow-card-hover"
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
                               <span
-                                className={`text-xs px-2.5 py-0.5 rounded-lg font-700 border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
+                                className={`text-xs px-2.5 py-0.5 rounded-lg font-semibold border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
                               >
                                 {exam.subjectCode}
                               </span>
                               {getCategoryBadge(exam.examCategory)}
-                              <span className="badge-violet text-[10px] px-2 py-0.5 rounded font-800">
+                              <span className="badge-violet text-[10px] px-2 py-0.5 rounded font-semibold">
                                 Practical
                               </span>
                             </div>
-                            <span className="text-[11px] text-muted-foreground font-700">
+                            <span className="text-[11px] text-[#6E6E73] font-medium">
                               Max: {exam.maxMarks || 50} Marks
                             </span>
                           </div>
 
-                          <h4 className="text-lg font-800 text-foreground mb-1 flex items-center gap-2">
+                          <h4 className="text-lg font-semibold text-[#1D1D1F] mb-1 flex items-center gap-2">
                             <span
                               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                               style={{ background: colorDef.hex }}
                             />
                             {exam.subject}
                           </h4>
-                          <p className="text-xs text-muted-foreground mb-3 font-500">
-                            Laboratory Venue: <span className="text-foreground font-700">{exam.room}</span>
+                          <p className="text-xs text-[#6E6E73] mb-3">
+                            Laboratory Venue: <span className="text-[#1D1D1F] font-semibold">{exam.room}</span>
                           </p>
 
-                          <div className="space-y-2 p-3.5 rounded-2xl bg-muted/20 border border-border/40 text-xs mb-3">
+                          <div className="space-y-2 p-3.5 rounded-[14px] bg-[#F5F5F7] border border-black/[0.04] text-xs mb-3">
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Lab Date:</span>
-                              <span className="font-800 text-foreground">{exam.date}</span>
+                              <span className="text-[#6E6E73]">Lab Date:</span>
+                              <span className="font-semibold text-[#1D1D1F]">{exam.date}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">Practical Slot:</span>
-                              <span className="font-800 text-foreground font-mono-data">
+                              <span className="text-[#6E6E73]">Practical Slot:</span>
+                              <span className="font-semibold text-[#1D1D1F] font-mono-data">
                                 {exam.time} ({exam.duration})
                               </span>
                             </div>
                             {exam.syllabusCovered && (
-                              <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground">
-                                <span className="font-700 text-foreground">Lab Experiments: </span>
+                              <div className="pt-2 border-t border-black/[0.06] text-[11px] text-[#6E6E73]">
+                                <span className="font-semibold text-[#1D1D1F]">Lab Experiments: </span>
                                 {exam.syllabusCovered}
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-border/40 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground font-500">Internal & External Viva Included</span>
+                        <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between">
+                          <span className="text-xs text-[#6E6E73]">Internal & External Viva Included</span>
                           <Badge variant="success">Lab Ready</Badge>
                         </div>
                       </AnimatedCard>
@@ -393,50 +393,50 @@ export default function StudentExamsView() {
 
             {/* Question Papers Section */}
             {questionPapers.length > 0 && (
-              <div className="space-y-4 pt-4 border-t border-border/60">
+              <div className="space-y-4 pt-4 border-t border-black/[0.06]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <span className="text-lg">📑</span>
-                    <h3 className="text-base font-800 text-foreground">
+                    <h3 className="text-base font-semibold text-[#1D1D1F]">
                       Previous Years & Model Question Papers
                     </h3>
                     <Badge variant="cyan">{questionPapers.length} Available</Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">Semester {selectedSemester} Archives</span>
+                  <span className="text-xs text-[#6E6E73]">Semester {selectedSemester} Archives</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {questionPapers.map((paper) => (
                     <AnimatedCard
                       key={paper.id}
-                      className="p-5 border border-border/80 bg-card/60 transition-all flex flex-col justify-between shadow-sm hover:shadow-glow group cursor-pointer"
+                      className="p-5 border border-black/[0.06] bg-white rounded-[18px] transition-all flex flex-col justify-between shadow-card hover:shadow-card-hover group cursor-pointer"
                       onClick={() => setSelectedPaper(paper)}
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="badge-cyan text-[11px] px-2.5 py-0.5 rounded-lg font-700">
+                          <span className="badge-cyan text-[11px] px-2.5 py-0.5 rounded-lg font-semibold">
                             {paper.subject}
                           </span>
-                          <span className="text-[11px] font-mono-data text-muted-foreground font-700">
+                          <span className="text-[11px] font-mono-data text-[#6E6E73]">
                             {paper.year}
                           </span>
                         </div>
 
-                        <h4 className="text-base font-800 text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                        <h4 className="text-base font-semibold text-[#1D1D1F] group-hover:text-primary-dark transition-colors line-clamp-1 mb-1">
                           {paper.title}
                         </h4>
-                        <p className="text-xs text-muted-foreground mb-3">
+                        <p className="text-xs text-[#6E6E73] mb-3">
                           {paper.examType || 'End Semester'} · Max Marks: {paper.maxMarks || 100}
                         </p>
                       </div>
 
-                      <div className="pt-3 border-t border-border/40 flex items-center justify-between">
+                      <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAskAIAboutPaper(paper);
                           }}
-                          className="text-xs text-primary font-700 hover:underline flex items-center gap-1"
+                          className="text-xs text-primary-dark font-semibold hover:underline flex items-center gap-1 active:scale-[0.98]"
                         >
                           ✨ Solve with AI
                         </button>

@@ -66,7 +66,7 @@ export default function CodeHeader({
   const currentLang = getLanguageById(languageId);
 
   return (
-    <header className="w-full h-13 min-h-[52px] max-h-[52px] bg-[#0a142f]/95 backdrop-blur-xl border-b border-border/80 px-3 flex items-center justify-between gap-2 select-none shrink-0 min-w-0 overflow-x-auto overflow-y-hidden">
+    <header className="w-full h-13 min-h-[52px] max-h-[52px] bg-white/90 backdrop-blur-md border-b border-black/[0.08] px-3 flex items-center justify-between gap-2 select-none shrink-0 min-w-0 overflow-x-auto overflow-y-hidden">
       {/* Left section: App Brand & Explorer Toggle */}
       <div className="flex items-center gap-2 shrink-0">
         <button
@@ -82,13 +82,13 @@ export default function CodeHeader({
         </button>
 
         <div className="flex items-center gap-1.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white shadow-glow shrink-0">
+          <div className="w-7 h-7 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm shrink-0">
             <Code2 className="w-4 h-4" />
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-1">
               <span className="font-800 text-xs tracking-tight text-foreground">Code Lab</span>
-              <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded-full bg-primary/20 text-accent border border-primary/30">
+              <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded-full bg-brand-50 text-primary-dark border border-brand-200">
                 IDE
               </span>
             </div>
@@ -96,7 +96,7 @@ export default function CodeHeader({
         </div>
 
         {/* Active File Pill */}
-        <div className="px-2 py-1 rounded-lg bg-black/40 border border-border/60 text-[11px] font-mono text-muted-foreground truncate max-w-[110px] md:max-w-[150px]">
+        <div className="px-2 py-1 rounded-lg bg-card border border-border text-[11px] font-mono text-muted-foreground truncate max-w-[110px] md:max-w-[150px]">
           {activeFileName}
         </div>
 
@@ -105,8 +105,8 @@ export default function CodeHeader({
           onClick={onOpenProblems}
           className={`px-2 py-1 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
             hasActiveProblem
-              ? 'bg-accent/20 border-accent/40 text-accent shadow-glow'
-              : 'bg-secondary/60 border-border hover:border-primary/40 text-muted-foreground hover:text-foreground'
+              ? 'bg-brand-50 border-brand-200 text-primary-dark'
+              : 'bg-card border-border hover:border-primary text-muted-foreground hover:text-foreground'
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
@@ -121,16 +121,16 @@ export default function CodeHeader({
           <select
             value={languageId}
             onChange={(e) => onLanguageChange(e.target.value)}
-            className="bg-[#060b18] text-xs font-semibold text-foreground border border-border hover:border-primary/40 rounded-xl px-2.5 py-1.5 pr-6 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary transition-all font-mono"
+            className="bg-card text-xs font-semibold text-foreground border border-border hover:border-primary rounded-xl px-2.5 py-1.5 pr-6 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary transition-all font-mono"
             style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300d8f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2322C55E'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'right 0.4rem center',
               backgroundSize: '0.9rem',
             }}
           >
             {SUPPORTED_LANGUAGES.map((lang) => (
-              <option key={lang.id} value={lang.id} className="bg-[#0a142f] text-foreground">
+              <option key={lang.id} value={lang.id} className="bg-card text-foreground">
                 {lang.displayName.split(' ')[0]} {lang.compileRequired ? '⚙️' : '⚡'}
               </option>
             ))}
@@ -150,11 +150,11 @@ export default function CodeHeader({
           <button
             onClick={onRun}
             title="Run Code (Ctrl + Enter)"
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-accent text-white text-xs font-bold flex items-center gap-1.5 shadow-glow hover:shadow-glow-cyan transition-all cursor-pointer btn-press shrink-0"
+            className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer btn-press shrink-0"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>Run</span>
-            <kbd className="hidden xl:inline text-[9px] bg-black/30 px-1 py-0.5 rounded font-mono text-white/80">
+            <kbd className="hidden xl:inline text-[9px] bg-black/20 px-1 py-0.5 rounded font-mono text-white/90">
               Ctrl+↵
             </kbd>
           </button>

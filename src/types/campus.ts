@@ -203,16 +203,30 @@ export type NotificationType =
   | 'AI'
   | 'SYSTEM';
 
+export type AnnouncementCategory =
+  | 'General'
+  | 'Assignment'
+  | 'Exam'
+  | 'Notes'
+  | 'Important'
+  | 'Event'
+  | 'Academic'
+  | 'Emergency'
+  | 'Class';
+
 export interface Announcement {
   id: string;
   title: string;
   body: string;
   priority: 'high' | 'medium' | 'low';
-  category: 'Exam' | 'Event' | 'General' | 'Academic' | 'Emergency' | 'Class';
+  category: AnnouncementCategory;
   type?: NotificationType;
   time: string;
   createdAt?: string;
+  publishAt?: string;
+  expiresAt?: string;
   author: string;
+  authorId?: string;
   read: boolean;
   recipientUserId?: string;
   targetRole?: Role | 'all';
@@ -221,10 +235,15 @@ export interface Announcement {
   targetDepartment?: 'BCA' | 'all';
   targetSection?: string;
   subject?: string;
+  subjectCode?: string;
+  subjectId?: string;
   fileUrl?: string;
   fileName?: string;
   fileData?: string;
-  relatedEntity?: 'class' | 'assignment' | 'exam' | 'note' | 'marks';
+  fileSize?: string;
+  fileType?: string;
+  isImportant?: boolean;
+  relatedEntity?: 'class' | 'assignment' | 'exam' | 'note' | 'marks' | 'announcement';
   relatedEntityId?: string;
 }
 

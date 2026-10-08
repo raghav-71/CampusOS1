@@ -26,23 +26,23 @@ export default function Tabs({
 }: TabsProps) {
   if (variant === 'underline') {
     return (
-      <div className={`flex items-center gap-6 border-b border-border/60 ${className}`}>
+      <div className={`flex items-center gap-6 border-b border-black/[0.06] ${className}`}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => onChange(tab.id)}
-              className={`pb-3 text-sm font-600 flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              className={`pb-2.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ? 'border-primary text-[#1D1D1F]'
+                  : 'border-transparent text-[#6E6E73] hover:text-[#1D1D1F]'
               }`}
             >
               {tab.icon}
               <span>{tab.label}</span>
               {tab.badge !== undefined && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D]">
                   {tab.badge}
                 </span>
               )}
@@ -55,7 +55,7 @@ export default function Tabs({
 
   return (
     <div
-      className={`flex items-center gap-1.5 p-1 rounded-xl glass-card border border-border/60 ${className}`}
+      className={`inline-flex items-center gap-1 p-1 rounded-xl bg-black/[0.05] ${className}`}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
@@ -63,10 +63,10 @@ export default function Tabs({
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-600 transition-all duration-150 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
               isActive
-                ? 'bg-primary text-white shadow-glow'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                ? 'bg-white text-[#1D1D1F] shadow-subtle'
+                : 'text-[#6E6E73] hover:text-[#1D1D1F]'
             }`}
           >
             {tab.icon}
@@ -74,7 +74,7 @@ export default function Tabs({
             {tab.badge !== undefined && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
+                  isActive ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-black/[0.06] text-[#6E6E73]'
                 }`}
               >
                 {tab.badge}

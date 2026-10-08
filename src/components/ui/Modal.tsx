@@ -45,40 +45,42 @@ export default function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* macOS-style Sheet Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in"
+        className="absolute inset-0 bg-black/30 backdrop-blur-md animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Dialog with Spring Pop Animation */}
+      {/* Sheet Dialog */}
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative glass-card rounded-3xl p-6 border border-primary/40 shadow-2xl w-full animate-modal-pop ${maxWidthStyles[maxWidth]} ${className}`}
+        className={`relative bg-white rounded-[22px] p-6 border border-black/[0.08] shadow-modal w-full animate-modal-pop ${maxWidthStyles[maxWidth]} ${className}`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4 pb-2 border-b border-border/50">
+        <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-black/[0.06]">
           <div>
             {title && typeof title === 'string' ? (
-              <h3 className="text-lg font-800 text-foreground tracking-tight leading-snug">{title}</h3>
+              <h3 className="text-lg font-bold text-[#1D1D1F] tracking-tight leading-snug">{title}</h3>
             ) : (
               title
             )}
-            {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+            {description && <p className="text-xs text-[#6E6E73] mt-0.5">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all btn-press cursor-pointer border border-border/40"
-            title="Close dialog"
+            className="w-7 h-7 rounded-full bg-black/[0.04] hover:bg-black/[0.08] flex items-center justify-center text-[#8E8E93] hover:text-[#1D1D1F] transition-colors cursor-pointer"
+            title="Close"
           >
             <svg
-              width="15"
-              height="15"
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -87,10 +89,10 @@ export default function Modal({
         </div>
 
         {/* Content */}
-        <div className="text-sm text-foreground">{children}</div>
+        <div className="text-sm text-[#1D1D1F]">{children}</div>
 
         {/* Footer */}
-        {footer && <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-border/40">{footer}</div>}
+        {footer && <div className="mt-6 flex items-center justify-end gap-2.5 pt-3 border-t border-black/[0.06]">{footer}</div>}
       </div>
     </div>
   );

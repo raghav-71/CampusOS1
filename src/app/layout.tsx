@@ -36,19 +36,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark`}
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body className={plusJakartaSans.className}>
+      <body className={`${plusJakartaSans.className} bg-background text-foreground antialiased selection:bg-primary-light selection:text-primary-dark min-h-screen`}>
         {children}
         <Toaster
           position="bottom-right"
           toastOptions={{
             style: {
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              color: 'var(--foreground)',
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              color: '#17211B',
               fontFamily: 'var(--font-sans)',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+              borderRadius: '12px',
             },
           }}
         />

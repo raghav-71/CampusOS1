@@ -502,4 +502,101 @@ export class AuthorizationService {
 
     return { allowed: true };
   }
+
+  /**
+   * Validates announcement publishing authorization for faculty.
+   * Faculty can only publish to semesters and subjects they teach.
+   */
+  static validateFacultyAnnouncement(
+    facultyProfile: Partial<UserProfile> | null | undefined,
+    payload: {
+      subjectCode?: string;
+      subjectId?: string;
+      subject?: string;
+      targetSemester?: number;
+      semesterNumber?: number;
+    }
+  ): FacultyValidationResult {
+    if (!facultyProfile) {
+      return { allowed: false, error: 'Authentication required.', status: 401 };
+    }
+
+    if (facultyProfile.role === 'admin') {
+      return { allowed: true };
+    }
+
+    if (facultyProfile.role !== 'teacher') {
+      return { allowed: false, error: 'Only faculty members and administrators can publish announcements.', status: 403 };
+    }
+
+    const facultyKey = facultyProfile.email || facultyProfile.id || facultyProfile.fullName || '';
+    const sem = payload.targetSemester || payload.semesterNumber;
+
+    if (!sem) {
+      return { allowed: false, error: 'Target semester is required for faculty announcements.', status: 400 };
+    }
+
+    const authorizedSemesters = this.getFacultyAuthorizedSemesters(facultyKey);
+    if (!authorizedSemesters.includes(Number(sem) as BcaSemester)) {
+      return {
+        allowed: false,
+        error: `Access Denied: You are not assigned to teach any classes in Semester ${sem}. You cannot publish announcements for this semester.`,
+        status: 403,
+      };
+    }
+
+    const subjectKey = payload.subjectCode || payload.subject || payload.subjectId || '';
+    if (subjectKey && subjectKey !== 'all' && subjectKey !== 'General') {
+      const isAuthorizedSubject = this.canFacultyManageSubject(facultyKey, subjectKey, Number(sem));
+      if (!isAuthorizedSubject) {
+        return {
+          allowed: false,
+          error: `Access Denied: You are not assigned to teach "${payload.subject || subjectKey}" in Semester ${sem}.`,
+          status: 403,
+        };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Validates if a student is authorized to view an announcement.
+   * Enforces strict semester isolation and direct recipient checks.
+   */
+  static canStudentAccessAnnouncement(
+    studentProfile: Partial<UserProfile> | null | undefined,
+    announcement: {
+      targetSemester?: number;
+      semesterNumber?: number;
+      targetRole?: Role | 'all';
+      recipientUserId?: string;
+      targetDepartment?: string;
+    }
+  ): boolean {
+    if (!studentProfile) return false;
+    if (studentProfile.role === 'admin') return true;
+    if (studentProfile.role !== 'student') return false;
+
+    // Direct recipient check
+    if (announcement.recipientUserId && announcement.recipientUserId !== studentProfile.id) {
+      return false;
+    }
+
+    // Role check
+    if (announcement.targetRole && announcement.targetRole !== 'all' && announcement.targetRole !== 'student') {
+      return false;
+    }
+
+    // Strict Semester isolation check
+    const targetSem = announcement.targetSemester || announcement.semesterNumber;
+    const studentSem = studentProfile.semesterNumber || 5;
+
+    if (targetSem && Number(targetSem) !== Number(studentSem)) {
+      return false;
+    }
+
+    return true;
+  }
 }
+

@@ -262,10 +262,10 @@ export default function DocumentViewerModal({
         <div className="flex flex-wrap items-center justify-between gap-3 w-full">
           <div className="flex items-center gap-2 flex-wrap">
             <Button
-              variant="accent"
+              variant="primary"
               size="sm"
               onClick={handleSummarizeThisFile}
-              className="shadow-glow font-800 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white"
+              className="font-700 shadow-sm"
             >
               ⚡ Summarize This File
             </Button>
@@ -275,7 +275,7 @@ export default function DocumentViewerModal({
               onClick={handleOpenFullAssistant}
               className="font-700"
             >
-              ✨ Ask Campus AI
+              ✨ Ask CampusOS AI
             </Button>
           </div>
 
@@ -288,7 +288,7 @@ export default function DocumentViewerModal({
             <Button variant="secondary" size="sm" onClick={handleDownloadOriginal}>
               Download 📥
             </Button>
-            <Button variant="primary" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               Close
             </Button>
           </div>
@@ -297,24 +297,24 @@ export default function DocumentViewerModal({
     >
       <div className="space-y-4">
         {/* Navigation / Mode Tabs & Zoom Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveView('preview')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeView === 'preview'
-                  ? 'bg-primary/20 text-primary border border-primary/50 font-800'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-brand-100 text-primary-dark border border-brand-200 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {isPdf ? '📑 PDF View' : isImage ? '🖼️ Image View' : isOffice ? '📘 Office Document' : '📄 Document View'}
             </button>
             <button
               onClick={() => setActiveView('extracted')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 activeView === 'extracted'
-                  ? 'bg-primary/20 text-primary border border-primary/50 font-800'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-brand-100 text-primary-dark border border-brand-200 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               📖 Extracted Text / Reading Mode

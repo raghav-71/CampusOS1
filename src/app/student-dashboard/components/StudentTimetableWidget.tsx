@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import AnimatedCard from '@/components/motion/AnimatedCard';
 
 const subjectColors: Record<string, string> = {
-  'Operating Systems': 'border-l-primary bg-primary/10 border-primary/40',
-  DBMS: 'border-l-accent bg-accent/10 border-accent/40',
-  'Computer Networks': 'border-l-success bg-success/10 border-success/40',
-  'Java Programming': 'border-l-warning bg-warning/10 border-warning/40',
-  DAA: 'border-l-[#FF6B9D] bg-[#FF6B9D]/10 border-[#FF6B9D]/40',
+  'Operating Systems': 'border-l-primary bg-white border-border',
+  DBMS: 'border-l-brand-600 bg-white border-border',
+  'Computer Networks': 'border-l-primary-dark bg-white border-border',
+  'Java Programming': 'border-l-warning bg-white border-border',
+  DAA: 'border-l-brand-500 bg-white border-border',
 };
 
 const initialTodayClasses = [
@@ -88,17 +88,17 @@ export default function StudentTimetableWidget() {
   }, []);
 
   return (
-    <AnimatedCard className="p-6 border-border/80 shadow-glass">
+    <AnimatedCard className="p-6 border border-border bg-white rounded-2xl shadow-sm">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h3 className="text-base font-800 text-foreground tracking-tight">Today&apos;s Schedule</h3>
           <p className="text-xs text-muted-foreground mt-0.5 font-mono-data">BCA Sem 5 · Friday Schedule</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="badge-cyan text-xs px-2.5 py-1 rounded-lg font-700">3 lectures</span>
+          <span className="badge-green text-xs px-2.5 py-1 rounded-lg font-700">3 lectures</span>
           <button
             onClick={() => router.push('/student-dashboard?tab=timetable')}
-            className="text-xs text-primary hover:underline font-700 cursor-pointer btn-press"
+            className="text-xs text-primary-dark hover:underline font-700 cursor-pointer btn-press"
           >
             Full timetable →
           </button>
@@ -113,10 +113,10 @@ export default function StudentTimetableWidget() {
           return (
             <div
               key={cls.id}
-              className={`flex items-center gap-4 p-3.5 rounded-2xl border-l-4 transition-all duration-200 ${
+              className={`flex items-center gap-4 p-3.5 rounded-xl border-l-4 transition-all duration-200 ${
                 isLive
-                  ? 'border-l-accent bg-accent/15 border border-accent/40 shadow-glow'
-                  : `${subjectColors[cls.subject] || 'border-l-muted bg-muted/20'} border border-border/50 hover:bg-card/70`
+                  ? 'border-l-primary bg-brand-50 border border-brand-200 shadow-sm'
+                  : `${subjectColors[cls.subject] || 'border-l-primary bg-white'} border border-border hover:bg-brand-50/40`
               }`}
             >
               <div className="text-center min-w-[58px]">
@@ -128,7 +128,7 @@ export default function StudentTimetableWidget() {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-800 text-foreground truncate">{cls.subject}</p>
                   {isLive && (
-                    <span className="badge-cyan text-[9px] px-2 py-0.2 rounded-full font-800 animate-pulse">
+                    <span className="badge-green text-[9px] px-2 py-0.2 rounded-full font-800 animate-pulse">
                       LIVE
                     </span>
                   )}
@@ -136,7 +136,7 @@ export default function StudentTimetableWidget() {
                 <p className="text-xs text-muted-foreground mt-0.5">{cls.teacher}</p>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className="text-xs font-700 text-accent font-mono-data">{cls.room}</span>
+                <span className="text-xs font-700 text-primary-dark font-mono-data">{cls.room}</span>
               </div>
             </div>
           );

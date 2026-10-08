@@ -30,23 +30,23 @@ export default function CredentialsBox({
   const roles: Role[] = ['student', 'teacher', 'admin'];
 
   return (
-    <div className="mt-4 glass-card rounded-2xl p-4.5 border border-primary/20 shadow-glass">
+    <div className="mt-4 bg-white rounded-2xl p-4 border border-border shadow-sm">
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-5 h-5 rounded-md bg-warning/20 flex items-center justify-center animate-pulse">
+        <div className="w-5 h-5 rounded-md bg-brand-50 border border-brand-100 flex items-center justify-center text-primary-dark">
           <svg
-            width="11"
-            height="11"
+            width="12"
+            height="12"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#FFB300"
+            stroke="currentColor"
             strokeWidth="2.5"
           >
             <circle cx="12" cy="12" r="10" />
             <path d="M12 8v4M12 16h.01" />
           </svg>
         </div>
-        <span className="text-xs font-700 text-warning">Demo Credentials</span>
-        <span className="text-[11px] text-muted-foreground ml-auto font-500">Click role to auto-fill</span>
+        <span className="text-xs font-bold text-slate-800">Demo Accounts</span>
+        <span className="text-[11px] text-muted-foreground ml-auto font-medium">Click to auto-fill</span>
       </div>
 
       <div className="space-y-2">
@@ -55,33 +55,33 @@ export default function CredentialsBox({
           return (
             <div
               key={`cred-${role}`}
-              className={`flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer group btn-press ${
+              className={`flex items-center justify-between p-2.5 rounded-xl transition-all duration-200 cursor-pointer group ${
                 isActive
-                  ? 'bg-primary/20 border border-primary/50 shadow-glow -translate-y-0.5'
-                  : 'bg-muted/40 border border-border/40 hover:border-primary/40 hover:bg-muted/70 hover:-translate-y-0.5'
+                  ? 'bg-brand-50 border border-primary/40 shadow-sm'
+                  : 'bg-slate-50 border border-border hover:border-primary/30 hover:bg-brand-50/50'
               }`}
               onClick={() => onAutofill(role)}
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className={`text-xs font-800 capitalize transition-colors ${
-                    isActive ? 'text-accent' : 'text-muted-foreground group-hover:text-foreground'
+                  className={`text-xs font-bold capitalize transition-colors ${
+                    isActive ? 'text-primary-dark' : 'text-slate-700 group-hover:text-primary-dark'
                   }`}
                 >
                   {role}
                 </span>
-                <span className="text-xs text-muted-foreground font-mono-data truncate max-w-[140px] group-hover:text-foreground/80">
+                <span className="text-xs text-muted-foreground font-mono-data truncate max-w-[140px] sm:max-w-[180px]">
                   {credentials[role].email}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     copyToClipboard(credentials[role].email, 'Email');
                   }}
-                  className="p-1 rounded-md hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="p-1 rounded-md hover:bg-white text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="Copy email"
                 >
                   <svg
@@ -97,10 +97,10 @@ export default function CredentialsBox({
                   </svg>
                 </button>
                 <span
-                  className={`text-xs font-800 px-2.5 py-1 rounded-lg transition-all shadow-sm ${
+                  className={`text-xs font-bold px-2 py-0.5 rounded-lg transition-all ${
                     isActive
-                      ? 'bg-accent text-black font-900 shadow-glow'
-                      : 'bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white text-slate-600 border border-border group-hover:border-primary group-hover:text-primary-dark'
                   }`}
                 >
                   Use

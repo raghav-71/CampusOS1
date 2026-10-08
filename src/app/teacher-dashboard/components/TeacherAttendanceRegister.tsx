@@ -144,19 +144,19 @@ export default function TeacherAttendanceRegister() {
       {/* Header Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-800 text-foreground tracking-tight">
+          <h2 className="text-xl font-semibold text-[#1D1D1F] tracking-tight">
             Live Lecture Attendance Register
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-[#6E6E73] mt-0.5">
             Mark, evaluate, and sync daily student lecture attendance for authorized BCA cohorts
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={selectedSubjectId}
             onChange={(e) => setSelectedSubjectId(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer"
+            className="bg-white border border-black/[0.08] rounded-[11px] px-3 py-2 text-xs text-[#1D1D1F] font-medium outline-none cursor-pointer focus:border-primary"
           >
             {assignedSubjects.map((sub) => (
               <option key={sub.subjectId} value={sub.subjectId}>
@@ -169,7 +169,7 @@ export default function TeacherAttendanceRegister() {
             type="date"
             value={sessionDate}
             onChange={(e) => setSessionDate(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground font-mono-data outline-none cursor-pointer"
+            className="bg-white border border-black/[0.08] rounded-[11px] px-3 py-2 text-xs text-[#1D1D1F] font-mono-data outline-none cursor-pointer focus:border-primary"
           />
 
           <Button
@@ -177,7 +177,7 @@ export default function TeacherAttendanceRegister() {
             size="sm"
             disabled={isSaving}
             onClick={handleSaveRegister}
-            className="shadow-glow font-700"
+            className="font-semibold shadow-xs"
           >
             {isSaving ? 'Saving...' : 'Save Register'}
           </Button>
@@ -186,46 +186,46 @@ export default function TeacherAttendanceRegister() {
 
       {/* Summary Bento Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="glass-card rounded-3xl p-4 border border-border">
-          <p className="text-xs text-muted-foreground mb-1 font-700 uppercase tracking-wider">Total Strength</p>
-          <p className="text-2xl font-800 text-foreground metric-value">{students.length}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Enrolled batch (Section A)</p>
+        <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card">
+          <p className="text-[11px] text-[#6E6E73] mb-1 font-semibold uppercase tracking-wider">Total Strength</p>
+          <p className="text-2xl font-bold text-[#1D1D1F] metric-value">{students.length}</p>
+          <p className="text-[11px] text-[#6E6E73] mt-0.5">Enrolled batch (Section A)</p>
         </div>
 
-        <div className="glass-card rounded-3xl p-4 border border-success/30">
-          <p className="text-xs text-muted-foreground mb-1 font-700 uppercase tracking-wider">Present Today</p>
-          <p className="text-2xl font-800 text-success metric-value">{presentCount}</p>
-          <p className="text-[11px] text-success font-600 mt-0.5">Active in class</p>
+        <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card">
+          <p className="text-[11px] text-[#6E6E73] mb-1 font-semibold uppercase tracking-wider">Present Today</p>
+          <p className="text-2xl font-bold text-primary-dark metric-value">{presentCount}</p>
+          <p className="text-[11px] text-primary-dark font-medium mt-0.5">Active in class</p>
         </div>
 
-        <div className="glass-card rounded-3xl p-4 border border-warning/30">
-          <p className="text-xs text-muted-foreground mb-1 font-700 uppercase tracking-wider">Late Arrivals</p>
-          <p className="text-2xl font-800 text-warning metric-value">{lateCount}</p>
-          <p className="text-[11px] text-warning font-600 mt-0.5">Permitted with remark</p>
+        <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card">
+          <p className="text-[11px] text-[#6E6E73] mb-1 font-semibold uppercase tracking-wider">Late Arrivals</p>
+          <p className="text-2xl font-bold text-warning metric-value">{lateCount}</p>
+          <p className="text-[11px] text-warning font-medium mt-0.5">Permitted with remark</p>
         </div>
 
-        <div className="glass-card rounded-3xl p-4 border border-danger/30">
-          <p className="text-xs text-muted-foreground mb-1 font-700 uppercase tracking-wider">Absentees</p>
-          <p className="text-2xl font-800 text-danger metric-value">{absentCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 font-mono-data">{turnoutPct}% Turnout Rate</p>
+        <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card">
+          <p className="text-[11px] text-[#6E6E73] mb-1 font-semibold uppercase tracking-wider">Absentees</p>
+          <p className="text-2xl font-bold text-danger metric-value">{absentCount}</p>
+          <p className="text-[11px] text-[#6E6E73] mt-0.5 font-mono-data">{turnoutPct}% Turnout Rate</p>
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between p-3.5 glass-card rounded-3xl border border-border/80">
-        <span className="text-xs font-700 text-foreground">
+      <div className="flex items-center justify-between p-3.5 bg-white rounded-[16px] border border-black/[0.06] shadow-card">
+        <span className="text-xs font-semibold text-[#1D1D1F]">
           BCA Sem 5 Roster ({students.length} students)
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => markAll('present')}
-            className="text-xs btn-secondary px-3 py-1.5 rounded-xl cursor-pointer font-600"
+            className="text-xs px-3 py-1.5 rounded-[10px] bg-[#F5F5F7] hover:bg-black/[0.06] text-[#1D1D1F] cursor-pointer font-semibold transition-all active:scale-[0.98]"
           >
             Mark All Present
           </button>
           <button
             onClick={() => markAll('absent')}
-            className="text-xs btn-ghost px-3 py-1.5 rounded-xl cursor-pointer font-600"
+            className="text-xs px-3 py-1.5 rounded-[10px] text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/[0.04] cursor-pointer font-semibold transition-all active:scale-[0.98]"
           >
             Clear All
           </button>
@@ -233,31 +233,31 @@ export default function TeacherAttendanceRegister() {
       </div>
 
       {/* Students Roll Call Table */}
-      <div className="glass-card rounded-3xl border border-border overflow-hidden">
+      <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border text-muted-foreground text-left">
-                <th className="py-3.5 px-4">Roll Number</th>
-                <th className="py-3.5 px-4">Student Name</th>
-                <th className="py-3.5 px-4">Term Average</th>
-                <th className="py-3.5 px-4 text-right">Status Action</th>
+              <tr className="bg-[#FAFAFC] border-b border-black/[0.06] text-[#6E6E73] font-semibold text-left">
+                <th className="py-3.5 px-4 font-medium">Roll Number</th>
+                <th className="py-3.5 px-4 font-medium">Student Name</th>
+                <th className="py-3.5 px-4 font-medium">Term Average</th>
+                <th className="py-3.5 px-4 text-right font-medium">Status Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-black/[0.04]">
               {students.map((std) => (
-                <tr key={std.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="py-3.5 px-4 font-mono-data font-700 text-foreground">
+                <tr key={std.id} className="hover:bg-[#F5F5F7]/60 transition-colors">
+                  <td className="py-3.5 px-4 font-mono-data font-semibold text-[#1D1D1F]">
                     {std.rollNumber}
                   </td>
-                  <td className="py-3.5 px-4 font-700 text-foreground">{std.name}</td>
+                  <td className="py-3.5 px-4 font-semibold text-[#1D1D1F]">{std.name}</td>
                   <td className="py-3.5 px-4">
                     <span
-                      className={`font-700 font-mono-data ${
+                      className={`font-semibold font-mono-data ${
                         std.previousAttendancePct >= 90
-                          ? 'text-success'
+                          ? 'text-primary-dark'
                           : std.previousAttendancePct >= 75
-                            ? 'text-accent'
+                            ? 'text-emerald-600'
                             : 'text-danger'
                       }`}
                     >
@@ -265,33 +265,33 @@ export default function TeacherAttendanceRegister() {
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl bg-muted/40 border border-border/60">
+                    <div className="inline-flex items-center gap-1 p-0.5 rounded-[10px] bg-[#F5F5F7] border border-black/[0.04]">
                       <button
                         onClick={() => setStatus(std.id, 'present')}
-                        className={`px-3 py-1 rounded-xl font-700 transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-[8px] font-semibold text-[11px] transition-all cursor-pointer active:scale-[0.98] ${
                           std.status === 'present'
-                            ? 'bg-success text-white shadow-glow'
-                            : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                         }`}
                       >
                         Present
                       </button>
                       <button
                         onClick={() => setStatus(std.id, 'late')}
-                        className={`px-3 py-1 rounded-xl font-700 transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-[8px] font-semibold text-[11px] transition-all cursor-pointer active:scale-[0.98] ${
                           std.status === 'late'
-                            ? 'bg-warning text-black shadow-glow'
-                            : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-warning text-white shadow-xs'
+                            : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                         }`}
                       >
                         Late
                       </button>
                       <button
                         onClick={() => setStatus(std.id, 'absent')}
-                        className={`px-3 py-1 rounded-xl font-700 transition-all cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-[8px] font-semibold text-[11px] transition-all cursor-pointer active:scale-[0.98] ${
                           std.status === 'absent'
-                            ? 'bg-danger text-white shadow-glow'
-                            : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-danger text-white shadow-xs'
+                            : 'text-[#6E6E73] hover:text-[#1D1D1F]'
                         }`}
                       >
                         Absent

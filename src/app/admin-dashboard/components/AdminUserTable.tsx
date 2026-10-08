@@ -155,19 +155,19 @@ export default function AdminUserTable() {
 
   return (
     <>
-      <div className="glass-card rounded-2xl border border-border overflow-hidden">
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
         {/* Table header */}
-        <div className="p-5 border-b border-border">
+        <div className="p-5 border-b border-border bg-white">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-600 text-foreground">User Directory & RBAC</h3>
+              <h3 className="text-base font-700 text-foreground">User Directory & RBAC</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {filtered.length} active records
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Search */}
-              <div className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2 w-44">
+              <div className="flex items-center gap-2 bg-slate-50 border border-border rounded-xl px-3 py-2 w-48 sm:w-56 focus-within:border-primary">
                 <svg
                   width="13"
                   height="13"
@@ -199,7 +199,7 @@ export default function AdminUserTable() {
                   setFilterRole(e.target.value as FilterRole);
                   setPage(1);
                 }}
-                className="bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
+                className="bg-slate-50 border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer focus:border-primary"
               >
                 <option value="all">All Roles</option>
                 <option value="student">Students</option>
@@ -214,7 +214,7 @@ export default function AdminUserTable() {
                   setFilterStatus(e.target.value as FilterStatus);
                   setPage(1);
                 }}
-                className="bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
+                className="bg-slate-50 border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer focus:border-primary"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -227,12 +227,12 @@ export default function AdminUserTable() {
 
         {/* Bulk action bar */}
         {selectedRows.length > 0 && (
-          <div className="px-5 py-3 bg-primary/10 border-b border-primary/20 flex items-center justify-between animate-fade-in">
-            <span className="text-sm font-500 text-primary">
+          <div className="px-5 py-3 bg-brand-50 border-b border-brand-200 flex items-center justify-between animate-fade-in">
+            <span className="text-sm font-600 text-primary-dark">
               {selectedRows.length} user{selectedRows.length > 1 ? 's' : ''} selected
             </span>
             <div className="flex gap-2">
-              <button onClick={handleBulkDeactivate} className="btn-ghost text-xs px-3 py-1.5">
+              <button onClick={handleBulkDeactivate} className="btn-secondary text-xs px-3 py-1.5">
                 Deactivate
               </button>
               <button
@@ -240,7 +240,7 @@ export default function AdminUserTable() {
                   toast.success(`Exporting profile report for ${selectedRows.length} user(s)`);
                   setSelectedRows([]);
                 }}
-                className="btn-ghost text-xs px-3 py-1.5"
+                className="btn-secondary text-xs px-3 py-1.5"
               >
                 Export
               </button>
@@ -253,15 +253,15 @@ export default function AdminUserTable() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border">
-                <th className="w-10 px-4 py-3 text-left">
+              <tr className="bg-[#F0FDF4] border-b border-border text-primary-dark">
+                <th className="w-10 px-4 py-3.5 text-left">
                   <input
                     type="checkbox"
                     checked={selectedRows.length === paginated.length && paginated.length > 0}
                     onChange={toggleAll}
-                    className="w-3.5 h-3.5 accent-primary"
+                    className="w-3.5 h-3.5 accent-primary cursor-pointer"
                   />
                 </th>
                 {[
@@ -274,14 +274,14 @@ export default function AdminUserTable() {
                   <th
                     key={`th-${col.field}`}
                     onClick={() => toggleSort(col.field)}
-                    className="px-4 py-3 text-left cursor-pointer select-none group"
+                    className="px-4 py-3.5 text-left cursor-pointer select-none group font-700 uppercase tracking-wider"
                   >
                     <div className="flex items-center">
                       <span
-                        className={`text-xs font-600 tracking-wide uppercase transition-colors ${
+                        className={`transition-colors ${
                           sortField === col.field
-                            ? 'text-primary'
-                            : 'text-muted-foreground group-hover:text-foreground'
+                            ? 'text-primary-dark font-800'
+                            : 'text-primary-dark/80 group-hover:text-primary-dark'
                         }`}
                       >
                         {col.label}
@@ -290,10 +290,8 @@ export default function AdminUserTable() {
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right">
-                  <span className="text-xs font-600 tracking-wide uppercase text-muted-foreground">
-                    Actions
-                  </span>
+                <th className="px-4 py-3.5 text-right font-700 uppercase tracking-wider text-primary-dark">
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -332,8 +330,8 @@ export default function AdminUserTable() {
                   return (
                     <tr
                       key={user.id}
-                      className={`border-b border-border/50 last:border-0 transition-colors group ${
-                        isSelected ? 'bg-primary/5' : 'hover:bg-muted/30'
+                      className={`border-b border-border/60 last:border-0 transition-colors group ${
+                        isSelected ? 'bg-brand-50' : 'hover:bg-brand-50/40'
                       }`}
                     >
                       <td className="px-4 py-3.5">
@@ -341,12 +339,12 @@ export default function AdminUserTable() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleRow(user.id)}
-                          className="w-3.5 h-3.5 accent-primary"
+                          className="w-3.5 h-3.5 accent-primary cursor-pointer"
                         />
                       </td>
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-xs font-700 text-foreground flex-shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-xs font-700 text-primary-dark flex-shrink-0">
                             {user.initials ||
                               (user.fullName ? user.fullName.slice(0, 2).toUpperCase() : 'U')}
                           </div>

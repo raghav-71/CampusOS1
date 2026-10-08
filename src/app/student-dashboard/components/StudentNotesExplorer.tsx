@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { campusRepository } from '@/repositories/campusRepository';
 import { NoteDocument } from '@/types/campus';
@@ -12,6 +13,8 @@ import DocumentViewerModal from '@/components/documents/DocumentViewerModal';
 
 export default function StudentNotesExplorer() {
   const { profile } = useProfile();
+  const searchParams = useSearchParams();
+  const resourceId = searchParams.get('resourceId');
   const [notesList, setNotesList] = useState<NoteDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
@@ -36,6 +39,27 @@ export default function StudentNotesExplorer() {
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
+
+  useEffect(() => {
+    if (resourceId && notesList.length > 0) {
+      const match = notesList.find((n) => n.id === resourceId);
+      if (match) {
+        setSelectedNote(match);
+      }
+    }
+  }, [resourceId, notesList]);
+
+  useEffect(() => {
+    const handleOpenDoc = (e: any) => {
+      const docId = e.detail?.id;
+      if (docId && notesList.length > 0) {
+        const match = notesList.find((n) => n.id === docId);
+        if (match) setSelectedNote(match);
+      }
+    };
+    window.addEventListener('campusos:open-document', handleOpenDoc);
+    return () => window.removeEventListener('campusos:open-document', handleOpenDoc);
+  }, [notesList]);
 
   const filteredNotes = notesList;
 
@@ -117,7 +141,7 @@ export default function StudentNotesExplorer() {
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
-            <div className="flex items-center gap-2 glass-card rounded-xl px-3 py-2 w-56 sm:w-64 border border-border/70">
+            <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 w-56 sm:w-64 border border-border focus-within:border-primary">
               <svg
                 width="14"
                 height="14"
@@ -143,7 +167,7 @@ export default function StudentNotesExplorer() {
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer"
+              className="bg-slate-50 border border-border rounded-xl px-3 py-2 text-xs text-foreground font-600 outline-none cursor-pointer focus:border-primary"
             >
               <option value="all">All Enrolled Subjects</option>
               <option value="Operating Systems">Operating Systems</option>
@@ -155,42 +179,58 @@ export default function StudentNotesExplorer() {
           </div>
         </div>
 
-        {/* Notes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {/* Notes Grid in Apple Document Library Style */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredNotes.map((note) => {
             const isBookmarked = bookmarkedNotes.includes(note.id);
             return (
               <div
                 key={note.id}
                 onClick={() => handleOpenReader(note)}
-                className="glass-card rounded-3xl p-5 border border-border/80 hover:border-primary/40 transition-all cursor-pointer flex flex-col justify-between group shadow-sm hover:shadow-glow"
+                className="bg-white rounded-[18px] p-5 border border-black/[0.06] hover:border-black/[0.12] transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-card hover:shadow-card-hover"
               >
                 <div>
-                  {/* Top metadata */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="badge-cyan text-[11px] px-2.5 py-0.5 rounded-lg font-700">
-                      {note.subject}
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                  {/* Top file type icon & subject tag */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] flex items-center justify-center text-primary-dark">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-semibold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded-md">
+                          {note.subject}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={(e) => handleAskAIAboutNote(note, e)}
-                        className="p-1.5 rounded-lg text-primary hover:bg-primary/10 transition-colors"
-                        title="Ask Campus AI about this note"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAskAIAboutNote(note, e);
+                        }}
+                        className="px-2 py-1 rounded-lg text-xs font-semibold text-[#15803D] bg-[#DCFCE7]/60 hover:bg-[#DCFCE7] transition-colors"
+                        title="AI Study Assistant"
                       >
-                        <span className="text-xs">✨ AI</span>
+                        ✨ Study
                       </button>
                       <button
                         onClick={(e) => toggleBookmark(note.id, e)}
                         className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                           isBookmarked
-                            ? 'text-warning bg-warning/10'
-                            : 'text-muted-foreground hover:text-foreground'
+                            ? 'text-amber-500'
+                            : 'text-[#8E8E93] hover:text-[#1D1D1F]'
                         }`}
-                        title={isBookmarked ? 'Bookmarked' : 'Save bookmark'}
+                        title={isBookmarked ? 'Bookmarked' : 'Bookmark'}
                       >
                         <svg
-                          width="15"
-                          height="15"
+                          width="14"
+                          height="14"
                           viewBox="0 0 24 24"
                           fill={isBookmarked ? 'currentColor' : 'none'}
                           stroke="currentColor"
@@ -202,38 +242,34 @@ export default function StudentNotesExplorer() {
                     </div>
                   </div>
 
-                  <h3 className="text-base font-800 text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                  <h3 className="text-sm font-bold text-[#1D1D1F] group-hover:text-primary transition-colors line-clamp-1 mb-1">
                     {note.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground mb-3 font-500">
-                    Uploaded by <span className="text-foreground font-700">{note.teacher}</span>{' '}
-                    &nbsp;·&nbsp; {note.pages} pages &nbsp;·&nbsp; {note.fileSize || note.size || '3.5 MB'}
+                  <p className="text-xs text-[#6E6E73] mb-3">
+                    {note.teacher} &nbsp;·&nbsp; {note.pages} pages &nbsp;·&nbsp; {note.fileSize || note.size || '3.5 MB'}
                   </p>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {note.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10px] px-2 py-0.5 rounded-md bg-muted/40 text-muted-foreground border border-border/40 font-600"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
                 </div>
 
-                {/* Bottom stats & actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-warning font-700">
-                      ★ {note.rating || 5.0}
-                    </span>
-                    <span>👁 {note.views || 412}</span>
-                  </div>
-                  <span className="text-primary font-700 group-hover:underline flex items-center gap-1">
-                    Read & Study →
+                {/* Minimal actions footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-black/[0.04] text-xs">
+                  <span className="text-[#8E8E93] text-[11px]">
+                    Verified Syllabus Document
                   </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(note);
+                      }}
+                      className="text-xs text-[#6E6E73] hover:text-[#1D1D1F] transition-colors font-medium"
+                    >
+                      Download
+                    </button>
+                    <span className="text-[#8E8E93]">·</span>
+                    <span className="text-primary font-semibold group-hover:underline">
+                      Read →
+                    </span>
+                  </div>
                 </div>
               </div>
             );

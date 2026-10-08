@@ -104,7 +104,7 @@ export default function AdminAuditLogsView() {
           <select
             value={filterSeverity}
             onChange={(e) => setFilterSeverity(e.target.value)}
-            className="bg-muted/50 border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
+            className="bg-white border border-black/[0.08] rounded-[11px] px-3 py-2 text-xs text-[#1D1D1F] font-medium outline-none cursor-pointer focus:border-primary"
           >
             <option value="all">All Severities</option>
             <option value="critical">Critical Only</option>
@@ -116,44 +116,45 @@ export default function AdminAuditLogsView() {
             variant="secondary"
             size="sm"
             onClick={() => toast.success('Audit trail exported as encrypted JSON')}
+            className="font-semibold"
           >
             Export Logs
           </Button>
         </div>
       </div>
 
-      <div className="glass-card rounded-2xl border border-border overflow-hidden">
+      <div className="bg-white rounded-[18px] border border-black/[0.06] shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border text-muted-foreground text-left">
-                <th className="py-3.5 px-4">Event ID</th>
-                <th className="py-3.5 px-4">Action & Details</th>
-                <th className="py-3.5 px-4">Actor / Role</th>
-                <th className="py-3.5 px-4">IP Address</th>
-                <th className="py-3.5 px-4">Time</th>
-                <th className="py-3.5 px-4 text-right">Severity</th>
+              <tr className="bg-[#FAFAFC] border-b border-black/[0.06] text-[#6E6E73] font-semibold text-left">
+                <th className="py-3.5 px-4 font-medium">Event ID</th>
+                <th className="py-3.5 px-4 font-medium">Action & Details</th>
+                <th className="py-3.5 px-4 font-medium">Actor / Role</th>
+                <th className="py-3.5 px-4 font-medium">IP Address</th>
+                <th className="py-3.5 px-4 font-medium">Time</th>
+                <th className="py-3.5 px-4 text-right font-medium">Severity</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-black/[0.04]">
               {filtered.map((log) => (
-                <tr key={log.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="py-3.5 px-4 font-mono-data text-muted-foreground">{log.id}</td>
+                <tr key={log.id} className="hover:bg-[#F5F5F7]/60 transition-colors">
+                  <td className="py-3.5 px-4 font-mono-data text-[#6E6E73]">{log.id}</td>
                   <td className="py-3.5 px-4 max-w-xs">
-                    <p className="font-600 text-foreground">{log.action}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{log.details}</p>
+                    <p className="font-semibold text-[#1D1D1F]">{log.action}</p>
+                    <p className="text-xs text-[#6E6E73] line-clamp-1 break-words">{log.details}</p>
                   </td>
                   <td className="py-3.5 px-4">
-                    <p className="font-500 text-foreground">{log.actor}</p>
-                    <p className="text-[10px] text-muted-foreground">{log.role}</p>
+                    <p className="font-medium text-[#1D1D1F]">{log.actor}</p>
+                    <p className="text-[10px] text-[#6E6E73]">{log.role}</p>
                   </td>
-                  <td className="py-3.5 px-4 font-mono-data text-muted-foreground">
+                  <td className="py-3.5 px-4 font-mono-data text-[#6E6E73]">
                     {log.ipAddress}
                   </td>
-                  <td className="py-3.5 px-4 text-muted-foreground">{log.timestamp}</td>
+                  <td className="py-3.5 px-4 text-[#6E6E73]">{log.timestamp}</td>
                   <td className="py-3.5 px-4 text-right">
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-md font-700 ${severityStyles[log.severity]}`}
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${severityStyles[log.severity]}`}
                     >
                       {log.severity.toUpperCase()}
                     </span>

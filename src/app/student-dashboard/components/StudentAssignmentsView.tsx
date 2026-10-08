@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { campusRepository } from '@/repositories/campusRepository';
 import { useProfile } from '@/hooks/useProfile';
@@ -20,6 +21,8 @@ interface StudentAssignmentCardData {
 
 export default function StudentAssignmentsView() {
   const { profile } = useProfile();
+  const searchParams = useSearchParams();
+  const assignmentIdParam = searchParams.get('assignmentId') || searchParams.get('resourceId');
   const [assignmentCards, setAssignmentCards] = useState<StudentAssignmentCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +76,27 @@ export default function StudentAssignmentsView() {
   useEffect(() => {
     loadStudentAssignments();
   }, [profile]);
+
+  useEffect(() => {
+    if (assignmentIdParam && assignmentCards.length > 0) {
+      const match = assignmentCards.find((c) => c.assignment.id === assignmentIdParam);
+      if (match) {
+        setSelectedItem(match);
+      }
+    }
+  }, [assignmentIdParam, assignmentCards]);
+
+  useEffect(() => {
+    const handleOpenAsg = (e: any) => {
+      const id = e.detail?.id;
+      if (id && assignmentCards.length > 0) {
+        const match = assignmentCards.find((c) => c.assignment.id === id);
+        if (match) setSelectedItem(match);
+      }
+    };
+    window.addEventListener('campusos:open-assignment', handleOpenAsg);
+    return () => window.removeEventListener('campusos:open-assignment', handleOpenAsg);
+  }, [assignmentCards]);
 
   // Handle File Input Change
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,57 +249,83 @@ export default function StudentAssignmentsView() {
           </div>
         </div>
 
-        {/* KPI Metrics Row */}
+        {/* KPI Metrics Row in Apple Metric Tile Style */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="glass-card rounded-2xl p-4 border border-border/70 hover:border-primary/40 transition-all">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1 font-600">
-              <span>Total Course Tasks</span>
-              <span>📝</span>
+          <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card hover:shadow-card-hover transition-all">
+            <span className="text-[10.5px] font-semibold text-[#8E8E93] uppercase tracking-wider">
+              Total Course Tasks
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#1D1D1F] tracking-tight mt-1 font-mono-data">
+              {totalTasks}
+            </p>
+            <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+              <div className="h-full bg-primary rounded-full w-full" />
             </div>
-            <p className="text-2xl font-800 text-foreground font-mono-data">{totalTasks}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Enrolled Semester {profile?.semesterNumber || 5}</p>
+            <p className="text-[11px] text-[#8E8E93]">Enrolled Semester {profile?.semesterNumber || 5}</p>
           </div>
 
-          <div className="glass-card rounded-2xl p-4 border border-border/70 hover:border-warning/40 transition-all">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1 font-600">
-              <span>Pending / To Do</span>
-              <span className="text-warning">⏳</span>
+          <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card hover:shadow-card-hover transition-all">
+            <span className="text-[10.5px] font-semibold text-amber-700 uppercase tracking-wider">
+              Pending Deliverables
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-amber-800 tracking-tight mt-1 font-mono-data">
+              {pendingTasks}
+            </p>
+            <div className="w-full h-1 bg-amber-50 rounded-full overflow-hidden mt-3 mb-1">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                style={{ width: `${totalTasks > 0 ? (pendingTasks / totalTasks) * 100 : 0}%` }}
+              />
             </div>
-            <p className="text-2xl font-800 text-warning font-mono-data">{pendingTasks}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Awaiting your solution</p>
+            <p className="text-[11px] text-amber-700 font-medium">Awaiting your solution</p>
           </div>
 
-          <div className="glass-card rounded-2xl p-4 border border-border/70 hover:border-accent/40 transition-all">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1 font-600">
-              <span>Submitted</span>
-              <span className="text-accent">📥</span>
+          <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card hover:shadow-card-hover transition-all">
+            <span className="text-[10.5px] font-semibold text-[#15803D] uppercase tracking-wider">
+              Submitted Tasks
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#15803D] tracking-tight mt-1 font-mono-data">
+              {submittedTasks}
+            </p>
+            <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${totalTasks > 0 ? (submittedTasks / totalTasks) * 100 : 0}%` }}
+              />
             </div>
-            <p className="text-2xl font-800 text-accent font-mono-data">{submittedTasks}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Under faculty evaluation</p>
+            <p className="text-[11px] text-[#8E8E93]">Under faculty evaluation</p>
           </div>
 
-          <div className="glass-card rounded-2xl p-4 border border-border/70 hover:border-success/40 transition-all">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1 font-600">
-              <span>Graded & Evaluated</span>
-              <span className="text-success">🌟</span>
+          <div className="bg-white rounded-[18px] p-4.5 border border-black/[0.06] shadow-card hover:shadow-card-hover transition-all">
+            <span className="text-[10.5px] font-semibold text-[#15803D] uppercase tracking-wider">
+              Graded & Reviewed
+            </span>
+            <p className="text-2xl sm:text-3xl font-extrabold text-[#1D1D1F] tracking-tight mt-1 font-mono-data">
+              {gradedTasks}
+            </p>
+            <div className="w-full h-1 bg-[#F0FDF4] rounded-full overflow-hidden mt-3 mb-1">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${totalTasks > 0 ? (gradedTasks / totalTasks) * 100 : 0}%` }}
+              />
             </div>
-            <p className="text-2xl font-800 text-success font-mono-data">{gradedTasks}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Feedback & scores available</p>
+            <p className="text-[11px] text-[#8E8E93]">Feedback available</p>
           </div>
         </div>
 
+
         {/* Filter & Search Bar */}
-        <div className="glass-card rounded-2xl p-4 border border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3.5">
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {(['All', 'Pending', 'Submitted', 'Graded'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-700 transition-all cursor-pointer whitespace-nowrap btn-press ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   filter === tab
-                    ? 'bg-primary text-primary-foreground shadow-glow'
-                    : 'bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    ? 'bg-primary text-white shadow-sm font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                 }`}
               >
                 {tab === 'All' ? 'All Assignments' : tab === 'Pending' ? 'To Do' : tab}
@@ -288,7 +338,7 @@ export default function StudentAssignmentsView() {
             <select
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-card border border-border/70 text-xs font-600 text-foreground outline-none cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-50 border border-border text-xs font-semibold text-foreground outline-none cursor-pointer focus:border-primary"
             >
               <option value="All">All Course Subjects</option>
               {distinctSubjects.map((s) => (
@@ -298,7 +348,7 @@ export default function StudentAssignmentsView() {
               ))}
             </select>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border/70 w-48 sm:w-56">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-border w-48 sm:w-56 focus-within:border-primary focus-within:bg-white transition-all">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
@@ -317,15 +367,15 @@ export default function StudentAssignmentsView() {
         {/* Assignment Grid */}
         {loading ? (
           <div className="py-12 text-center text-muted-foreground animate-pulse">
-            <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
             <p className="text-xs">Loading course tasks...</p>
           </div>
         ) : filteredCards.length === 0 ? (
-          <div className="glass-card rounded-2xl p-10 text-center border border-border/60">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl mx-auto mb-3">
+          <div className="bg-white rounded-2xl p-10 text-center border border-border shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-brand-50 text-primary-dark border border-brand-100 flex items-center justify-center text-xl mx-auto mb-3">
               🎉
             </div>
-            <h3 className="text-base font-800 text-foreground mb-1">No Assignments Matching Filter</h3>
+            <h3 className="text-base font-bold text-foreground mb-1">No Assignments Matching Filter</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
               {filter !== 'All' || subjectFilter !== 'All' || searchQuery
                 ? 'Try clearing your filters to see all available coursework.'
@@ -340,7 +390,7 @@ export default function StudentAssignmentsView() {
               return (
                 <div
                   key={asg.id}
-                  className="glass-card rounded-2xl p-5 border border-border/80 hover:border-primary/40 transition-all flex flex-col justify-between group space-y-4"
+                  className="bg-white rounded-2xl p-5 border border-border shadow-sm hover:border-primary/40 hover:shadow-card-hover transition-all flex flex-col justify-between group space-y-4"
                 >
                   <div className="space-y-2.5">
                     {/* Header Badges */}
@@ -352,12 +402,12 @@ export default function StudentAssignmentsView() {
 
                       {/* Status Badge */}
                       <span
-                        className={`text-[10px] font-800 px-2.5 py-0.5 rounded-lg uppercase tracking-wider ${
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider border ${
                           userStatus === 'Graded'
-                            ? 'bg-success/15 text-success border border-success/30'
+                            ? 'bg-brand-50 text-primary-dark border-brand-100'
                             : userStatus === 'Submitted'
-                            ? 'bg-accent/15 text-accent border border-accent/30'
-                            : 'bg-warning/15 text-warning border border-warning/30'
+                            ? 'bg-brand-50 text-primary-dark border-brand-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
                         }`}
                       >
                         {userStatus === 'Graded'
@@ -369,19 +419,19 @@ export default function StudentAssignmentsView() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-base font-800 text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                    <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                       {asg.title}
                     </h3>
 
                     {/* Description preview */}
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-normal">
                       {asg.description || 'Complete the assignment instructions and submit your work.'}
                     </p>
 
                     {/* Metadata: Teacher, Due Date, Points */}
                     <div className="flex flex-wrap items-center gap-3 text-xs pt-1 text-muted-foreground">
                       <span>
-                        👤 Instructor: <strong className="text-foreground font-600">{asg.teacher}</strong>
+                        👤 Instructor: <strong className="text-foreground font-semibold">{asg.teacher}</strong>
                       </span>
                       <span>
                         📅 Due: <strong className="text-foreground font-mono-data">{asg.dueDate} {asg.dueTime || '11:59 PM'}</strong>
@@ -393,20 +443,20 @@ export default function StudentAssignmentsView() {
 
                     {/* Feedback preview if graded */}
                     {subm?.feedback && (
-                      <div className="p-2.5 rounded-xl bg-success/10 border border-success/20 text-xs text-success-foreground">
-                        <p className="font-700 text-success text-[11px] mb-0.5">Faculty Feedback ({subm.score}/{asg.maxScore} marks):</p>
-                        <p className="text-foreground/90 italic line-clamp-1">"{subm.feedback}"</p>
+                      <div className="p-2.5 rounded-xl bg-brand-50 border border-brand-100 text-xs">
+                        <p className="font-bold text-primary-dark text-[11px] mb-0.5">Faculty Feedback ({subm.score}/{asg.maxScore} marks):</p>
+                        <p className="text-slate-700 italic line-clamp-1">"{subm.feedback}"</p>
                       </div>
                     )}
                   </div>
 
                   {/* Actions Row */}
-                  <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
                     <button
                       onClick={() => handleAskCampusAI('Explain what this assignment is asking me to do and how to approach it step-by-step.', asg)}
-                      className="text-xs font-700 text-purple-400 hover:text-purple-300 flex items-center gap-1.5 cursor-pointer bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1.5 rounded-xl border border-purple-500/30 transition-all"
+                      className="text-xs font-bold text-primary-dark hover:underline flex items-center gap-1.5 cursor-pointer bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-xl border border-brand-100 transition-all"
                     >
-                      <span>✨ Ask Campus AI</span>
+                      <span>✨ Ask CampusOS AI</span>
                     </button>
 
                     <Button
@@ -417,7 +467,7 @@ export default function StudentAssignmentsView() {
                         setTextAnswer(subm?.textAnswer || '');
                         setSubmissionFile(null);
                       }}
-                      className="text-xs font-700"
+                      className="text-xs font-semibold"
                     >
                       {userStatus === 'Pending'
                         ? 'Submit Assignment 🚀'

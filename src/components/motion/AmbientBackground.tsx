@@ -5,31 +5,30 @@ import React from 'react';
 export default function AmbientBackground() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-      {/* Deep Cyber Grid */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-60" />
+      {/* Subtle Academic Dot Pattern */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-40" />
 
-      {/* Top Left Electric Blue Light Nebula */}
+      {/* Top Left Delicate Light Green Accent Glow */}
       <div
-        className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full opacity-35 filter blur-[100px] animate-float-slow"
+        className="absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full opacity-40 filter blur-[90px] animate-float-slow pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(30, 107, 255, 0.45) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(220, 252, 231, 0.75) 0%, rgba(240, 253, 244, 0) 70%)',
         }}
       />
 
-      {/* Bottom Right Cyan Hologram Aura */}
+      {/* Top Right Very Soft Warm Ambient Glow */}
       <div
-        className="absolute -bottom-40 -right-40 w-[650px] h-[650px] rounded-full opacity-30 filter blur-[110px]"
+        className="absolute -top-20 right-1/4 w-[450px] h-[350px] rounded-full opacity-25 filter blur-[100px] pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(0, 216, 246, 0.35) 0%, transparent 70%)',
-          animation: 'float 6s ease-in-out infinite reverse',
+          background: 'radial-gradient(ellipse, rgba(240, 253, 244, 0.9) 0%, transparent 70%)',
         }}
       />
 
-      {/* Center Subtle Indigo Ambient Glow */}
+      {/* Bottom Right Soft Emerald Hint */}
       <div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-20 filter blur-[120px]"
+        className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-35 filter blur-[100px] pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse, rgba(99, 102, 241, 0.25) 0%, transparent 75%)',
+          background: 'radial-gradient(circle, rgba(220, 252, 231, 0.65) 0%, transparent 70%)',
         }}
       />
     </div>

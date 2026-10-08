@@ -13,6 +13,7 @@ import TeacherSubmissionsFeed from '@/app/teacher-dashboard/components/TeacherSu
 import TeacherAttendanceRegister from '@/app/teacher-dashboard/components/TeacherAttendanceRegister';
 import TeacherAssignmentsView from '@/app/teacher-dashboard/components/TeacherAssignmentsView';
 import TeacherNotesPublisher from '@/app/teacher-dashboard/components/TeacherNotesPublisher';
+import TeacherAnnouncementsView from '@/app/teacher-dashboard/components/TeacherAnnouncementsView';
 import TeacherClassesView from '@/app/teacher-dashboard/components/TeacherClassesView';
 import TeacherQuestionPapersView from '@/app/teacher-dashboard/components/TeacherQuestionPapersView';
 import TeacherTimetableFull from '@/app/teacher-dashboard/components/TeacherTimetableFull';
@@ -66,7 +67,7 @@ function TeacherTabRouter() {
       return <FacultyAIEngine />;
     case 'announcements':
     case 'notices':
-      return <TeacherSubmissionsFeed />;
+      return <TeacherAnnouncementsView />;
     case 'exams':
       return <TeacherClassesView externalFilters={sharedFilters} />;
     case 'overview':

@@ -50,7 +50,8 @@
     "type-check": "tsc --noEmit",
     "test:audit": "npx tsx scripts/test-complete-system-audit.ts",
     "test:content": "npx tsx scripts/test-content-delivery.ts",
-    "test:access": "npx tsx scripts/test-strict-access-control.ts"
+    "test:access": "npx tsx scripts/test-strict-access-control.ts",
+    "test:notifications": "npx tsx scripts/test-notifications-and-announcements.ts"
   },
   "dependencies": {
     "@dhiwise/component-tagger": "^1.0.16",

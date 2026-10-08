@@ -116,7 +116,7 @@ export default function MarksCardSubmissionSection() {
   };
 
   return (
-    <div className="glass-card rounded-3xl p-6 sm:p-7 border border-primary/30 space-y-5 shadow-glass">
+    <div className="bg-white rounded-2xl p-6 sm:p-7 border border-border space-y-5 shadow-sm">
       <input
         type="file"
         ref={fileInputRef}
@@ -125,7 +125,7 @@ export default function MarksCardSubmissionSection() {
         className="hidden"
       />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xl">📜</span>
@@ -141,7 +141,7 @@ export default function MarksCardSubmissionSection() {
       </div>
 
       {uploadState !== 'idle' && (
-        <div className="p-4 rounded-2xl bg-card border border-primary/40 space-y-2 animate-pulse">
+        <div className="p-4 rounded-xl bg-slate-50 border border-border space-y-2 animate-pulse">
           <div className="flex justify-between text-xs font-700 text-foreground">
             <span>
               {uploadState === 'uploading' && 'Uploading document...'}
@@ -149,11 +149,11 @@ export default function MarksCardSubmissionSection() {
               {uploadState === 'uploaded' && '✓ Upload Complete!'}
               {uploadState === 'failed' && '✕ Upload Failed'}
             </span>
-            <span className="text-primary">{uploadProgress}%</span>
+            <span className="text-primary-dark">{uploadProgress}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-muted/60 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-200"
+              className="h-full rounded-full bg-primary transition-all duration-200"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
@@ -167,15 +167,7 @@ export default function MarksCardSubmissionSection() {
           return (
             <div
               key={doc.id}
-              className={`p-4.5 rounded-2xl border transition-all duration-200 row-hover-glow flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                doc.status === 'APPROVED'
-                  ? 'bg-success/5 border-success/30 hover:border-success/60'
-                  : doc.status === 'REVIEWING'
-                  ? 'bg-warning/5 border-warning/30 hover:border-warning/60'
-                  : doc.status === 'SUBMITTED'
-                  ? 'bg-cyan-500/5 border-cyan-500/30 hover:border-cyan-500/60'
-                  : 'bg-card/60 border-border/70 hover:border-primary/40'
-              }`}
+              className="p-4.5 rounded-xl border border-border bg-white transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-brand-50/40 hover:border-brand-300 shadow-xs"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5 flex-wrap">

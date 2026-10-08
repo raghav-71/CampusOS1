@@ -21,8 +21,8 @@ export default function EmptyState({
   className = '',
 }: EmptyStateProps) {
   return (
-    <div className={`glass-card rounded-2xl p-10 border border-border text-center ${className}`}>
-      <div className="w-12 h-12 rounded-2xl bg-muted mx-auto mb-4 flex items-center justify-center text-muted-foreground">
+    <div className={`glass-card rounded-2xl p-10 border border-border text-center bg-white ${className}`}>
+      <div className="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 mx-auto mb-4 flex items-center justify-center text-primary-dark">
         {icon || (
           <svg
             width="24"

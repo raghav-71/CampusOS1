@@ -132,9 +132,22 @@ export interface ICampusRepository {
   ): Promise<NoteDocument>;
 
   // Announcements & Notifications
-  getAnnouncements(role?: Role, userId?: string): Promise<Announcement[]>;
-  createAnnouncement(announcement: Announcement): Promise<Announcement>;
-  markNotificationRead(notificationId: string): Promise<boolean>;
+  getAnnouncements(
+    role?: Role,
+    userId?: string,
+    semesterNumber?: number,
+    userProfile?: Partial<UserProfile>
+  ): Promise<Announcement[]>;
+  createAnnouncement(
+    announcement: Announcement,
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Announcement>;
+  deleteAnnouncement(
+    announcementId: string,
+    userProfile?: Partial<UserProfile>
+  ): Promise<boolean>;
+  markNotificationRead(notificationId: string, userId?: string): Promise<boolean>;
+  markNotificationUnread(notificationId: string, userId?: string): Promise<boolean>;
   markAllNotificationsRead(userId?: string): Promise<boolean>;
 
   // Assignments & Submissions
@@ -220,6 +233,7 @@ export class MockCampusRepository implements ICampusRepository {
   private examMarks: StudentExamMark[] = [...mockStudentExamMarks];
   private questionPapers: QuestionPaperDocument[] = [...seedQuestionPapers];
   private attendanceRecords: AttendanceRecord[] = [...seedAttendanceLogs];
+  private userReadMap: Map<string, Set<string>> = new Map();
   private feedbacks: AnonymousFeedback[] = [
     {
       id: 'fb-001',
@@ -354,6 +368,37 @@ export class MockCampusRepository implements ICampusRepository {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('campusos_announcements', JSON.stringify(this.announcements));
+      } catch {}
+    }
+  }
+
+  private getUserReadIds(userId?: string): Set<string> {
+    const key = userId || 'default_user';
+    if (this.userReadMap.has(key)) {
+      return this.userReadMap.get(key)!;
+    }
+    const set = new Set<string>();
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(`campusos_reads_${key}`);
+        if (raw) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) {
+            arr.forEach((id) => set.add(id));
+          }
+        }
+      } catch {}
+    }
+    this.userReadMap.set(key, set);
+    return set;
+  }
+
+  private saveUserReadIds(userId: string | undefined, set: Set<string>) {
+    const key = userId || 'default_user';
+    this.userReadMap.set(key, set);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`campusos_reads_${key}`, JSON.stringify(Array.from(set)));
       } catch {}
     }
   }
@@ -682,11 +727,27 @@ export class MockCampusRepository implements ICampusRepository {
   }
 
   async uploadQuestionPaper(
-    paper: Omit<QuestionPaperDocument, 'id' | 'uploadedAt' | 'status'>
+    paper: Omit<QuestionPaperDocument, 'id' | 'uploadedAt' | 'status'>,
+    facultyProfile?: Partial<UserProfile>
   ): Promise<QuestionPaperDocument> {
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      const validation = AuthorizationService.validateFacultyUpload(facultyProfile, {
+        subjectCode: paper.subjectCode || paper.subjectId,
+        subjectId: paper.subjectId,
+        subject: paper.subject,
+        semesterNumber: paper.semesterNumber,
+      });
+      if (!validation.allowed) {
+        const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const newDocId = `qp-${Date.now()}`;
     const newDoc: QuestionPaperDocument = {
       ...paper,
-      id: `qp-${Date.now()}`,
+      id: newDocId,
       uploadedAt: new Date().toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -696,6 +757,43 @@ export class MockCampusRepository implements ICampusRepository {
     };
     this.questionPapers.unshift(newDoc);
     this.persistQuestionPapersToStorage();
+
+    // Automatic notification for target semester
+    const qpNotification: Announcement = {
+      id: `notif-qp-${newDocId}`,
+      title: `📑 Question Paper Published: ${newDoc.title}`,
+      body: `${newDoc.teacherName} published a new ${newDoc.examType} question paper for ${newDoc.subject} (${newDoc.semester}).`,
+      priority: 'high',
+      category: 'Exam',
+      type: 'EXAM',
+      time: 'Just now',
+      createdAt: new Date().toISOString(),
+      author: newDoc.teacherName,
+      authorId: newDoc.teacherId,
+      read: false,
+      targetDepartment: 'BCA',
+      targetSemester: newDoc.semesterNumber,
+      semesterNumber: newDoc.semesterNumber,
+      targetSection: 'all',
+      subject: newDoc.subject,
+      subjectCode: newDoc.subjectCode,
+      subjectId: newDoc.subjectId,
+      relatedEntity: 'exam',
+      relatedEntityId: newDocId,
+      fileName: newDoc.fileName,
+      fileUrl: newDoc.fileUrl,
+      fileData: newDoc.fileData,
+      fileSize: newDoc.fileSize,
+    };
+    this.announcements.unshift(qpNotification);
+    this.persistAnnouncementsToStorage();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
+
     return newDoc;
   }
 
@@ -903,7 +1001,43 @@ export class MockCampusRepository implements ICampusRepository {
     };
     this.sharedDocuments.unshift(sharedRecord);
 
+    // Create automatic notification for target semester students
+    const noteNotification: Announcement = {
+      id: `notif-doc-${noteId}`,
+      title: `📄 New ${newNote.category === 'question-paper' ? 'Question Paper' : 'Study Notes'}: ${newNote.title}`,
+      body: `${newNote.teacher} uploaded new academic material for ${newNote.subject} (${newNote.semester}): "${newNote.title}". Available to read and download.`,
+      priority: newNote.category === 'question-paper' ? 'high' : 'medium',
+      category: 'Notes',
+      type: 'DOCUMENT',
+      time: 'Just now',
+      createdAt: new Date().toISOString(),
+      author: newNote.teacher,
+      authorId: newNote.teacherId,
+      read: false,
+      targetDepartment: 'BCA',
+      targetSemester: newNote.semesterNumber,
+      semesterNumber: newNote.semesterNumber,
+      targetSection: 'all',
+      subject: newNote.subject,
+      subjectCode: newNote.subjectCode,
+      subjectId: newNote.subjectId,
+      relatedEntity: 'note',
+      relatedEntityId: noteId,
+      fileName: newNote.fileName,
+      fileUrl: newNote.fileUrl,
+      fileData: newNote.fileData,
+      fileSize: newNote.fileSize || newNote.size,
+      fileType: newNote.fileType || 'pdf',
+    };
+    this.announcements.unshift(noteNotification);
+
     this.persistNotesToStorage();
+    this.persistAnnouncementsToStorage();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
     return newNote;
   }
 
@@ -915,43 +1049,187 @@ export class MockCampusRepository implements ICampusRepository {
     return this.notes.length < prev;
   }
 
-  async getAnnouncements(role?: Role, userId?: string, semesterNumber?: number): Promise<Announcement[]> {
+  async getAnnouncements(
+    role?: Role,
+    userId?: string,
+    semesterNumber?: number,
+    userProfile?: Partial<UserProfile>
+  ): Promise<Announcement[]> {
     let list = [...this.announcements];
-    if (role) {
-      list = list.filter((a) => !a.targetRole || a.targetRole === 'all' || a.targetRole === role);
+    const effectiveRole = userProfile?.role || role;
+    const effectiveUserId = userProfile?.id || userId;
+    const effectiveSem = userProfile?.semesterNumber || semesterNumber;
+
+    const readSet = this.getUserReadIds(effectiveUserId);
+
+    // 1. Strict Student Semester Isolation & Direct Targeting
+    if (effectiveRole === 'student') {
+      const sem = effectiveSem || 5;
+      list = list.filter((a) => {
+        // Direct recipient match if specified
+        if (a.recipientUserId && a.recipientUserId !== effectiveUserId) {
+          return false;
+        }
+        // Role check
+        if (a.targetRole && a.targetRole !== 'all' && a.targetRole !== 'student') {
+          return false;
+        }
+        // Strict semester isolation
+        const targetSem = a.targetSemester || a.semesterNumber;
+        if (targetSem && Number(targetSem) !== Number(sem)) {
+          return false;
+        }
+        return true;
+      });
+    } else if (effectiveRole === 'teacher') {
+      list = list.filter((a) => {
+        if (a.targetRole && a.targetRole !== 'all' && a.targetRole !== 'teacher') {
+          // If announcement was published by this teacher, still show it
+          if (effectiveUserId && (a.authorId === effectiveUserId || a.author === userProfile?.fullName)) return true;
+          return false;
+        }
+        if (a.recipientUserId && a.recipientUserId !== effectiveUserId) {
+          return false;
+        }
+        return true;
+      });
     }
-    if (userId) {
-      list = list.filter((a) => !a.recipientUserId || a.recipientUserId === userId);
+
+    if (effectiveSem && !userProfile) {
+      list = list.filter(
+        (a) =>
+          !a.targetSemester ||
+          Number(a.targetSemester) === Number(effectiveSem) ||
+          Number(a.semesterNumber) === Number(effectiveSem)
+      );
     }
-    if (semesterNumber) {
-      list = list.filter((a) => !a.targetSemester || a.targetSemester === semesterNumber || a.semesterNumber === semesterNumber);
-    }
-    return list;
+
+    // Map read state per user
+    return list.map((a) => ({
+      ...a,
+      read: readSet.has(a.id) || a.read,
+    }));
   }
 
-  async createAnnouncement(announcement: Announcement): Promise<Announcement> {
-    this.announcements.unshift(announcement);
+  async createAnnouncement(
+    announcement: Announcement,
+    facultyProfile?: Partial<UserProfile>
+  ): Promise<Announcement> {
+    if (facultyProfile && facultyProfile.role === 'teacher') {
+      const validation = AuthorizationService.validateFacultyAnnouncement(facultyProfile, {
+        subjectCode: announcement.subjectCode || announcement.subjectId,
+        subjectId: announcement.subjectId,
+        subject: announcement.subject,
+        targetSemester: announcement.targetSemester || announcement.semesterNumber,
+        semesterNumber: announcement.semesterNumber || announcement.targetSemester,
+      });
+      if (!validation.allowed) {
+        const error = new Error(validation.error || '403 Forbidden: Unauthorized teaching assignment for announcement.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const newAnnouncement: Announcement = {
+      ...announcement,
+      id: announcement.id || `ann-${Date.now()}`,
+      createdAt: announcement.createdAt || new Date().toISOString(),
+      time: announcement.time || 'Just now',
+      read: false,
+      targetDepartment: announcement.targetDepartment || 'BCA',
+    };
+
+    this.announcements.unshift(newAnnouncement);
     this.persistAnnouncementsToStorage();
-    return announcement;
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
+    return newAnnouncement;
   }
 
-  async markNotificationRead(notificationId: string): Promise<boolean> {
+  async deleteAnnouncement(
+    announcementId: string,
+    userProfile?: Partial<UserProfile>
+  ): Promise<boolean> {
+    const target = this.announcements.find((a) => a.id === announcementId);
+    if (!target) return false;
+
+    if (userProfile && userProfile.role === 'teacher') {
+      // Teachers can only delete their own announcements
+      if (target.authorId && userProfile.id && target.authorId !== userProfile.id) {
+        const error = new Error('403 Forbidden: You can only delete announcements you published.');
+        (error as any).status = 403;
+        throw error;
+      }
+    }
+
+    const prev = this.announcements.length;
+    this.announcements = this.announcements.filter((a) => a.id !== announcementId);
+    this.persistAnnouncementsToStorage();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
+    return this.announcements.length < prev;
+  }
+
+  async markNotificationRead(notificationId: string, userId?: string): Promise<boolean> {
     const item = this.announcements.find((a) => a.id === notificationId);
     if (item) {
       item.read = true;
-      this.persistAnnouncementsToStorage();
-      return true;
     }
-    return false;
+    const readSet = this.getUserReadIds(userId);
+    readSet.add(notificationId);
+    this.saveUserReadIds(userId, readSet);
+    this.persistAnnouncementsToStorage();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
+    return true;
+  }
+
+  async markNotificationUnread(notificationId: string, userId?: string): Promise<boolean> {
+    const item = this.announcements.find((a) => a.id === notificationId);
+    if (item) {
+      item.read = false;
+    }
+    const readSet = this.getUserReadIds(userId);
+    readSet.delete(notificationId);
+    this.saveUserReadIds(userId, readSet);
+    this.persistAnnouncementsToStorage();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
+    return true;
   }
 
   async markAllNotificationsRead(userId?: string): Promise<boolean> {
+    const readSet = this.getUserReadIds(userId);
     this.announcements.forEach((a) => {
       if (!userId || !a.recipientUserId || a.recipientUserId === userId) {
         a.read = true;
+        readSet.add(a.id);
       }
     });
+    this.saveUserReadIds(userId, readSet);
     this.persistAnnouncementsToStorage();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
     return true;
   }
 
@@ -1049,7 +1327,43 @@ export class MockCampusRepository implements ICampusRepository {
     };
 
     this.assignments.unshift(newAssignment);
+
+    // Create automatic notification for target semester students
+    const asgNotification: Announcement = {
+      id: `notif-asg-${newId}`,
+      title: `📝 New Assignment: ${newAssignment.title}`,
+      body: `${newAssignment.teacher} published a new assignment for ${newAssignment.subject} (Due: ${newAssignment.dueDate}). Review requirements and submit on time.`,
+      priority: 'high',
+      category: 'Assignment',
+      type: 'ASSIGNMENT',
+      time: 'Just now',
+      createdAt: new Date().toISOString(),
+      author: newAssignment.teacher,
+      authorId: newAssignment.teacherId,
+      read: false,
+      targetDepartment: 'BCA',
+      targetSemester: newAssignment.semesterNumber,
+      semesterNumber: newAssignment.semesterNumber,
+      targetSection: 'all',
+      subject: newAssignment.subject,
+      subjectCode: newAssignment.subjectCode,
+      subjectId: newAssignment.subjectId,
+      relatedEntity: 'assignment',
+      relatedEntityId: newId,
+      fileName: newAssignment.fileName,
+      fileUrl: newAssignment.fileUrl,
+      fileData: newAssignment.fileData,
+      fileSize: newAssignment.fileSize,
+    };
+    this.announcements.unshift(asgNotification);
+
     this.persistAssignmentsToStorage();
+    this.persistAnnouncementsToStorage();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campusos:notifications-updated', { detail: this.announcements })
+      );
+    }
     return newAssignment;
   }
 

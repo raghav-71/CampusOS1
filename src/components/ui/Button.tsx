@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { useMagnetic } from '@/lib/motion/useMagnetic';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -10,56 +9,46 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
-  magnetic?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  magnetic?: boolean;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'btn-primary',
-  secondary: 'btn-secondary',
-  ghost: 'btn-ghost text-muted-foreground hover:text-foreground hover:bg-primary/10 border border-transparent hover:border-primary/30',
-  danger: 'btn-danger bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white',
-  accent:
-    'bg-gradient-to-r from-accent to-[#00A3FF] text-[#0A0A0F] font-800 hover:shadow-glow-accent hover:-translate-y-0.5 active:translate-y-0 border border-accent/40 shadow-glow',
+  primary: 'bg-primary hover:bg-primary-dark text-white shadow-subtle',
+  secondary: 'bg-white hover:bg-[#F5F5F7] text-[#1D1D1F] border border-black/[0.08]',
+  ghost: 'text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-black/[0.04]',
+  danger: 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200',
+  accent: 'bg-[#DCFCE7] text-[#15803D] hover:bg-primary hover:text-white',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'text-xs px-3 py-1.5 rounded-xl',
-  md: 'text-sm px-4.5 py-2.5 rounded-2xl',
-  lg: 'text-base px-6 py-3.5 rounded-2xl',
+  sm: 'text-xs px-3 py-1.5 rounded-lg h-8',
+  md: 'text-xs sm:text-sm px-4 py-2 rounded-xl h-10',
+  lg: 'text-sm sm:text-base px-5 py-2.5 rounded-xl h-11',
 };
 
 export default function Button({
   variant = 'primary',
   size = 'md',
   isLoading = false,
-  magnetic = false,
   leftIcon,
   rightIcon,
   children,
   className = '',
   disabled,
-  style,
   ...props
 }: ButtonProps) {
-  const { magneticProps } = useMagnetic({ disabled: !magnetic });
-
   return (
     <button
       disabled={disabled || isLoading}
-      {...(magnetic ? magneticProps : {})}
-      style={{
-        ...(magnetic ? magneticProps.style : {}),
-        ...style,
-      }}
-      className={`btn-press inline-flex items-center justify-center gap-2 font-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 font-semibold transition-all duration-150 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
       {isLoading ? (
-        <svg className="animate-spin w-4 h-4 text-current" viewBox="0 0 24 24" fill="none">
+        <svg className="animate-spin w-3.5 h-3.5 text-current" viewBox="0 0 24 24" fill="none">
           <circle
             className="opacity-25"
             cx="12"

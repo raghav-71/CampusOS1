@@ -146,8 +146,8 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
         />
 
         {filteredClasses.length === 0 ? (
-          <div className="glass-card rounded-3xl p-12 text-center text-muted-foreground border border-border/80 space-y-2 animate-fade-in">
-            <p className="text-base font-700 text-foreground">No Classes Match Current Filters</p>
+          <div className="glass-card rounded-[22px] p-12 text-center text-[#6E6E73] border border-black/[0.06] space-y-2 animate-fade-in shadow-card">
+            <p className="text-base font-semibold text-[#1D1D1F]">No Classes Match Current Filters</p>
             <p className="text-xs">
               Adjust your Semester or Section filters to view your other assigned BCA courses.
             </p>
@@ -163,15 +163,15 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
 
                 return (
                   <div key={`sem-grp-${semNum}`} className="space-y-4">
-                    <div className="flex items-center gap-3 pb-2 border-b border-border/60">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center font-800 text-primary text-xs">
+                    <div className="flex items-center gap-3 pb-2 border-b border-black/[0.06]">
+                      <div className="w-8 h-8 rounded-[10px] bg-primary-soft border border-primary/20 flex items-center justify-center font-bold text-primary-dark text-xs">
                         S{semNum}
                       </div>
                       <div>
-                        <h3 className="text-base font-800 text-foreground">
+                        <h3 className="text-base font-semibold text-[#1D1D1F]">
                           BCA Semester {semNum} (Year {yearNum})
                         </h3>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-[11px] text-[#6E6E73]">
                           {classesInSem.length} Assigned Course(s) in this term
                         </p>
                       </div>
@@ -186,69 +186,68 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
                         return (
                           <AnimatedCard
                             key={`${cls.subjectId}-${cls.section}`}
-                            className={`p-6 border transition-all flex flex-col justify-between shadow-sm relative overflow-hidden ${
+                            className={`p-6 border rounded-[18px] bg-white transition-all flex flex-col justify-between shadow-card hover:shadow-card-hover relative overflow-hidden ${
                               isLive
-                                ? 'border-accent shadow-glow-accent'
-                                : 'border-border/80 hover:border-primary/50 hover:shadow-glow'
+                                ? 'border-primary ring-2 ring-primary/20'
+                                : 'border-black/[0.06]'
                             }`}
                           >
                             {isLive && (
-                              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-primary to-accent animate-pulse" />
+                              <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
                             )}
 
                             <div>
                               <div className="flex items-center justify-between gap-2 mb-3">
                                 <span
-                                  className={`text-xs px-2.5 py-0.5 rounded-lg font-700 border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
+                                  className={`text-xs px-2.5 py-0.5 rounded-lg font-semibold border ${colorDef.badgeBg} ${colorDef.badgeBorder} ${colorDef.badgeText}`}
                                 >
                                   {cls.subjectCode} · Sec {cls.section}
                                 </span>
                                 {isLive ? (
-                                  <span className="badge-cyan text-[10px] px-2.5 py-0.5 rounded-full font-800 animate-pulse flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+                                  <span className="badge-green text-[10px] px-2.5 py-0.5 rounded-full font-semibold animate-pulse flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                                     LIVE NOW
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground font-700 font-mono-data">
+                                  <span className="text-xs text-[#6E6E73] font-medium font-mono-data">
                                     {cls.credits} Credits · {cls.type}
                                   </span>
                                 )}
                               </div>
 
-                              <h4 className="text-lg font-800 text-foreground mb-1 flex items-center gap-2">
+                              <h4 className="text-lg font-semibold text-[#1D1D1F] mb-1 flex items-center gap-2">
                                 <span
                                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                   style={{ background: colorDef.hex }}
                                 />
                                 {cls.subjectName}
                               </h4>
-                              <p className="text-xs text-muted-foreground mb-4 font-500">
-                                Location: <span className="text-foreground font-700">{cls.room}</span>
+                              <p className="text-xs text-[#6E6E73] mb-4">
+                                Location: <span className="text-[#1D1D1F] font-semibold">{cls.room}</span>
                               </p>
 
-                              <div className="space-y-3 p-3.5 rounded-2xl bg-muted/20 border border-border/40 mb-4">
+                              <div className="space-y-3 p-3.5 rounded-[14px] bg-[#F5F5F7] border border-black/[0.04] mb-4">
                                 <div>
-                                  <div className="flex items-center justify-between text-xs mb-1 font-700">
-                                    <span className="text-muted-foreground font-600">Syllabus Progress</span>
-                                    <span className="font-800 metric-value" style={{ color: colorDef.hex }}>
+                                  <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="text-[#6E6E73] font-medium">Syllabus Progress</span>
+                                    <span className="font-semibold metric-value text-primary-dark">
                                       {cls.syllabusCoveredPct}%
                                     </span>
                                   </div>
-                                  <div className="w-full h-2 rounded-full bg-muted/60 overflow-hidden">
+                                  <div className="w-full h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
                                     <div
-                                      className="h-full rounded-full transition-all duration-700"
+                                      className="h-full rounded-full transition-all duration-700 bg-primary"
                                       style={{
                                         width: `${cls.syllabusCoveredPct}%`,
-                                        background: `linear-gradient(90deg, ${colorDef.hex}, #00D4FF)`,
                                       }}
                                     />
                                   </div>
                                 </div>
 
-                                <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
-                                  <span className="text-muted-foreground font-600">Class Attendance Avg</span>
+                                <div className="flex items-center justify-between pt-2 border-t border-black/[0.06] text-xs">
+                                  <span className="text-[#6E6E73] font-medium">Class Attendance Avg</span>
                                   <span
-                                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-800 ${
+                                    className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
                                       cls.avgAttendancePct >= 90 ? 'badge-success' : 'badge-warning'
                                     }`}
                                   >
@@ -258,13 +257,13 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
                               </div>
                             </div>
 
-                            <div className="space-y-2 pt-2 border-t border-border/40">
+                            <div className="space-y-2 pt-2 border-t border-black/[0.06]">
                               <div className="grid grid-cols-2 gap-2">
                                 <Button
                                   variant="secondary"
                                   size="sm"
                                   onClick={() => setSelectedClass(cls)}
-                                  className="w-full text-xs font-700"
+                                  className="w-full text-xs font-semibold"
                                 >
                                   Roster ({cls.enrolledStudents})
                                 </Button>
@@ -272,7 +271,7 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleLaunchAttendance(cls.subjectName)}
-                                  className="w-full text-xs font-700"
+                                  className="w-full text-xs font-semibold"
                                 >
                                   Attendance
                                 </Button>
@@ -283,7 +282,7 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
                                 size="sm"
                                 onClick={() => handleStartClass(cls)}
                                 disabled={isStarting}
-                                className="w-full text-xs font-800 shadow-glow"
+                                className="w-full text-xs font-semibold shadow-xs"
                               >
                                 {isStarting
                                   ? 'Starting Session...'
@@ -318,7 +317,7 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
           }
         >
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground pb-1 border-b border-border/50 font-700 uppercase tracking-wider">
+            <div className="flex items-center justify-between text-xs text-[#6E6E73] pb-1 border-b border-black/[0.06] font-semibold uppercase tracking-wider">
               <span>Student Details</span>
               <span>Attendance & Standing</span>
             </div>
@@ -326,21 +325,21 @@ export default function TeacherClassesView({ externalFilters }: TeacherClassesVi
               {mockRosterBySubject.default.map((s) => (
                 <div
                   key={s.roll}
-                  className={`flex items-center justify-between p-3 rounded-2xl border text-xs row-hover-glow transition-all ${
+                  className={`flex items-center justify-between p-3 rounded-[12px] border text-xs transition-all ${
                     s.status === 'danger'
-                      ? 'bg-danger/10 border-danger/30'
-                      : 'bg-muted/20 border-border/40'
+                      ? 'bg-rose-50/70 border-rose-200'
+                      : 'bg-white border-black/[0.06] hover:bg-[#F5F5F7]'
                   }`}
                 >
                   <div>
-                    <span className="font-800 text-foreground">{s.name}</span>
-                    <span className="text-muted-foreground font-mono-data ml-2 font-600">({s.roll})</span>
-                    <span className="text-[10px] text-muted-foreground ml-2 font-mono-data font-700">
+                    <span className="font-semibold text-[#1D1D1F]">{s.name}</span>
+                    <span className="text-[#6E6E73] font-mono-data ml-2">({s.roll})</span>
+                    <span className="text-[10px] text-[#6E6E73] ml-2 font-mono-data font-semibold">
                       Grade: {s.recentGrade}
                     </span>
                   </div>
                   <span
-                    className={`text-[10px] px-2.5 py-0.5 rounded-full font-800 ${
+                    className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${
                       s.status === 'danger' ? 'badge-danger' : 'badge-success'
                     }`}
                   >

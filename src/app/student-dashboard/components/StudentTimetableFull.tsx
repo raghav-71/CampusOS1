@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { mockTimetable } from '@/repositories/mockData';
 import { TimetableSlot } from '@/types/campus';
-import Badge from '@/components/ui/Badge';
 import Tabs from '@/components/ui/Tabs';
-import AnimatedCard from '@/components/motion/AnimatedCard';
 
 const days = [
   { id: 'Monday', label: 'Monday' },
@@ -45,97 +43,95 @@ export default function StudentTimetableFull() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-800 text-foreground tracking-tight flex items-center gap-2">
-            <span>📅</span> Weekly Class Schedule & Academic Timetable
+          <h2 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
+            Class Timetable
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            BCA Semester 5 (Section A) · Fall 2026 Academic Calendar
+          <p className="text-xs text-[#6E6E73] mt-0.5">
+            BCA Semester 5 (Section A) · Fall 2026 Academic Schedule
           </p>
         </div>
 
-        <Badge variant="cyan">Fall 2026 Allotment</Badge>
+        <span className="text-xs font-semibold text-[#15803D] bg-[#DCFCE7] px-3 py-1 rounded-full w-fit">
+          Fall 2026 Allotment
+        </span>
       </div>
 
       {/* Day Selector Tabs */}
       <Tabs tabs={days} activeTab={selectedDay} onChange={setSelectedDay} variant="pills" />
 
-      {/* Schedule Slots with 3D Tilt and Spotlight Illumination */}
+      {/* Schedule Slots in Apple Grouped Card Style */}
       <div className="space-y-3">
         {timetable.map((slot, index) => {
           const isLive = slot.status === 'LIVE';
           const isNext = index === 0 && selectedDay === 'Friday' && !isLive;
 
           return (
-            <AnimatedCard
+            <div
               key={slot.id}
-              className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+              className={`p-5 rounded-[18px] border transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-card ${
                 isLive
-                  ? 'border-accent/60 shadow-glow bg-accent/5 relative overflow-hidden'
+                  ? 'border-primary/50 bg-[#F0FDF4] shadow-card-hover'
                   : isNext
-                    ? 'border-primary/40 shadow-sm bg-primary/5'
-                    : 'border-border/70 hover:border-primary/40'
+                    ? 'border-amber-200 bg-amber-50/20'
+                    : 'border-black/[0.06] bg-white hover:border-black/[0.12] hover:shadow-card-hover'
               }`}
             >
-              {isLive && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-primary to-accent animate-pulse" />
-              )}
-
               <div className="flex items-center gap-4">
                 {/* Time badge */}
-                <div className="text-center min-w-[76px] py-2 px-3 rounded-2xl bg-card border border-border/80">
-                  <p className="text-xs font-800 text-foreground metric-value">{slot.time}</p>
-                  <p className="text-[11px] text-muted-foreground font-mono-data">{slot.endTime}</p>
+                <div className="text-center min-w-[76px] py-2 px-3 rounded-xl bg-[#FAFAFC] border border-black/[0.05]">
+                  <p className="text-xs font-bold text-[#1D1D1F] tabular-nums font-mono-data">{slot.time}</p>
+                  <p className="text-[10.5px] text-[#8E8E93] font-mono-data">{slot.endTime}</p>
                 </div>
 
-                <div className="h-10 w-px bg-border/60 hidden md:block" />
+                <div className="h-10 w-px bg-black/[0.06] hidden md:block" />
 
                 <div>
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-base font-800 text-foreground">{slot.subject}</span>
-                    <span className="badge-violet text-[10px] px-2 py-0.5 rounded font-700">
+                    <span className="text-base font-bold text-[#1D1D1F]">{slot.subject}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-black/[0.04] text-[#6E6E73]">
                       {slot.subjectCode}
                     </span>
                     {isLive ? (
-                      <span className="badge-cyan text-[10px] px-2.5 py-0.5 rounded-full font-800 animate-pulse flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-                        LIVE IN CLASS
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-[#DCFCE7] text-[#15803D] flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                        LIVE
                       </span>
                     ) : isNext ? (
-                      <span className="badge-warning text-[10px] px-2 py-0.5 rounded font-600 animate-pulse">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-700">
                         Next Up
                       </span>
                     ) : (
-                      <span className="badge-muted text-[10px] px-2 py-0.5 rounded font-600">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md font-medium text-[#8E8E93]">
                         {slot.status || 'Scheduled'}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Faculty: <span className="text-foreground font-600">{slot.teacher}</span>{' '}
+                  <p className="text-xs text-[#6E6E73]">
+                    Faculty: <span className="text-[#1D1D1F] font-medium">{slot.teacher}</span>{' '}
                     &nbsp;·&nbsp; Location:{' '}
-                    <span className="text-accent font-700">{slot.room}</span> &nbsp;·&nbsp; Type:{' '}
-                    <span className="font-500">{slot.type}</span>
+                    <span className="text-[#15803D] font-semibold">{slot.room}</span> &nbsp;·&nbsp; Type:{' '}
+                    <span>{slot.type}</span>
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 self-end md:self-center">
                 <span
-                  className={`text-xs px-3.5 py-1.5 rounded-2xl font-700 border font-mono-data ${
+                  className={`text-xs px-3 py-1.5 rounded-xl font-medium ${
                     isLive
-                      ? 'bg-accent/20 text-accent border-accent/40 animate-pulse'
+                      ? 'bg-[#DCFCE7] text-[#15803D]'
                       : isNext
-                        ? 'bg-primary/10 text-primary border-primary/30'
-                        : 'bg-card text-muted-foreground border-border'
+                        ? 'bg-amber-50 text-amber-800'
+                        : 'bg-[#FAFAFC] text-[#8E8E93]'
                   }`}
                 >
-                  {isLive ? '🔴 Session In Progress' : isNext ? '⏱ Up Next' : '📅 On Schedule'}
+                  {isLive ? 'Session Active' : isNext ? 'Up Next' : 'On Schedule'}
                 </span>
               </div>
-            </AnimatedCard>
+            </div>
           );
         })}
       </div>
